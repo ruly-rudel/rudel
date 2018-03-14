@@ -107,7 +107,7 @@ static value_t b_pr_str2(value_t body, value_t cyclic, bool print_readably, bool
 			return nconc(
 				str_to_rstr(" "),
 				nconc(
-					pr_str(car(body), cyclic, print_readably, print_readably),
+					pr_str(car(body), cyclic, print_readably),
 					b_pr_str2(cdr(body), cyclic, print_readably, ws_sep)
 				)
 			);
@@ -115,7 +115,7 @@ static value_t b_pr_str2(value_t body, value_t cyclic, bool print_readably, bool
 		else
 		{
 			return nconc(
-				pr_str(car(body), cyclic, print_readably, print_readably),
+				pr_str(car(body), cyclic, print_readably),
 				b_pr_str2(cdr(body), cyclic, print_readably, ws_sep)
 			);
 		}
@@ -132,7 +132,7 @@ static value_t b_pr_str1(value_t body, value_t cyclic, bool print_readably, bool
 	else
 	{
 		return nconc(
-			pr_str(car(body), cyclic, print_readably, print_readably),
+			pr_str(car(body), cyclic, print_readably),
 			b_pr_str2(cdr(body), cyclic, print_readably, ws_sep)
 		);
 	}

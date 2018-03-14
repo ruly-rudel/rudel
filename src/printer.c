@@ -40,7 +40,7 @@ static value_t pr_str_int(int64_t x)
 }
 
 
-static value_t pr_str_cons(value_t x, value_t cyclic)
+static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
 	value_t r    = NIL;
@@ -73,7 +73,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic)
 					{
 						nconc(cyclic, cons(cons(x, NIL), NIL));
 						// append string
-						nconc(r, pr_str(car(x), cyclic, true, true));
+						nconc(r, pr_str(car(x), cyclic, print_readably));
 					}
 					else
 					{
@@ -94,7 +94,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic)
 				else	// does not chech cyclic
 				{
 					// append string
-					nconc(r, pr_str(car(x), cyclic, true, true));
+					nconc(r, pr_str(car(x), cyclic, print_readably));
 				}
 
 				x = cdr(x);
@@ -102,7 +102,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic)
 			else	// dotted
 			{
 				nconc(r, str_to_rstr(". "));
-				nconc(r, pr_str(x, cyclic, true, true));
+				nconc(r, pr_str(x, cyclic, print_readably));
 				x = NIL;
 			}
 		} while(!nilp(x));
@@ -115,14 +115,14 @@ static value_t pr_str_cons(value_t x, value_t cyclic)
 	return r;
 }
 
-static value_t pr_str_str(value_t s, bool print_readably, bool with_string_quote)
+static value_t pr_str_str(value_t s, bool print_readably)
 {
 	assert(rtypeof(s) == STR_T);
 	s.type.main = CONS_T;
 
 	value_t r;
 	value_t *cur;
-	if(print_readably && with_string_quote)
+	if(print_readably)
 	{
 		r = cons(RCHAR('"'), NIL);
 		cur = &r.cons->cdr;
@@ -169,7 +169,7 @@ static value_t pr_str_str(value_t s, bool print_readably, bool with_string_quote
 		assert(rtypeof(s) == CONS_T);
 	}
 
-	if(print_readably && with_string_quote)
+	if(print_readably)
 	{
 		*cur = cons(RCHAR('"'), NIL);
 	}
@@ -262,12 +262,12 @@ void printline(value_t s, FILE* fp)
 	return ;
 }
 
-value_t pr_str(value_t s, value_t cyclic, bool print_readably, bool with_string_quote)
+value_t pr_str(value_t s, value_t cyclic, bool print_readably)
 {
 	switch(rtypeof(s))
 	{
 	    case CONS_T:
-		return pr_str_cons(s, cyclic);
+		return pr_str_cons(s, cyclic, print_readably);
 
 	    case SYM_T:
 		return pr_sym(s);
@@ -276,7 +276,7 @@ value_t pr_str(value_t s, value_t cyclic, bool print_readably, bool with_string_
 		return pr_str_int(s.rint.val);
 
 	    case STR_T:
-		return pr_str_str(s, print_readably, with_string_quote);
+		return pr_str_str(s, print_readably);
 
 	    case CFN_T:
 		return pr_str_cfn(s, cyclic);
@@ -295,7 +295,7 @@ value_t pr_str(value_t s, value_t cyclic, bool print_readably, bool with_string_
 
 void print(value_t s, FILE* fp)
 {
-	printline(pr_str(s, cons(RINT(0), NIL), true, true), fp);
+	printline(pr_str(s, cons(RINT(0), NIL), true), fp);
 	return;
 }
 
