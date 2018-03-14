@@ -102,11 +102,7 @@ a
 ;; Testing list functions
 (list)
 ;=>nil
-(list? (list))
-;=>t
-(empty? (list))
-;=>t
-(empty? (list 1))
+(consp (list))
 ;=>nil
 (list 1 2 3)
 ;=>(1 2 3)
@@ -322,20 +318,20 @@ a
 
 ( (fn* (& more) (count more)) 1 2 3)
 ;=>3
-( (fn* (& more) (list? more)) 1 2 3)
+( (fn* (& more) (consp more)) 1 2 3)
 ;=>t
 ( (fn* (& more) (count more)) 1)
 ;=>1
 ( (fn* (& more) (count more)) )
 ;=>0
-( (fn* (& more) (list? more)) )
-;=>t
+( (fn* (& more) (consp more)) )
+;=>nil
 ( (fn* (a & more) (count more)) 1 2 3)
 ;=>2
 ( (fn* (a & more) (count more)) 1)
 ;=>0
-( (fn* (a & more) (list? more)) 1)
-;=>t
+( (fn* (a & more) (consp more)) 1)
+;=>nil
 
 
 ;; Testing language defined not function
@@ -791,7 +787,7 @@ b
 (not (= 1 2))
 ;=>t
 
-;; Testing nth, first and rest functions
+;; Testing nth, cons and cdr functions
 
 (nth (list 1) 0)
 ;=>1
@@ -802,18 +798,18 @@ b
 x
 ;=>"x"
 
-(first (list))
+(car (list))
 ;=>nil
-(first (list 6))
+(car (list 6))
 ;=>6
-(first (list 7 8 9))
+(car (list 7 8 9))
 ;=>7
 
-(rest (list))
+(cdr (list))
 ;=>nil
-(rest (list 6))
+(cdr (list 6))
 ;=>nil
-(rest (list 7 8 9))
+(cdr (list 7 8 9))
 ;=>(8 9)
 
 
@@ -869,13 +865,13 @@ x
 ;; Testing -> macro
 (-> 7)
 ;=>7
-(-> (list 7 8 9) first)
+(-> (list 7 8 9) car)
 ;=>7
-(-> (list 7 8 9) (first))
+(-> (list 7 8 9) (car))
 ;=>7
-(-> (list 7 8 9) first (+ 7))
+(-> (list 7 8 9) car (+ 7))
 ;=>14
-(-> (list 7 8 9) rest (rest) first (+ 7))
+(-> (list 7 8 9) cdr (cdr) car (+ 7))
 ;=>16
 
 ;; Testing ->> macro
@@ -883,6 +879,6 @@ x
 ;=>"L"
 (->> "L" (str "A") (str "M"))
 ;=>"MAL"
-(->> (4) (concat (3)) (concat (2)) rest (concat (1)))
+(->> (4) (concat (3)) (concat (2)) cdr (concat (1)))
 ;=>(1 3 4)
 

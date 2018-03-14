@@ -7,7 +7,7 @@
 (def! reduce
   (fn* (f init xs)
     (if (> (count xs) 0)
-      (reduce f (f init (first xs)) (rest xs))
+      (reduce f (f init (car xs)) (cdr xs))
       init)))
 
 (def! identity (fn* (x) x))
@@ -15,72 +15,72 @@
 (def! every?
   (fn* (pred xs)
     (if (> (count xs) 0)
-      (if (pred (first xs))
-        (every? pred (rest xs))
-        false)
-      true)))
+      (if (pred (car xs))
+        (every? pred (cdr xs))
+        nil)
+      t)))
 
-(def! not (fn* (x) (if x false true)))
+(def! not (fn* (x) (if x nil t)))
 
 (def! some
   (fn* (pred xs)
     (if (> (count xs) 0)
-      (let* (res (pred (first xs)))
-        (if (pred (first xs))
+      (let* (res (pred (car xs)))
+        (if (pred (car xs))
           res
-          (some pred (rest xs))))
+          (some pred (cdr xs))))
       nil)))
 
 (defmacro! and
   (fn* (& xs)
-    (if (empty? xs)
-      true
+    (if (not xs)
+      t
       (if (= 1 (count xs))
-        (first xs)
+        (car xs)
         (let* (condvar (gensym))
-          `(let* (~condvar ~(first xs))
-            (if ~condvar (and ~@(rest xs)) ~condvar)))))))
+          `(let* (~condvar ~(car xs))
+            (if ~condvar (and ~@(cdr xs)) ~condvar)))))))
 
 (defmacro! or
   (fn* (& xs)
-    (if (empty? xs)
+    (if (not xs)
       nil
       (if (= 1 (count xs))
-        (first xs)
+        (car xs)
         (let* (condvar (gensym))
-          `(let* (~condvar ~(first xs))
-             (if ~condvar ~condvar (or ~@(rest xs)))))))))
+          `(let* (~condvar ~(car xs))
+             (if ~condvar ~condvar (or ~@(cdr xs)))))))))
 
 (defmacro! cond
   (fn* (& clauses)
     (if (> (count clauses) 0)
-      (list 'if (first clauses)
+      (list 'if (car clauses)
             (if (> (count clauses) 1)
                 (nth clauses 1)
                 (throw "cond requires an even number of forms"))
-            (cons 'cond (rest (rest clauses)))))))
+            (cons 'cond (cdr (cdr clauses)))))))
 
 (defmacro! ->
   (fn* (x & xs)
-    (if (empty? xs)
+    (if (not xs)
       x
-      (let* (form (first xs)
-             more (rest xs))
-        (if (empty? more)
-          (if (list? form)
-            `(~(first form) ~x ~@(rest form))
+      (let* (form (car xs)
+             more (cdr xs))
+        (if (not more)
+          (if (consp form)
+            `(~(car form) ~x ~@(cdr form))
             (list form x))
           `(-> (-> ~x ~form) ~@more))))))
 
 (defmacro! ->>
   (fn* (x & xs)
-    (if (empty? xs)
+    (if (not xs)
       x
-      (let* (form (first xs)
-             more (rest xs))
-        (if (empty? more)
-          (if (list? form)
-            `(~(first form) ~@(rest form) ~x)
+      (let* (form (car xs)
+             more (cdr xs))
+        (if (not more)
+          (if (consp form)
+            `(~(car form) ~@(cdr form) ~x)
             (list form x))
           `(->> (->> ~x ~form) ~@more))))))
 

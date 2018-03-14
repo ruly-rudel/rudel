@@ -171,15 +171,10 @@ static value_t b_list(value_t body, value_t env)
 	}
 }
 
-static value_t is_list(value_t body, value_t env)
+static value_t consp(value_t body, value_t env)
 {
 	value_t arg = car(body);
-	return rtypeof(arg) == CONS_T ? SYM_TRUE : SYM_FALSE;
-}
-
-static value_t b_is_empty(value_t body, value_t env)
-{
-	return is_empty(car(body)) ? SYM_TRUE : SYM_FALSE;
+	return rtypeof(arg) == CONS_T && !nilp(arg) ? SYM_TRUE : SYM_FALSE;
 }
 
 static value_t count1(value_t body)
@@ -357,12 +352,12 @@ static value_t b_nth(value_t body, value_t env)
 	}
 }
 
-static value_t first(value_t body, value_t env)
+static value_t b_car(value_t body, value_t env)
 {
 	return car(car(body));
 }
 
-static value_t rest(value_t body, value_t env)
+static value_t b_cdr(value_t body, value_t env)
 {
 	return cdr(car(body));
 }
@@ -373,7 +368,7 @@ static value_t rest(value_t body, value_t env)
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(27,
+	value_t key = list(26,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -385,8 +380,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("prn"),
 	                      str_to_sym("println"),
 	                      str_to_sym("list"),
-	                      str_to_sym("list?"),
-	                      str_to_sym("empty?"),
+	                      str_to_sym("consp"),
 	                      str_to_sym("count"),
 	                      str_to_sym("read-string"),
 	                      str_to_sym("slurp"),
@@ -394,8 +388,8 @@ value_t	create_root_env	(void)
 	                      str_to_sym("cons"),
 	                      str_to_sym("concat"),
 	                      str_to_sym("nth"),
-	                      str_to_sym("first"),
-	                      str_to_sym("rest"),
+	                      str_to_sym("car"),
+	                      str_to_sym("cdr"),
 	                      str_to_sym("="),
 	                      str_to_sym("<"),
 	                      str_to_sym("<="),
@@ -403,7 +397,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym(">=")
 	                  );
 
-	value_t val = list(27,
+	value_t val = list(26,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(add), NIL),
@@ -415,8 +409,7 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(prn), NIL),
 	                      cfn(RFN(println), NIL),
 	                      cfn(RFN(b_list), NIL),
-	                      cfn(RFN(is_list), NIL),
-	                      cfn(RFN(b_is_empty), NIL),
+	                      cfn(RFN(consp), NIL),
 	                      cfn(RFN(count), NIL),
 	                      cfn(RFN(read_string), NIL),
 	                      cfn(RFN(slurp), NIL),
@@ -424,8 +417,8 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_cons), NIL),
 	                      cfn(RFN(b_concat), NIL),
 	                      cfn(RFN(b_nth), NIL),
-	                      cfn(RFN(first), NIL),
-	                      cfn(RFN(rest), NIL),
+	                      cfn(RFN(b_car), NIL),
+	                      cfn(RFN(b_cdr), NIL),
 	                      cfn(RFN(b_equal), NIL),
 	                      cfn(RFN(lt), NIL),
 	                      cfn(RFN(elt), NIL),

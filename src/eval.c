@@ -3,8 +3,6 @@
 #include "eval.h"
 #include "env.h"
 
-value_t eval(value_t v, value_t env);
-
 /////////////////////////////////////////////////////////////////////
 // private: eval functions
 
