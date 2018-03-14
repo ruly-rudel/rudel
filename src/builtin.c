@@ -178,7 +178,9 @@ value_t nconc(value_t a, value_t b)
 	value_t l = last(a);
 	if(nilp(l))
 	{
+		int type = a.type.main;
 		a = b;
+		a.type.main = type;
 	}
 	else
 	{
