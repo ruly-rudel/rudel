@@ -74,15 +74,9 @@ typedef struct _cons_t
 #define RFLOAT(X) ((value_t){ .rfloat.type = FLOAT_T << 3 | OTH_T, .rfloat.val = (X) })
 #define RFN(X)    ((value_t){ .rfn = (X) })
 
-#ifdef MAL
-	#define SYM_TRUE   str_to_sym("true")
-	#define SYM_FALSE  str_to_sym("false")
-	#define EMPTY_LIST cons(NIL, NIL)
-#else  // MAL
-	#define SYM_TRUE   str_to_sym("t")
-	#define SYM_FALSE  NIL
-	#define EMPTY_LIST NIL
-#endif // MAL
+#define SYM_TRUE   str_to_sym("t")
+#define SYM_FALSE  NIL
+#define EMPTY_LIST NIL
 
 #define ERR_TYPE	1
 #define ERR_EOF		2

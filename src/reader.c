@@ -108,11 +108,7 @@ static value_t read_list(scan_t* st)
 			{
 				if(nilp(r))
 				{
-#ifdef MAL
-					r = cons(NIL, NIL);	// () is (nil . nil)
-#else  // MAL
 					r = NIL;		// () is nil
-#endif // MAL
 				}
 				scan_next(st);
 				return r;
@@ -130,61 +126,6 @@ static value_t read_list(scan_t* st)
 
 	return RERR(ERR_PARSE);	// error: end of token before ')'
 }
-
-#ifdef MAL
-static value_t read_vector(scan_t* st)
-{
-	assert(st != NULL);
-
-	value_t r = NIL;
-	value_t *cur = &r;
-
-	value_t token;
-
-	scan_next(st);	// omit '('
-	while(!nilp(token = scan_peek(st)))
-	{
-		assert(rtypeof(token) == STR_T || rtypeof(token) == SYM_T || errp(token));
-
-		if(errp(token))
-		{
-			return token;	// scan error
-		}
-		else if(rtypeof(token) == SYM_T)
-		{
-			token.type.main = CONS_T;
-
-			value_t c = car(token);	// first char of token
-
-			assert(rtypeof(c) == INT_T);
-			if(c.rint.val == ']')
-			{
-				if(nilp(r))
-				{
-#ifdef MAL
-					r = cons(NIL, NIL);	// () is (nil . nil)
-#else  // MAL
-					r = NIL;		// () is nil
-#endif // MAL
-				}
-				scan_next(st);
-				r.type.main = VEC_T;
-				return r;
-			}
-			else
-			{
-				cur = cons_and_cdr(read_form(st), cur);
-			}
-		}
-		else
-		{
-			cur = cons_and_cdr(read_form(st), cur);
-		}
-	}
-
-	return RERR(ERR_PARSE);	// error: end of token before ')'
-}
-#endif // MAL
 
 static value_t read_form(scan_t* st)
 {
@@ -215,12 +156,6 @@ static value_t read_form(scan_t* st)
 			{
 				return read_list(st);
 			}
-#ifdef MAL
-			else if(tcar.rint.val == '[')
-			{
-				return read_vector(st);
-			}
-#endif
 			else if(tcar.rint.val == '\'')
 			{
 				scan_next(st);
@@ -311,6 +246,20 @@ value_t read_str(value_t s)
 
 	return read_form(&st);
 }
+
+value_t read(FILE* fp)
+{
+	value_t str = readline(fp);
+	if(errp(str))
+	{
+		return str;
+	}
+	else
+	{
+		return read_str(str);
+	}
+}
+
 
 // End of File
 /////////////////////////////////////////////////////////////////////

@@ -1,7 +1,6 @@
 #include <assert.h>
 #include "builtin.h"
 #include "printer.h"
-#include "util.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: printer support functions
@@ -43,28 +42,21 @@ static value_t pr_str_int(int64_t x)
 
 static value_t pr_str_cons(value_t x, value_t cyclic)
 {
-	assert(rtypeof(x) == CONS_T || rtypeof(x) == VEC_T);
+	assert(rtypeof(x) == CONS_T);
 	value_t r    = NIL;
-	bool is_vec = rtypeof(x) == VEC_T;
 	x.type.main = CONS_T;
 
 	if(nilp(x))
 	{
 		r = str_to_rstr("nil");
 	}
-#ifdef MAL
-	else if(nilp(car(x)) && nilp(cdr(x)))
-	{
-		r = str_to_rstr(is_vec ? "[]" : "()");
-	}
-#endif // MAL
 	else
 	{
 		do
 		{
 			if(nilp(r))
 			{
-				r = str_to_rstr(is_vec ? "[" : "(");
+				r = str_to_rstr("(");
 			}
 			else
 			{
@@ -115,7 +107,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic)
 			}
 		} while(!nilp(x));
 
-		nconc(r, str_to_rstr(is_vec ? "]" : ")"));
+		nconc(r, str_to_rstr(")"));
 	}
 
 	r.type.main = STR_T;
@@ -269,7 +261,6 @@ value_t pr_str(value_t s, value_t cyclic, bool print_readably)
 	switch(rtypeof(s))
 	{
 	    case CONS_T:
-	    case VEC_T:
 		return pr_str_cons(s, cyclic);
 
 	    case SYM_T:
@@ -295,6 +286,13 @@ value_t pr_str(value_t s, value_t cyclic, bool print_readably)
 		return s;
 	}
 }
+
+void print(value_t s, FILE* fp)
+{
+	printline(pr_str(s, cons(RINT(0), NIL), true), fp);
+	return;
+}
+
 
 // End of File
 /////////////////////////////////////////////////////////////////////

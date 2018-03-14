@@ -29,8 +29,6 @@ rtype_t rtypeof(value_t v)
 
 value_t car(value_t x)
 {
-	if(rtypeof(x) == VEC_T) x.type.main = CONS_T;
-
 	if(rtypeof(x) == CONS_T)
 	{
 		return x.type.sub != 0 ? x.cons->car : NIL;
@@ -43,8 +41,6 @@ value_t car(value_t x)
 
 value_t cdr(value_t x)
 {
-	if(rtypeof(x) == VEC_T) x.type.main = CONS_T;
-
 	if(rtypeof(x) == CONS_T)
 	{
 		return x.type.sub != 0 ? x.cons->cdr : NIL;
@@ -153,7 +149,7 @@ value_t last(value_t x)
 
 value_t nth(int n, value_t x)
 {
-	if(rtypeof(x) != CONS_T && rtypeof(x) != VEC_T && rtypeof(x) != STR_T && rtypeof(x) != SYM_T)
+	if(rtypeof(x) != CONS_T && rtypeof(x) != STR_T && rtypeof(x) != SYM_T)
 	{
 		return RERR(ERR_TYPE);
 	}
@@ -176,7 +172,7 @@ value_t nth(int n, value_t x)
 
 value_t nconc(value_t a, value_t b)
 {
-	assert(rtypeof(a) == CONS_T || rtypeof(a) == STR_T || rtypeof(a) == SYM_T || rtypeof(a) == VEC_T);
+	assert(rtypeof(a) == CONS_T || rtypeof(a) == STR_T || rtypeof(a) == SYM_T);
 
 
 	value_t l = last(a);
@@ -217,9 +213,6 @@ bool eq(value_t x, value_t y)
 
 bool equal(value_t x, value_t y)
 {
-	if(rtypeof(x) == VEC_T) x.type.main = CONS_T;
-	if(rtypeof(y) == VEC_T) y.type.main = CONS_T;
-
 	if(eq(x, y))
 	{
 		return true;
@@ -253,7 +246,7 @@ bool equal(value_t x, value_t y)
 
 value_t copy_list(value_t list)
 {
-	assert(rtypeof(list) == CONS_T || rtypeof(list) == SYM_T || rtypeof(list) == STR_T || rtypeof(list) == VEC_T);
+	assert(rtypeof(list) == CONS_T || rtypeof(list) == SYM_T || rtypeof(list) == STR_T);
 	unsigned int type = list.type.main;
 	list.type.main = CONS_T;
 	value_t    r = NIL;
@@ -324,21 +317,12 @@ value_t pairlis		(value_t key, value_t val)
 
 bool is_pair		(value_t list)
 {
-#ifdef MAL
-	return rtypeof(list) == CONS_T && !nilp(car(list));
-#else  // MAL
 	return rtypeof(list) == CONS_T && !nilp(list);
-#endif // MAL
 }
 
 bool is_empty(value_t list)
 {
-#ifdef MAL
-	if(rtypeof(list) == VEC_T) list.type.main = CONS_T;
-	return rtypeof(list) == CONS_T && nilp(car(list)) && nilp(cdr(list));
-#else  // MAL
 	return nilp(list);
-#endif // MAL
 }
 
 value_t concat(int n, ...)
@@ -353,18 +337,7 @@ value_t concat(int n, ...)
 		value_t copy = copy_list(arg1);
 		copy.type.main = CONS_T;
 
-#ifdef MAL
-		if(is_empty(r))
-		{
-			r = copy;
-		}
-		else
-		{
-			r = nconc(r, copy);
-		}
-#else  // MAL
 		r = nconc(r, copy);
-#endif // MAL
 	}
 
 	va_end(arg);

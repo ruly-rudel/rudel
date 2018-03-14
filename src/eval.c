@@ -8,30 +8,9 @@ value_t eval(value_t v, value_t env);
 /////////////////////////////////////////////////////////////////////
 // private: eval functions
 
-
-/////////////////////////////////////////////////////////////////////
-// public: eval
-
-value_t eval_ast	(value_t ast, value_t env)
+static value_t eval_ast_list(value_t list, value_t env)
 {
-	switch(rtypeof(ast))
-	{
-	    case SYM_T:
-		return get_env_value(ast, env);
-
-	    case CONS_T:
-	    case VEC_T:
-		return eval_ast_list(ast, env);
-
-	    default:
-		return ast;
-	}
-}
-
-value_t eval_ast_list(value_t list, value_t env)
-{
-	assert(rtypeof(list) == CONS_T || rtypeof(list) == VEC_T);
-	bool is_vec = rtypeof(list) == VEC_T;
+	assert(rtypeof(list) == CONS_T);
 	list.type.main = CONS_T;
 
 	if(nilp(list))
@@ -53,12 +32,27 @@ value_t eval_ast_list(value_t list, value_t env)
 		}
 
 		value_t ret = cons(lcar, lcdr);
-		ret.type.main = is_vec ? VEC_T : CONS_T;
+		ret.type.main = CONS_T;
 		return ret;
 	}
 }
 
-value_t eval_def(value_t vcdr, value_t env)
+static value_t eval_ast	(value_t ast, value_t env)
+{
+	switch(rtypeof(ast))
+	{
+	    case SYM_T:
+		return get_env_value(ast, env);
+
+	    case CONS_T:
+		return eval_ast_list(ast, env);
+
+	    default:
+		return ast;
+	}
+}
+
+static value_t eval_def(value_t vcdr, value_t env)
 {
 	// key
 	value_t key = car(vcdr);
@@ -83,12 +77,12 @@ value_t eval_def(value_t vcdr, value_t env)
 	return val;
 }
 
-value_t eval_do(value_t vcdr, value_t env)
+static value_t eval_do(value_t vcdr, value_t env)
 {
 	return car(last(eval_ast_list(vcdr, env)));
 }
 
-value_t eval_if(value_t vcdr, value_t env)
+static value_t eval_if(value_t vcdr, value_t env)
 {
 	value_t cond = eval(car(vcdr), env);
 
@@ -102,7 +96,7 @@ value_t eval_if(value_t vcdr, value_t env)
 	}
 }
 
-value_t eval_let(value_t vcdr, value_t env)
+static value_t eval_let(value_t vcdr, value_t env)
 {
 	if(rtypeof(vcdr) != CONS_T)
 	{
@@ -114,7 +108,7 @@ value_t eval_let(value_t vcdr, value_t env)
 
 	// local symbols
 	value_t def = car(vcdr);
-	if(rtypeof(def) != CONS_T && rtypeof(def) != VEC_T)
+	if(rtypeof(def) != CONS_T)
 	{
 		return RERR(ERR_ARG);
 	}
@@ -146,7 +140,7 @@ value_t eval_let(value_t vcdr, value_t env)
 	return eval(car(cdr(vcdr)), let_env);
 }
 
-value_t eval_quasiquote	(value_t vcdr, value_t env)
+static value_t eval_quasiquote	(value_t vcdr, value_t env)
 {
 	if(!is_pair(vcdr))					// raw
 	{
@@ -173,7 +167,7 @@ value_t eval_quasiquote	(value_t vcdr, value_t env)
 	}
 }
 
-value_t eval_defmacro(value_t vcdr, value_t env)
+static value_t eval_defmacro(value_t vcdr, value_t env)
 {
 	// key
 	value_t key = car(vcdr);
@@ -200,7 +194,7 @@ value_t eval_defmacro(value_t vcdr, value_t env)
 	return val;
 }
 
-value_t is_macro_call(value_t ast, value_t env)
+static value_t is_macro_call(value_t ast, value_t env)
 {
 	if(rtypeof(ast) == CONS_T)
 	{
@@ -218,6 +212,100 @@ value_t is_macro_call(value_t ast, value_t env)
 	return NIL;
 }
 
+static value_t eval_list(value_t v, value_t env)
+{
+	assert(rtypeof(v) == CONS_T);
+
+	// expand macro
+	v = macroexpand(v, env);
+	if(rtypeof(v) != CONS_T)
+	{
+		return eval_ast(v, env);
+	}
+
+	// some special evaluations
+	value_t vcar = car(v);
+	value_t vcdr = cdr(v);
+
+	if(equal(vcar, str_to_sym("def!")))		// def!
+	{
+		return eval_def(vcdr, env);
+	}
+	else if(equal(vcar, str_to_sym("let*")))	// let*
+	{
+		return eval_let(vcdr, env);
+	}
+	else if(equal(vcar, str_to_sym("do")))		// do
+	{
+		return eval_do(vcdr, env);
+	}
+	else if(equal(vcar, str_to_sym("if")))		// if
+	{
+		return eval_if(vcdr, env);
+	}
+	else if(equal(vcar, str_to_sym("fn*")))		// fn*
+	{
+		return cloj(vcdr, env);
+	}
+	else if(equal(vcar, str_to_sym("quote")))	// quote
+	{
+		return car(vcdr);
+	}
+	else if(equal(vcar, str_to_sym("quasiquote")))	// quasiquote
+	{
+		return car(eval_quasiquote(vcdr, env));
+	}
+	else if(equal(vcar, str_to_sym("defmacro!")))	// defmacro!
+	{
+		return eval_defmacro(vcdr, env);
+	}
+	else if(equal(vcar, str_to_sym("macroexpand")))	// macroexpand
+	{
+		return macroexpand(car(vcdr), env);
+	}
+	else						// apply function
+	{
+		value_t ev = eval_ast(v, env);
+		if(errp(ev))
+		{
+			return ev;
+		}
+		else
+		{
+			value_t fn = car(ev);
+			if(rtypeof(fn) == CFN_T)
+			{
+				fn.type.main = CONS_T;
+				// apply
+				return car(fn).rfn(cdr(ev), env);
+			}
+			else if(rtypeof(fn) == CLOJ_T)
+			{
+				return apply(fn, cdr(ev));
+			}
+			else
+			{
+				return RERR(ERR_NOTFN);
+			}
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////////////
+// public: eval
+
+
+value_t macroexpand(value_t ast, value_t env)
+{
+	value_t macro;
+	while(!nilp(macro = is_macro_call(ast, env)))
+	{
+		ast = apply(macro, cdr(ast));
+	}
+
+	return ast;
+}
+
 value_t apply(value_t fn, value_t args)
 {
 	fn.type.main = CONS_T;
@@ -230,7 +318,7 @@ value_t apply(value_t fn, value_t args)
 
 	// formal arguments from clojure
 	value_t fargs = car(fn_ast);
-	if(rtypeof(fargs) != CONS_T && rtypeof(fargs) != VEC_T)
+	if(rtypeof(fargs) != CONS_T)
 	{
 		return RERR(ERR_ARG);
 	}
@@ -251,16 +339,29 @@ value_t apply(value_t fn, value_t args)
 	return eval(body, fn_env);
 }
 
-value_t macroexpand(value_t ast, value_t env)
+value_t eval(value_t v, value_t env)
 {
-	value_t macro;
-	while(!nilp(macro = is_macro_call(ast, env)))
+	if(errp(v))
 	{
-		ast = apply(macro, cdr(ast));
+		return v;
 	}
-
-	return ast;
+	else if(rtypeof(v) == CONS_T)
+	{
+		if(nilp(v))
+		{
+			return NIL;
+		}
+		else
+		{
+			return eval_list(v, env);
+		}
+	}
+	else
+	{
+		return eval_ast(v, env);
+	}
 }
+
 
 // End of File
 /////////////////////////////////////////////////////////////////////

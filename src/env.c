@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "builtin.h"
 #include "env.h"
-#include "util.h"
 #include "reader.h"
 #include "printer.h"
 
@@ -159,7 +158,7 @@ static value_t println(value_t body, value_t env)
 	return NIL;
 }
 
-static value_t b_list1(value_t body, value_t env)
+static value_t b_list(value_t body, value_t env)
 {
 	if(nilp(body))
 	{
@@ -167,35 +166,14 @@ static value_t b_list1(value_t body, value_t env)
 	}
 	else
 	{
-		return cons(car(body), b_list1(cdr(body), env));
+		return cons(car(body), b_list(cdr(body), env));
 	}
-}
-
-
-static value_t b_list(value_t body, value_t env)
-{
-#ifdef MAL
-	if(nilp(body))
-	{
-		return cons(NIL, NIL);
-	}
-	else
-	{
-		return cons(car(body), b_list1(cdr(body), env));
-	}
-#else  // MAL
-	return b_list1(body, env);
-#endif // MAL
 }
 
 static value_t is_list(value_t body, value_t env)
 {
 	value_t arg = car(body);
-#ifdef MAL
-	return rtypeof(arg) == CONS_T && !nilp(arg) ? SYM_TRUE : SYM_FALSE;
-#else  // MAL
 	return rtypeof(arg) == CONS_T ? SYM_TRUE : SYM_FALSE;
-#endif // MAL
 }
 
 static value_t b_is_empty(value_t body, value_t env)
@@ -230,18 +208,12 @@ static value_t count1(value_t body)
 static value_t count(value_t body, value_t env)
 {
 	value_t arg = car(body);
-	if(rtypeof(arg) != CONS_T && rtypeof(arg) != VEC_T)
+	if(rtypeof(arg) != CONS_T)
 	{
 		return RERR(ERR_TYPE);
 	}
 	arg.type.main = CONS_T;
 
-#ifdef MAL
-	if(nilp(car(arg)))
-	{
-		return RINT(0);
-	}
-#endif // MAL
 	return count1(arg);
 }
 
@@ -357,26 +329,7 @@ static value_t b_cons(value_t body, value_t env)
 {
 	value_t a = car(body);
 	value_t b = car(cdr(body));
-#ifdef MAL
-	if(equal(is_list(cdr(body), env), SYM_TRUE))
-	{
-		if(is_empty(b))
-		{
-			return cons(a, NIL);
-		}
-		else
-		{
-			return cons(a, b);
-		}
-	}
-	else
-	{
-		if(rtypeof(b) == VEC_T) b.type.main = CONS_T;
-		return cons(a, b);
-	}
-#else  // MAL
 	return cons(a, b);
-#endif // MAL
 }
 
 static value_t b_concat(value_t body, value_t env)

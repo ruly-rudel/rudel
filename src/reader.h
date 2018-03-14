@@ -7,5 +7,6 @@
 
 value_t readline	(FILE* fp);
 value_t read_str	(value_t s);
+value_t read		(FILE* fp);
 
 #endif // _reader_h_
