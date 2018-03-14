@@ -36,7 +36,7 @@ test:	$(TARGET)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o $(TARGET) librudel.a .deps
+	rm -rf *.o $(TARGET) librudel.a .deps tags
 
 -include .deps
 

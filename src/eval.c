@@ -220,6 +220,10 @@ static value_t eval_list(value_t v, value_t env)
 	{
 		return eval_ast(v, env);
 	}
+	else if(nilp(v))
+	{
+		return v;
+	}
 
 	// some special evaluations
 	value_t vcar = car(v);

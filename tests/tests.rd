@@ -502,13 +502,13 @@ nil
 ;;
 ;; -------- Optional Functionality --------
 
-;; Testing keywords
-(= :abc :abc)
-;=>t
-(= :abc :def)
-;=>nil
-(= :abc ":abc")
-;=>nil
+;;  ;; Testing keywords
+;;  (= :abc :abc)
+;;  ;=>t
+;;  (= :abc :def)
+;;  ;=>nil
+;;  (= :abc ":abc")
+;;  ;=>nil
 
 
 
@@ -879,6 +879,6 @@ x
 ;=>"L"
 (->> "L" (str "A") (str "M"))
 ;=>"MAL"
-(->> (4) (concat (3)) (concat (2)) cdr (concat (1)))
+(->> (list 4) (concat (list 3)) (concat (list 2)) cdr (concat (list 1)))
 ;=>(1 3 4)
 
