@@ -7,6 +7,7 @@
 #include "printer.h"
 #include "env.h"
 #include "eval.h"
+#include "core.h"
 
 int main(int argc, char* argv[])
 {

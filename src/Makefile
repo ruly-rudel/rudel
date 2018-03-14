@@ -9,7 +9,7 @@ OPT=-O3
 CFLAGS=$(OPT) -Wall $(DEBUG) $(INCPATHS) -std=c11
 LDFLAGS=$(OPT) $(DEBUG) $(LIBPATHS) -L.
 
-LIBSOURCES=builtin.c scanner.c reader.c printer.c eval.c env.c
+LIBSOURCES=builtin.c scanner.c reader.c printer.c eval.c env.c core.c
 LIBOBJS=$(LIBSOURCES:%.c=%.o)
 
 TARGET=rudel
