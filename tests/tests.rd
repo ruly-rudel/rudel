@@ -25,7 +25,7 @@
 
 ;; Testing empty list
 ()
-;=>()
+;=>nil
 
 ;; Testing REPL_ENV
 (+ 1 2)
@@ -101,13 +101,13 @@ a
 
 ;; Testing list functions
 (list)
-;=>()
+;=>nil
 (list? (list))
-;=>true
+;=>t
 (empty? (list))
-;=>true
+;=>t
 (empty? (list 1))
-;=>false
+;=>nil
 (list 1 2 3)
 ;=>(1 2 3)
 (count (list 1 2 3))
@@ -123,13 +123,13 @@ a
 
 
 ;; Testing if form
-(if true 7 8)
+(if t 7 8)
 ;=>7
-(if false 7 8)
+(if nil 7 8)
 ;=>8
-(if true (+ 1 7) (+ 1 8))
+(if t (+ 1 7) (+ 1 8))
 ;=>8
-(if false (+ 1 7) (+ 1 8))
+(if nil (+ 1 7) (+ 1 8))
 ;=>9
 (if nil 7 8)
 ;=>8
@@ -138,109 +138,109 @@ a
 (if "" 7 8)
 ;=>7
 (if (list) 7 8)
-;=>7
+;=>8
 (if (list 1 2 3) 7 8)
 ;=>7
 (= (list) nil)
-;=>false
+;=>t
 
 
 ;; Testing 1-way if form
-(if false (+ 1 7))
+(if nil (+ 1 7))
 ;=>nil
 (if nil 8 7)
 ;=>7
-(if true (+ 1 7))
+(if t (+ 1 7))
 ;=>8
 
 
 ;; Testing basic conditionals
 (= 2 1)
-;=>false
+;=>nil
 (= 1 1)
-;=>true
+;=>t
 (= 1 2)
-;=>false
+;=>nil
 (= 1 (+ 1 1))
-;=>false
+;=>nil
 (= 2 (+ 1 1))
-;=>true
+;=>t
 (= nil 1)
-;=>false
+;=>nil
 (= nil nil)
-;=>true
+;=>t
 
 (> 2 1)
-;=>true
+;=>t
 (> 1 1)
-;=>false
+;=>nil
 (> 1 2)
-;=>false
+;=>nil
 
 (>= 2 1)
-;=>true
+;=>t
 (>= 1 1)
-;=>true
+;=>t
 (>= 1 2)
-;=>false
+;=>nil
 
 (< 2 1)
-;=>false
+;=>nil
 (< 1 1)
-;=>false
+;=>nil
 (< 1 2)
-;=>true
+;=>t
 
 (<= 2 1)
-;=>false
+;=>nil
 (<= 1 1)
-;=>true
+;=>t
 (<= 1 2)
-;=>true
+;=>t
 
 
 ;; Testing equality
 (= 1 1)
-;=>true
+;=>t
 (= 0 0)
-;=>true
+;=>t
 (= 1 0)
-;=>false
+;=>nil
 (= "" "")
-;=>true
+;=>t
 (= "abc" "abc")
-;=>true
+;=>t
 (= "abc" "")
-;=>false
+;=>nil
 (= "" "abc")
-;=>false
+;=>nil
 (= "abc" "def")
-;=>false
+;=>nil
 (= "abc" "ABC")
-;=>false
-(= true true)
-;=>true
-(= false false)
-;=>true
+;=>nil
+(= t t)
+;=>t
 (= nil nil)
-;=>true
+;=>t
+(= nil nil)
+;=>t
 
 (= (list) (list))
-;=>true
+;=>t
 (= (list 1 2) (list 1 2))
-;=>true
+;=>t
 (= (list 1) (list))
-;=>false
+;=>nil
 (= (list) (list 1))
-;=>false
+;=>nil
 (= 0 (list))
-;=>false
+;=>nil
 (= (list) 0)
-;=>false
+;=>nil
 (= (list) "")
-;=>false
+;=>nil
 (= "" (list))
-;=>false
+;=>nil
 
 
 ;; Testing builtin and user defined functions
@@ -323,30 +323,30 @@ a
 ( (fn* (& more) (count more)) 1 2 3)
 ;=>3
 ( (fn* (& more) (list? more)) 1 2 3)
-;=>true
+;=>t
 ( (fn* (& more) (count more)) 1)
 ;=>1
 ( (fn* (& more) (count more)) )
 ;=>0
 ( (fn* (& more) (list? more)) )
-;=>true
+;=>t
 ( (fn* (a & more) (count more)) 1 2 3)
 ;=>2
 ( (fn* (a & more) (count more)) 1)
 ;=>0
 ( (fn* (a & more) (list? more)) 1)
-;=>true
+;=>t
 
 
 ;; Testing language defined not function
-(not false)
-;=>true
-(not true)
-;=>false
+(not nil)
+;=>t
+(not t)
+;=>nil
 (not "a")
-;=>false
+;=>nil
 (not 0)
-;=>false
+;=>nil
 
 
 ;; -----------------------------------------------------
@@ -401,7 +401,7 @@ a
 ;=>"\"abc\\\\def\\\\ghi\""
 
 (pr-str (list))
-;=>"()"
+;=>"nil"
 
 ;; Testing str
 
@@ -433,7 +433,7 @@ a
 ;=>"(1 2 abc \")def"
 
 (str (list))
-;=>"()"
+;=>"nil"
 
 ;; Testing prn
 (prn)
@@ -508,11 +508,11 @@ nil
 
 ;; Testing keywords
 (= :abc :abc)
-;=>true
+;=>t
 (= :abc :def)
-;=>false
+;=>nil
 (= :abc ":abc")
-;=>false
+;=>nil
 
 
 
@@ -614,7 +614,7 @@ a
 
 ;; Testing concat function
 (concat)
-;=>()
+;=>nil
 (concat (list 1 2))
 ;=>(1 2)
 (concat (list 1 2) (list 3 4))
@@ -622,9 +622,9 @@ a
 (concat (list 1 2) (list 3 4) (list 5 6))
 ;=>(1 2 3 4 5 6)
 (concat (concat))
-;=>()
+;=>nil
 (concat (list) (list))
-;=>()
+;=>nil
 
 (def! a (list 1 2))
 (def! b (list 3 4))
@@ -686,19 +686,19 @@ b
 
 ;; Testing symbol equality
 (= (quote abc) (quote abc))
-;=>true
+;=>t
 (= (quote abc) (quote abcd))
-;=>false
+;=>nil
 (= (quote abc) "abc")
-;=>false
+;=>nil
 (= "abc" (quote abc))
-;=>false
+;=>nil
 (= "abc" (str (quote abc)))
-;=>true
+;=>t
 (= (quote abc) nil)
-;=>false
+;=>nil
 (= nil (quote abc))
-;=>false
+;=>nil
 
 ;;;;; Test quine
 ;;; TODO: needs expect line length fix
@@ -760,14 +760,14 @@ b
 
 ;; Testing unless macros
 (defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))
-(unless false 7 8)
+(unless nil 7 8)
 ;=>7
-(unless true 7 8)
+(unless t 7 8)
 ;=>8
 (defmacro! unless2 (fn* (pred a b) `(if (not ~pred) ~a ~b)))
-(unless2 false 7 8)
+(unless2 nil 7 8)
 ;=>7
-(unless2 true 7 8)
+(unless2 t 7 8)
 ;=>8
 
 ;; Testing macroexpand
@@ -786,10 +786,10 @@ b
 
 ;; Testing non-macro function
 (not (= 1 1))
-;=>false
+;=>nil
 ;;; This should fail if it is a macro
 (not (= 1 2))
-;=>true
+;=>t
 
 ;; Testing nth, first and rest functions
 
@@ -810,9 +810,9 @@ x
 ;=>7
 
 (rest (list))
-;=>()
+;=>nil
 (rest (list 6))
-;=>()
+;=>nil
 (rest (list 7 8 9))
 ;=>(8 9)
 
@@ -824,32 +824,32 @@ x
 ;=>1
 (or 1 2 3 4)
 ;=>1
-(or false 2)
+(or nil 2)
 ;=>2
-(or false nil 3)
+(or nil nil 3)
 ;=>3
-(or false nil false false nil 4)
+(or nil nil nil nil nil 4)
 ;=>4
-(or false nil 3 false nil 4)
+(or nil nil 3 nil nil 4)
 ;=>3
-(or (or false 4))
+(or (or nil 4))
 ;=>4
 
 ;; Testing cond macro
 
 (cond)
 ;=>nil
-(cond true 7)
+(cond t 7)
 ;=>7
-(cond true 7 true 8)
+(cond t 7 t 8)
 ;=>7
-(cond false 7 true 8)
+(cond nil 7 t 8)
 ;=>8
-(cond false 7 false 8 "else" 9)
+(cond nil 7 nil 8 "else" 9)
 ;=>9
-(cond false 7 (= 2 2) 8 "else" 9)
+(cond nil 7 (= 2 2) 8 "else" 9)
 ;=>8
-(cond false 7 false 8 false 9)
+(cond nil 7 nil 8 nil 9)
 ;=>nil
 
 ;; Testing EVAL in let*
@@ -883,6 +883,6 @@ x
 ;=>"L"
 (->> "L" (str "A") (str "M"))
 ;=>"MAL"
-(->> [4] (concat [3]) (concat [2]) rest (concat [1]))
+(->> (4) (concat (3)) (concat (2)) rest (concat (1)))
 ;=>(1 3 4)
 

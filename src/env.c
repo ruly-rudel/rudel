@@ -446,10 +446,9 @@ static value_t make_bind(value_t key, value_t val, value_t alist)
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(28,
+	value_t key = list(27,
 	                      str_to_sym("nil"),
-	                      str_to_sym("true"),
-	                      str_to_sym("false"),
+	                      str_to_sym("t"),
 	                      str_to_sym("+"),
 	                      str_to_sym("-"),
 	                      str_to_sym("*"),
@@ -477,10 +476,9 @@ value_t	create_root_env	(void)
 	                      str_to_sym(">=")
 	                  );
 
-	value_t val = list(28,
+	value_t val = list(27,
 			      NIL,
-			      str_to_sym("true"),
-			      str_to_sym("false"),
+			      str_to_sym("t"),
 	                      cfn(RFN(add), NIL),
 	                      cfn(RFN(sub), NIL),
 	                      cfn(RFN(mul), NIL),

@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
 	value_t env = create_root_env();
 
 	// implement not
-	eval(read_str(str_to_rstr("(def! not (fn* (a) (if a false true)))")), env);
+	eval(read_str(str_to_rstr("(def! not (fn* (a) (if a nil t)))")), env);
 
 	// implement load_file
 	eval(read_str(str_to_rstr("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")), env);

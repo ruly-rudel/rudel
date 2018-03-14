@@ -7,9 +7,6 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
-// use mal mode
-#define MAL
-
 typedef enum _rtype_t {
 	// main 8types (content is address)
 	CONS_T = 0,
