@@ -5,8 +5,11 @@
 #include "builtin.h"
 #include <stdio.h>
 
-value_t readline	(FILE* fp);
+#define USE_LINENOISE
+#define RUDEL_INPUT_HISTORY	".history.rd"
+
+void			init_linenoise(void);
 value_t read_str	(value_t s);
-value_t read		(FILE* fp);
+value_t READ		(const char* prompt, FILE* fp);
 
 #endif // _reader_h_

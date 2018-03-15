@@ -882,3 +882,45 @@ x
 (->> (list 4) (concat (list 3)) (concat (list 2)) cdr (concat (list 1)))
 ;=>(1 3 4)
 
+
+
+;>>> deferrable=False
+;>>> optional=False
+;;
+;; -------- rudel-specific Functionality --------
+
+;; Testing eq, atom
+
+(atom nil)
+;=>t
+(atom '())
+;=>t
+(atom 'symbol)
+;=>t
+(atom 0)
+;=>t
+(atom "string")
+;=>t
+(atom cons)
+;=>t
+(atom or)
+;=>t
+(atom '(1 2))
+;=>nil
+(atom (list 3 4))
+;=>nil
+
+(eq 0 0)
+;=>t
+(eq 0 1)
+;=>nil
+(eq "str" "str")
+;=>nil
+(eq '(1 2) '(1 2))
+;=>nil
+(eq nil nil)
+;=>t
+(eq cons cons)
+;=>t
+(eq cons or)
+;=>nil

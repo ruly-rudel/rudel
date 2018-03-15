@@ -2,6 +2,7 @@
 #include "builtin.h"
 #include "reader.h"
 #include "scanner.h"
+#include "../linenoise/linenoise.h"
 
 
 /////////////////////////////////////////////////////////////////////
@@ -211,12 +212,8 @@ static value_t read_form(scan_t* st)
 	}
 }
 
-
-
-/////////////////////////////////////////////////////////////////////
-// public: Rudel-specific functions
-
-value_t readline(FILE* fp)
+#ifndef USE_LINENOISE
+static value_t read_line(FILE* fp)
 {
 	value_t	 r	= NIL;
 	value_t* cur	= &r;
@@ -239,6 +236,17 @@ value_t readline(FILE* fp)
 		}
 	}
 }
+#endif // USE_LINENOISE
+
+/////////////////////////////////////////////////////////////////////
+// public: Rudel-specific functions
+
+void init_linenoise(void)
+{
+	linenoiseSetMultiLine(1);
+	linenoiseHistoryLoad(RUDEL_INPUT_HISTORY);
+	return ;
+}
 
 value_t read_str(value_t s)
 {
@@ -247,9 +255,26 @@ value_t read_str(value_t s)
 	return read_form(&st);
 }
 
-value_t read(FILE* fp)
+value_t READ(const char* prompt, FILE* fp)
 {
-	value_t str = readline(fp);
+#ifdef USE_LINENOISE
+	char* line = linenoise(prompt);
+	if(line)
+	{
+		linenoiseHistoryAdd(line);
+		linenoiseHistorySave(RUDEL_INPUT_HISTORY);
+
+		value_t r = str_to_rstr(line);
+		linenoiseFree(line);
+		return read_str(r);
+	}
+	else
+	{
+		return RERR(ERR_EOF);
+	}
+#else	// USE_LINENOISE
+	fprintf(stdout, prompt);
+	value_t str = read_line(fp);
 	if(errp(str))
 	{
 		return str;
@@ -258,6 +283,7 @@ value_t read(FILE* fp)
 	{
 		return read_str(str);
 	}
+#endif  // USE LINENOISE
 }
 
 

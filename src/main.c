@@ -11,6 +11,10 @@
 
 int main(int argc, char* argv[])
 {
+#ifdef USE_LINENOISE
+	init_linenoise();
+#endif // USE_LINENOISE
+
 	value_t r, e;
 	value_t env = create_root_env();
 
@@ -28,8 +32,7 @@ int main(int argc, char* argv[])
 
 	for(;;)
 	{
-		fprintf(stdout, "user> ");
-		r = read(stdin);
+		r = READ("user> ", stdin);
 		if(errp(r))
 		{
 			if(r.type.val == ERR_EOF)
