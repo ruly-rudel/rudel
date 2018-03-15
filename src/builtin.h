@@ -103,6 +103,7 @@ value_t nth		(int n, value_t x);
 value_t nconc		(value_t a, value_t b);
 bool	eq		(value_t x, value_t y);
 bool	equal		(value_t x, value_t y);
+bool	atom		(value_t x);
 value_t list		(int n, ...);
 value_t	cfn		(value_t fn, value_t env);
 value_t	cloj		(value_t fn, value_t env);

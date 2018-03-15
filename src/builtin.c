@@ -246,6 +246,11 @@ bool equal(value_t x, value_t y)
 	}
 }
 
+bool atom(value_t x)
+{
+	return rtypeof(x) != CONS_T || nilp(x);
+}
+
 value_t copy_list(value_t list)
 {
 	assert(rtypeof(list) == CONS_T || rtypeof(list) == SYM_T || rtypeof(list) == STR_T);

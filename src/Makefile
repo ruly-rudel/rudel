@@ -6,10 +6,11 @@ AR=ar
 
 DEBUG=-g3
 OPT=-O3
-CFLAGS=$(OPT) -Wall $(DEBUG) $(INCPATHS) -std=c11
+INCPATHS+= -I../linenoise
+CFLAGS=$(OPT) -Wall $(DEBUG) $(INCPATHS)
 LDFLAGS=$(OPT) $(DEBUG) $(LIBPATHS) -L.
 
-LIBSOURCES=builtin.c scanner.c reader.c printer.c eval.c env.c core.c
+LIBSOURCES=builtin.c scanner.c reader.c printer.c eval.c env.c core.c ../linenoise/linenoise.c
 LIBOBJS=$(LIBSOURCES:%.c=%.o)
 
 TARGET=rudel
@@ -36,7 +37,7 @@ test:	$(TARGET)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o $(TARGET) librudel.a .deps tags
+	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags
 
 -include .deps
 

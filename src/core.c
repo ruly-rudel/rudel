@@ -219,6 +219,16 @@ static value_t b_equal(value_t body, value_t env)
 	return equal(car(body), car(cdr(body))) ? SYM_TRUE : SYM_FALSE;
 }
 
+static value_t b_eq(value_t body, value_t env)
+{
+	return eq(car(body), car(cdr(body))) ? SYM_TRUE : SYM_FALSE;
+}
+
+static value_t b_atom(value_t body, value_t env)
+{
+	return atom(car(body)) ? SYM_TRUE : SYM_FALSE;
+}
+
 static value_t comp(value_t body, bool (*comp_fn)(int64_t, int64_t))
 {
 	value_t a = car(body);
@@ -369,7 +379,7 @@ static value_t b_cdr(value_t body, value_t env)
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(26,
+	value_t key = list(28,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -392,13 +402,15 @@ value_t	create_root_env	(void)
 	                      str_to_sym("car"),
 	                      str_to_sym("cdr"),
 	                      str_to_sym("="),
+	                      str_to_sym("eq"),
+	                      str_to_sym("atom"),
 	                      str_to_sym("<"),
 	                      str_to_sym("<="),
 	                      str_to_sym(">"),
 	                      str_to_sym(">=")
 	                  );
 
-	value_t val = list(26,
+	value_t val = list(28,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(add), NIL),
@@ -421,6 +433,8 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_car), NIL),
 	                      cfn(RFN(b_cdr), NIL),
 	                      cfn(RFN(b_equal), NIL),
+	                      cfn(RFN(b_eq), NIL),
+	                      cfn(RFN(b_atom), NIL),
 	                      cfn(RFN(lt), NIL),
 	                      cfn(RFN(elt), NIL),
 	                      cfn(RFN(mt), NIL),
