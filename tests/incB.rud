@@ -3,8 +3,8 @@
 (def! inc5 (fn* (a)  ;; a comment after code
   (+ 5 a)))
 
-(prn "incB.rd finished")
-"incB.rd return string"
+(prn "incB.rud finished")
+"incB.rud return string"
 
 ;; ending comment
 

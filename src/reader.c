@@ -167,7 +167,7 @@ static value_t read_form(scan_t* st)
 				scan_next(st);
 				return cons(str_to_sym("quasiquote"), cons(read_form(st), NIL));
 			}
-			else if(tcar.rint.val == '~')
+			else if(tcar.rint.val == ',')
 			{
 				token = scan_next(st);
 				if(errp(token))	// scan error

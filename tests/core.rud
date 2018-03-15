@@ -38,8 +38,8 @@
       (if (= 1 (count xs))
         (car xs)
         (let* (condvar (gensym))
-          `(let* (~condvar ~(car xs))
-            (if ~condvar (and ~@(cdr xs)) ~condvar)))))))
+          `(let* (,condvar ,(car xs))
+            (if ,condvar (and ,@(cdr xs)) ,condvar)))))))
 
 (defmacro! or
   (fn* (& xs)
@@ -48,8 +48,8 @@
       (if (= 1 (count xs))
         (car xs)
         (let* (condvar (gensym))
-          `(let* (~condvar ~(car xs))
-             (if ~condvar ~condvar (or ~@(cdr xs)))))))))
+          `(let* (,condvar ,(car xs))
+             (if ,condvar ,condvar (or ,@(cdr xs)))))))))
 
 (defmacro! cond
   (fn* (& clauses)
@@ -68,9 +68,9 @@
              more (cdr xs))
         (if (not more)
           (if (consp form)
-            `(~(car form) ~x ~@(cdr form))
+            `(,(car form) ,x ,@(cdr form))
             (list form x))
-          `(-> (-> ~x ~form) ~@more))))))
+          `(-> (-> ,x ,form) ,@more))))))
 
 (defmacro! ->>
   (fn* (x & xs)
@@ -80,8 +80,8 @@
              more (cdr xs))
         (if (not more)
           (if (consp form)
-            `(~(car form) ~@(cdr form) ~x)
+            `(,(car form) ,@(cdr form) ,x)
             (list form x))
-          `(->> (->> ~x ~form) ~@more))))))
+          `(->> (->> ,x ,form) ,@more))))))
 
 nil

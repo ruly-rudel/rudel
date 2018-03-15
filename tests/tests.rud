@@ -564,7 +564,7 @@ res2
 
 ;; Testing load-file
 
-(load-file "../tests/inc.rd")
+(load-file "../tests/inc.rud")
 (inc1 7)
 ;=>8
 (inc2 7)
@@ -578,16 +578,16 @@ res2
 ;; -------- Deferrable/Optional Functionality --------
 
 ;; Testing comments in a file
-(load-file "../tests/incB.rd")
-; "incB.rd finished"
-;=>"incB.rd return string"
+(load-file "../tests/incB.rud")
+; "incB.rud finished"
+;=>"incB.rud return string"
 (inc4 7)
 ;=>11
 (inc5 7)
 ;=>12
 
 ;; Testing map literal across multiple lines in a file
-(load-file "../tests/incC.rd")
+(load-file "../tests/incC.rud")
 mylist
 ;=>("a" 1)
 
@@ -723,26 +723,26 @@ b
 `(nil)
 ;=>(nil)
 
-;; Testing ~ (unquote) reader macro
-`~7
+;; Testing , (unquote) reader macro
+`,7
 ;=>7
 (def! a 8)
 ;=>8
-`(1 ~a 3)
+`(1 ,a 3)
 ;=>(1 8 3)
 (def! b '(1 "b" "d"))
 ;=>(1 "b" "d")
 `(1 b 3)
 ;=>(1 b 3)
-`(1 ~b 3)
+`(1 ,b 3)
 ;=>(1 (1 "b" "d") 3)
 
-;; Testing ~@ (splice-unquote) reader macro
+;; Testing ,@ (splice-unquote) reader macro
 (def! c '(1 "b" "d"))
 ;=>(1 "b" "d")
 `(1 c 3)
 ;=>(1 c 3)
-`(1 ~@c 3)
+`(1 ,@c 3)
 ;=>(1 1 "b" "d" 3)
 
 
@@ -755,12 +755,12 @@ b
 ;=>2
 
 ;; Testing unless macros
-(defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))
+(defmacro! unless (fn* (pred a b) `(if ,pred ,b ,a)))
 (unless nil 7 8)
 ;=>7
 (unless t 7 8)
 ;=>8
-(defmacro! unless2 (fn* (pred a b) `(if (not ~pred) ~a ~b)))
+(defmacro! unless2 (fn* (pred a b) `(if (not ,pred) ,a ,b)))
 (unless2 nil 7 8)
 ;=>7
 (unless2 t 7 8)
@@ -859,8 +859,8 @@ x
 ;; -------- Optional Functionality --------
 
 ;;
-;; Loading core.rd
-(load-file "../tests/core.rd")
+;; Loading core.rud
+(load-file "../tests/core.rud")
 
 ;; Testing -> macro
 (-> 7)

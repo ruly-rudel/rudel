@@ -1,5 +1,5 @@
-(load-file "../tests/core.rd")
-(load-file "../test/perf.rd")
+(load-file "../tests/core.rud")
+(load-file "../test/perf.rud")
 
 ;;(prn "Start: basic macros performance test")
 

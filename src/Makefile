@@ -31,7 +31,7 @@ librudel.a: $(LIBOBJS)
 	$(AR) rcs $@ $^
 
 test:	$(TARGET)
-	../scr/runtest.py ../tests/tests.rd ./$(TARGET)
+	../scr/runtest.py ../tests/tests.rud ./$(TARGET)
 
 .c.o:
 	$(CC) $(CFLAGS) -c $< -o $@

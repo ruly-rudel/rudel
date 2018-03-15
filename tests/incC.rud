@@ -1,0 +1,6 @@
+(def! mylist (list "a"
+             1))
+
+(prn "incC.rud finished")
+"incC.rud return string"
+

@@ -51,14 +51,7 @@ static value_t scan_to_whitespace(value_t *s)
 		    c.rint.val == '\n' ||
 		    c.rint.val == '('  ||
 		    c.rint.val == ')'  ||
-		    c.rint.val == '['  ||
-		    c.rint.val == ']'  ||
-		    c.rint.val == '{'  ||
-		    c.rint.val == '}'  ||
-		    c.rint.val == ';'  ||
-		    c.rint.val == '\'' ||
-		    c.rint.val == '"'  ||
-		    c.rint.val == ','
+		    c.rint.val == ';'
 		  )
 		{
 			r.type.main = SYM_T;
@@ -149,8 +142,7 @@ static value_t scan1(value_t *s)
 		// skip white space
 		if( c.rint.val == ' '  ||
 		    c.rint.val == '\t' ||
-		    c.rint.val == '\n' ||
-		    c.rint.val == ','
+		    c.rint.val == '\n'
 		  )
 		{
 			*s = cdr(*s);
@@ -160,16 +152,11 @@ static value_t scan1(value_t *s)
 			switch(c.rint.val)
 			{
 			    // special character
-			    case '~':
-			    case '[':
-			    case ']':
-			    case '{':
-			    case '}':
+			    case ',':
 			    case '(':
 			    case ')':
 			    case '\'':
 			    case '`':
-			    case '^':
 			    case '@':
 				*s           = cdr (*s);
 				value_t sr   = cons(c, NIL);

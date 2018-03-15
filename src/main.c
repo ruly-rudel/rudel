@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 	eval(read_str(str_to_rstr("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (car xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (cdr (cdr xs)))))))")), env);
 
 	// implement or
-	eval(read_str(str_to_rstr("(defmacro! or (fn* (& xs) (if (not xs) nil (if (= 1 (count xs)) (car xs) `(let* (or_FIXME ~(car xs)) (if or_FIXME or_FIXME (or ~@(cdr xs))))))))")), env);
+	eval(read_str(str_to_rstr("(defmacro! or (fn* (& xs) (if (not xs) nil (if (= 1 (count xs)) (car xs) `(let* (or_FIXME ,(car xs)) (if or_FIXME or_FIXME (or ,@(cdr xs))))))))")), env);
 
 	for(;;)
 	{
