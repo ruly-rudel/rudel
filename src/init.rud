@@ -1,0 +1,32 @@
+
+(defmacro! defun!
+	   (fn* (name arg body)
+		`(def! ,name (fn* ,arg ,body))))
+
+(defmacro! defm!
+	   (fn* (name arg body)
+		`(defmacro! ,name (fn* ,arg ,body))))
+
+(defun! not (a)
+	(if a nil t))
+
+(defun! load-file (f)
+	(eval (read-string (str "(do " (slurp f) ")"))))
+
+(defm! cond (& xs)
+       (if (> (count xs) 0)
+	 (list 'if (car xs)
+	          (if (> (count xs) 1)
+		    (nth xs 1)
+		    (throw "odd number of forms to cond"))
+		  (cons 'cond (cdr (cdr xs))))))
+
+(defm! or (& xs)
+       (if (not xs)
+	 nil
+	 (if (= 1 (count xs))
+	   (car xs)
+	   `(let* (or_FIXME ,(car xs))
+	      (if or_FIXME or_FIXME
+		(or ,@(cdr xs)))))))
+
