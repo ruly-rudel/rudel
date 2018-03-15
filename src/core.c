@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "builtin.h"
+#include "core.h"
 #include "env.h"
 #include "eval.h"
 #include "reader.h"
@@ -373,13 +374,21 @@ static value_t b_cdr(value_t body, value_t env)
 	return cdr(car(body));
 }
 
+static value_t b_init(value_t body, value_t env)
+{
+	// initialize root environment
+	value_t last_env = last(env);
+	rplaca(last_env, car(create_root_env()));
+	return eval(read_str(str_to_rstr("(eval (read-string (str \"(do \" (slurp \"init.rud\") \")\")))")), last_env);
+}
+
 
 /////////////////////////////////////////////////////////////////////
 // public: Create root environment
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(28,
+	value_t key = list(29,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -404,13 +413,14 @@ value_t	create_root_env	(void)
 	                      str_to_sym("="),
 	                      str_to_sym("eq"),
 	                      str_to_sym("atom"),
+	                      str_to_sym("init"),
 	                      str_to_sym("<"),
 	                      str_to_sym("<="),
 	                      str_to_sym(">"),
 	                      str_to_sym(">=")
 	                  );
 
-	value_t val = list(28,
+	value_t val = list(29,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(add), NIL),
@@ -435,6 +445,7 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_equal), NIL),
 	                      cfn(RFN(b_eq), NIL),
 	                      cfn(RFN(b_atom), NIL),
+	                      cfn(RFN(b_init), NIL),
 	                      cfn(RFN(lt), NIL),
 	                      cfn(RFN(elt), NIL),
 	                      cfn(RFN(mt), NIL),
