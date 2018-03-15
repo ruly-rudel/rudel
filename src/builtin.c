@@ -7,12 +7,23 @@
 
 static cons_t* aligned_addr(value_t v)
 {
+#if __WORDSIZE == 32
+	return (cons_t*) (((uint32_t)v.cons) & 0xfffffff8);
+#else
 	return (cons_t*) (((uint64_t)v.cons) & 0xfffffffffffffff8);
+#endif
 }
 
 static cons_t* alloc_cons(void)
 {
 	cons_t* c = (cons_t*)malloc(sizeof(cons_t));
+#if 0
+#if __WORDSIZE == 32
+	fprintf(stderr, "cons: %08x\n", (int)c);
+#else
+	fprintf(stderr, "cons: %016lx\n", (int64_t)c);
+#endif
+#endif
 
 	return c;
 }
@@ -31,7 +42,7 @@ value_t car(value_t x)
 {
 	if(rtypeof(x) == CONS_T)
 	{
-		return x.type.sub != 0 ? x.cons->car : NIL;
+		return x.raw != 0 ? x.cons->car : NIL;
 	}
 	else
 	{
@@ -43,7 +54,7 @@ value_t cdr(value_t x)
 {
 	if(rtypeof(x) == CONS_T)
 	{
-		return x.type.sub != 0 ? x.cons->cdr : NIL;
+		return x.raw != 0 ? x.cons->cdr : NIL;
 	}
 	else
 	{
@@ -391,16 +402,16 @@ char*   rstr_to_str	(value_t s)
 	assert(rtypeof(s) == STR_T);
 	s.type.main = CONS_T;
 
-	char* buf = (char*)malloc(256);	// fix it
+	char* buf = (char*)malloc(512);	// fix it
 	if(buf)
 	{
-		buf[0] = '\0';
 		char *p = buf;
 		while(!nilp(s))
 		{
 			*p++ = car(s).rint.val;
 			s = cdr(s);
 		}
+		*p = '\0';
 	}
 
 	return buf;

@@ -16,7 +16,7 @@ static value_t read_int(value_t token)
 	// sign (if exists)
 	value_t tcar = car(token);
 	assert(rtypeof(tcar) == INT_T);
-	int64_t sign = 1;
+	int sign = 1;
 	if(tcar.rint.val == '-' || tcar.rint.val == '+')
 	{
 		if(tcar.rint.val == '-')
@@ -38,7 +38,7 @@ static value_t read_int(value_t token)
 	}
 
 	// value
-	uint64_t val = 0;
+	unsigned int val = 0;
 	while(!nilp(token))
 	{
 		tcar = car(token);

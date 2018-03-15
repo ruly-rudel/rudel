@@ -230,7 +230,7 @@ static value_t b_atom(value_t body, value_t env)
 	return atom(car(body)) ? SYM_TRUE : SYM_FALSE;
 }
 
-static value_t comp(value_t body, bool (*comp_fn)(int64_t, int64_t))
+static value_t comp(value_t body, bool (*comp_fn)(int, int))
 {
 	value_t a = car(body);
 	value_t b = car(cdr(body));
@@ -244,22 +244,22 @@ static value_t comp(value_t body, bool (*comp_fn)(int64_t, int64_t))
 	}
 }
 
-static bool comp_lt(int64_t a, int64_t b)
+static bool comp_lt(int a, int b)
 {
 	return a < b;
 }
 
-static bool comp_elt(int64_t a, int64_t b)
+static bool comp_elt(int a, int b)
 {
 	return a <= b;
 }
 
-static bool comp_mt(int64_t a, int64_t b)
+static bool comp_mt(int a, int b)
 {
 	return a > b;
 }
 
-static bool comp_emt(int64_t a, int64_t b)
+static bool comp_emt(int a, int b)
 {
 	return a >= b;
 }

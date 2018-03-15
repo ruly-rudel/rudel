@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////
 // private: printer support functions
 
-static value_t pr_str_int_rec(uint64_t x, value_t s)
+static value_t pr_str_int_rec(unsigned int x, value_t s)
 {
 	if(x == 0)
 	{
@@ -19,7 +19,7 @@ static value_t pr_str_int_rec(uint64_t x, value_t s)
 	}
 }
 
-static value_t pr_str_int(int64_t x)
+static value_t pr_str_int(int x)
 {
 	value_t r;
 	if(x < 0)
@@ -232,6 +232,12 @@ static value_t pr_err(value_t s)
 
 	    case ERR_NOTSYM:
 		return str_to_rstr("symbol.");
+
+	    case ERR_FILENOTFOUND:
+		return str_to_rstr("file not found.");
+
+	    case ERR_RANGE:
+		return str_to_rstr("range exceeded.");
 
 	    default:
 		return str_to_rstr("unknown error.");

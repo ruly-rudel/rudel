@@ -5,8 +5,7 @@ LD=$(CC)
 AR=ar
 
 DEBUG=-g3
-OPT=-O3
-INCPATHS+= -I../linenoise
+OPT=-O3 -m32
 CFLAGS=$(OPT) -Wall $(DEBUG) $(INCPATHS)
 LDFLAGS=$(OPT) $(DEBUG) $(LIBPATHS) -L.
 
@@ -37,7 +36,7 @@ test:	$(TARGET)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags
+	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags ../tags
 
 -include .deps
 
