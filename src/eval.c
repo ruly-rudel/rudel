@@ -6,44 +6,31 @@
 /////////////////////////////////////////////////////////////////////
 // private: eval functions
 
-static value_t eval_ast_list(value_t list, value_t env)
-{
-	assert(rtypeof(list) == CONS_T);
-	list.type.main = CONS_T;
-
-	if(nilp(list))
-	{
-		return NIL;
-	}
-	else
-	{
-		value_t lcar = eval(car(list), env);
-		if(errp(lcar))
-		{
-			return lcar;
-		}
-
-		value_t lcdr = eval_ast_list(cdr(list), env);
-		if(errp(lcdr))
-		{
-			return lcdr;
-		}
-
-		value_t ret = cons(lcar, lcdr);
-		ret.type.main = CONS_T;
-		return ret;
-	}
-}
 
 static value_t eval_ast	(value_t ast, value_t env)
 {
+	value_t new_ast = NIL;
+	value_t* cur    = &new_ast;
+
 	switch(rtypeof(ast))
 	{
 	    case SYM_T:
 		return get_env_value(ast, env);
 
 	    case CONS_T:
-		return eval_ast_list(ast, env);
+		while(!nilp(ast))
+		{
+			assert(rtypeof(ast) == CONS_T);
+
+			value_t ast_car = eval(car(ast), env);
+			cur = cons_and_cdr(ast_car, cur);
+			if(errp(ast_car))
+			{
+				return ast_car;
+			}
+			ast = cdr(ast);
+		}
+		return new_ast;
 
 	    default:
 		return ast;
@@ -77,14 +64,14 @@ static value_t eval_def(value_t vcdr, value_t env)
 
 static value_t eval_do(value_t vcdr, value_t env)
 {
-	return car(last(eval_ast_list(vcdr, env)));
+	return car(last(eval_ast(vcdr, env)));
 }
 
 static value_t eval_if(value_t vcdr, value_t env)
 {
 	value_t cond = eval(car(vcdr), env);
 
-	if(nilp(cond) || equal(cond, SYM_FALSE))	// false
+	if(nilp(cond))	// false
 	{
 		return eval(car(cdr(cdr(vcdr))), env);
 	}
@@ -110,7 +97,6 @@ static value_t eval_let(value_t vcdr, value_t env)
 	{
 		return RERR(ERR_ARG);
 	}
-	def.type.main = CONS_T;
 
 	while(!nilp(def))
 	{
@@ -140,7 +126,7 @@ static value_t eval_let(value_t vcdr, value_t env)
 
 static value_t eval_quasiquote	(value_t vcdr, value_t env)
 {
-	if(!is_pair(vcdr))					// raw
+	if(!consp(vcdr))					// raw
 	{
 		return vcdr;					    // -> return as is.
 	}
@@ -151,7 +137,7 @@ static value_t eval_quasiquote	(value_t vcdr, value_t env)
 		value_t arg2 = car(cdr(vcdr));
 		return eval(arg2, env);				    // -> return evalueated x
 	}
-	else if(is_pair(arg1) &&
+	else if(consp(arg1) &&
 		equal(car(arg1), str_to_sym("splice-unquote")))	// ((splice-unquote x) ...)
 	{
 		return concat(2,
@@ -174,21 +160,14 @@ static value_t eval_defmacro(value_t vcdr, value_t env)
 		return RERR(ERR_NOTSYM);
 	}
 
-	// value
-	value_t val_notev = cdr(vcdr);
-	if(rtypeof(val_notev) != CONS_T)
+	// val
+	value_t val = eval(car(cdr(vcdr)), env);
+	if(!errp(val) && val.type.main == CLOJ_T)
 	{
-		return RERR(ERR_ARG);
-	}
-
-	value_t val = eval(car(val_notev), env);
-	assert(rtypeof(val) == CLOJ_T);
-	val.type.main = MACRO_T;
-
-	if(!errp(val))
-	{
+		val.type.main = MACRO_T;
 		set_env(key, val, env);
 	}
+
 	return val;
 }
 
@@ -199,7 +178,7 @@ static value_t is_macro_call(value_t ast, value_t env)
 		value_t ast_1st = car(ast);
 		if(rtypeof(ast_1st) == SYM_T)
 		{
-			value_t ast_1st_eval = get_env_value(ast_1st, env);
+			value_t ast_1st_eval = cdr(find_env_all(ast_1st, env));
 			if(rtypeof(ast_1st_eval) == MACRO_T)
 			{
 				return ast_1st_eval;
@@ -210,7 +189,7 @@ static value_t is_macro_call(value_t ast, value_t env)
 	return NIL;
 }
 
-static value_t eval_list(value_t v, value_t env)
+static value_t eval_apply(value_t v, value_t env)
 {
 	assert(rtypeof(v) == CONS_T);
 
@@ -275,13 +254,13 @@ static value_t eval_list(value_t v, value_t env)
 		else
 		{
 			value_t fn = car(ev);
-			if(rtypeof(fn) == CFN_T)
+			if(rtypeof(fn) == CFN_T)		// compiled function
 			{
 				fn.type.main = CONS_T;
 				// apply
 				return car(fn).rfn(cdr(ev), env);
 			}
-			else if(rtypeof(fn) == CLOJ_T)
+			else if(rtypeof(fn) == CLOJ_T)		// (ast . env)
 			{
 				return apply(fn, cdr(ev));
 			}
@@ -319,12 +298,11 @@ value_t apply(value_t fn, value_t args)
 	}
 
 	// formal arguments from clojure
-	value_t fargs = car(fn_ast);
-	if(rtypeof(fargs) != CONS_T)
+	value_t fn_args = car(fn_ast);
+	if(rtypeof(fn_args) != CONS_T)
 	{
 		return RERR(ERR_ARG);
 	}
-	fargs.type.main = CONS_T;
 
 	// function body from clojure
 	fn_ast = cdr(fn_ast);
@@ -332,13 +310,13 @@ value_t apply(value_t fn, value_t args)
 	{
 		return RERR(ERR_ARG);
 	}
-	value_t body = car(fn_ast);
+	value_t fn_body = car(fn_ast);
 
 	// create bindings (is environment)
-	value_t fn_env = create_env(fargs, args, cdr(fn));
+	value_t fn_env = create_env(fn_args, args, cdr(fn));
 
 	// apply
-	return eval(body, fn_env);
+	return eval(fn_body, fn_env);
 }
 
 value_t eval(value_t v, value_t env)
@@ -355,7 +333,7 @@ value_t eval(value_t v, value_t env)
 		}
 		else
 		{
-			return eval_list(v, env);
+			return eval_apply(v, env);
 		}
 	}
 	else

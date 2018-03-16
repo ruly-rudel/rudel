@@ -9,13 +9,13 @@
 
 typedef enum _rtype_t {
 	// main 8types (content is address)
-	CONS_T = 0,
+	CONS_T = 0,	// maybe sequence
 	SYM_T,
+	VEC_T,
 	STR_T,
-	CFN_T,
+	CFN_T,		// dotted list
 	CLOJ_T,
 	MACRO_T,
-	VEC_T,
 	OTH_T,
 
 	// sub types (content is value)
@@ -93,7 +93,11 @@ typedef struct _cons_t
 
 
 #define NIL       ((value_t){ .type.main   = CONS_T,  .type.sub   = 0,     .type.val = 0   })
-#define RERR(X)   ((value_t){ .type.main   = OTH_T,   .type.sub   = ERR_T, .type.val = (X) })
+#ifdef DEBUG
+	#define RERR(X)   (abort(), (value_t){ .type.main   = OTH_T,   .type.sub   = ERR_T, .type.val = (X) })
+#else
+	#define RERR(X)   ((value_t){ .type.main   = OTH_T,   .type.sub   = ERR_T, .type.val = (X) })
+#endif
 
 #define RCHAR(X)  ((value_t){ .rint.type   = INT_T   << 3 | OTH_T, .rint.val   = (X) })
 #define RINT(X)   ((value_t){ .rint.type   = INT_T   << 3 | OTH_T, .rint.val   = (X) })
@@ -138,9 +142,10 @@ value_t assoc		(value_t key, value_t list);
 value_t acons		(value_t key, value_t val, value_t list);
 value_t pairlis		(value_t key, value_t val);
 
-bool    is_pair		(value_t list);
-bool    is_empty	(value_t list);
+bool    consp		(value_t list);
 value_t concat		(int n, ...);
+value_t slurp		(char* fn);
+value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);
 
 value_t str_to_cons	(const char* s);
 value_t str_to_rstr	(const char* s);

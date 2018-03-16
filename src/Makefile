@@ -4,8 +4,9 @@ CC=gcc-5
 LD=$(CC)
 AR=ar
 
+#DEBUG=-g3 -DDEBUG
 DEBUG=-g3
-OPT=-O3 -m32
+OPT=-O0 -m32
 CFLAGS=$(OPT) -Wall $(DEBUG) $(INCPATHS)
 LDFLAGS=$(OPT) $(DEBUG) $(LIBPATHS) -L.
 

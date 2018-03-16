@@ -11,156 +11,149 @@
 /////////////////////////////////////////////////////////////////////
 // private: core functions for rudel environment
 
-static value_t add(value_t body, value_t env)
-{
-	assert(rtypeof(body) == CONS_T);
 
-	value_t sum = RINT(0);
-	if(!nilp(body))
-	{
-		for(value_t cur = body; !nilp(cur); cur = cdr(cur))
-		{
-			value_t cura = car(cur);
-			sum = RINT(sum.rint.val + cura.rint.val);
-		}
-
-	}
-	return sum;
+#define DEF_FN_VARG(NAME, BODY) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	return BODY; \
 }
 
-static value_t sub(value_t body, value_t env)
-{
-	assert(rtypeof(body) == CONS_T);
-	if(nilp(body))
-	{
-		return RERR(ERR_ARG);
-	}
-	else
-	{
-		value_t sum = car(body);
-		assert(rtypeof(sum) == INT_T);
-		body = cdr(body);
-		if(!nilp(body))
-		{
-			for(value_t cur = body; !nilp(cur); cur = cdr(cur))
-			{
-				value_t cura = car(cur);
-				sum = RINT(sum.rint.val - cura.rint.val);
-			}
-		}
-
-		return sum;
-	}
+#define DEF_FN_1(NAME, BODY) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1 = car(body); \
+	return BODY; \
 }
 
-static value_t mul(value_t body, value_t env)
-{
-	assert(rtypeof(body) == CONS_T);
+#define DEF_FN_2(NAME, BODY) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1 = car(body); \
+	value_t arg2 = car(cdr(body)); \
+	return BODY; \
+}
 
-	value_t sum = RINT(1);
-	if(!nilp(body))
+#define DEF_FN_2INT(NAME, BODY) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1v = car(body); \
+	value_t arg2v = car(cdr(body)); \
+	if(rtypeof(arg1v) == INT_T && rtypeof(arg2v) == INT_T) \
+	{ \
+		int arg1 = arg1v.rint.val; \
+		int arg2 = arg2v.rint.val; \
+		return BODY; \
+	} \
+	else \
+	{ \
+		return RERR(ERR_TYPE); \
+	} \
+}
+
+#define DEF_FN_1_BEGIN(NAME) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1 = car(body);
+
+#define DEF_FN_END \
+}
+
+
+#define DEF_FN_R(NAME, ZERO, ONE, OTHER) \
+static value_t NAME ## _reduce(value_t arg1, value_t arg2) \
+{ \
+		return OTHER; \
+} \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1 = car(body); \
+	value_t arg2 = car(cdr(body)); \
+	if(nilp(body)) \
+	{ \
+		return ZERO; \
+	} \
+	else if(nilp(cdr(body))) \
+	{ \
+		return ONE; \
+	} \
+	else \
+	{ \
+		return reduce(NAME ## _reduce, body); \
+	} \
+}
+
+////////// basic functions
+
+DEF_FN_1(b_atom,  atom(arg1)  ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_consp, consp(arg1) ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_car,   car(arg1))
+DEF_FN_1(b_cdr,   cdr(arg1))
+DEF_FN_2(b_cons,  cons(arg1, arg2))
+DEF_FN_2(b_eq,    eq(arg1, arg2)    ? SYM_TRUE : SYM_FALSE)
+DEF_FN_2(b_equal, equal(arg1, arg2) ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_eval,  eval(arg1, last(env)))
+
+
+////////// special functions for rudel (manipulate environment etc...)
+
+DEF_FN_1(b_read_string,  read_str(arg1))
+
+DEF_FN_1_BEGIN(b_slurp)
+	if(rtypeof(arg1) != STR_T)
 	{
-		for(value_t cur = body; !nilp(cur); cur = cdr(cur))
-		{
-			value_t cura = car(cur);
-			sum = RINT(sum.rint.val * cura.rint.val);
-		}
-
+		return RERR(ERR_TYPE);
 	}
-	return sum;
-}
+	char* fn  = rstr_to_str(arg1);
+	value_t r = slurp(fn);
+	free(fn);
 
-static value_t divide(value_t body, value_t env)
+	return r;
+DEF_FN_END
+
+static value_t b_init(value_t body, value_t env)
 {
-	assert(rtypeof(body) == CONS_T);
-	if(nilp(body))
-	{
-		return RERR(ERR_ARG);
-	}
-	else
-	{
-		value_t sum = car(body);
-		assert(rtypeof(sum) == INT_T);
-		body = cdr(body);
-		if(!nilp(body))
-		{
-			for(value_t cur = body; !nilp(cur); cur = cdr(cur))
-			{
-				value_t cura = car(cur);
-				sum = RINT(sum.rint.val / cura.rint.val);
-			}
-		}
-
-		return sum;
-	}
+	// initialize root environment
+	value_t last_env = last(env);
+	rplaca(last_env, car(create_root_env()));
+	return eval(read_str(str_to_rstr("(eval (read-string (str \"(do \" (slurp \"init.rud\") \")\")))")), last_env);
 }
 
-static value_t b_pr_str2(value_t body, value_t cyclic, bool print_readably, bool ws_sep)
-{
-	if(nilp(body))
-	{
-		return NIL;
-	}
-	else
-	{
-		if(ws_sep)  // separate with white space
-		{
-			return nconc(
-				str_to_rstr(" "),
-				nconc(
-					pr_str(car(body), cyclic, print_readably),
-					b_pr_str2(cdr(body), cyclic, print_readably, ws_sep)
-				)
-			);
-		}
-		else
-		{
-			return nconc(
-				pr_str(car(body), cyclic, print_readably),
-				b_pr_str2(cdr(body), cyclic, print_readably, ws_sep)
-			);
-		}
-	}
-}
 
-static value_t b_pr_str1(value_t body, value_t cyclic, bool print_readably, bool ws_sep)
-{
-	if(nilp(body))
-	{
-		//return str_to_rstr(print_readably ? "\"\"" : "");
-		return str_to_rstr("");
-	}
-	else
-	{
-		return nconc(
-			pr_str(car(body), cyclic, print_readably),
-			b_pr_str2(cdr(body), cyclic, print_readably, ws_sep)
-		);
-	}
-}
+////////// MATH functions
 
-static value_t b_pr_str(value_t body, value_t env)
-{
-	return b_pr_str1(body, cons(RINT(0), NIL), true, true);
-}
+DEF_FN_2INT(b_lt,  arg1 <  arg2 ? SYM_TRUE : SYM_FALSE)
+DEF_FN_2INT(b_elt, arg1 <= arg2 ? SYM_TRUE : SYM_FALSE)
+DEF_FN_2INT(b_mt,  arg1 >  arg2 ? SYM_TRUE : SYM_FALSE)
+DEF_FN_2INT(b_emt, arg1 >= arg2 ? SYM_TRUE : SYM_FALSE)
 
-static value_t str(value_t body, value_t env)
-{
-	return b_pr_str1(body, cons(RINT(0), NIL), false, false);
-}
+DEF_FN_R(b_add, RINT(0),       arg1,                 RINT(arg1.rint.val + arg2.rint.val))
+DEF_FN_R(b_sub, RINT(0),       RINT(-arg1.rint.val), RINT(arg1.rint.val - arg2.rint.val))
+DEF_FN_R(b_mul, RINT(1),       arg1,                 RINT(arg1.rint.val * arg2.rint.val))
+DEF_FN_R(b_div, RERR(ERR_ARG), arg1,                 RINT(arg1.rint.val / arg2.rint.val))
 
-static value_t prn(value_t body, value_t env)
-{
-	printline(b_pr_str1(body, cons(RINT(0), NIL), true, true), stdout);
-	return NIL;
-}
+////////// string and print functions
+DEF_FN_R(b_str,
+		str_to_rstr(""),
+		pr_str(arg1, NIL, false),
+		nconc(pr_str(arg1, NIL, false), pr_str(arg2, NIL, false)))
 
-static value_t println(value_t body, value_t env)
-{
-	printline(b_pr_str1(body, cons(RINT(0), NIL), false, true), stdout);
-	return NIL;
-}
+DEF_FN_R(b_pr_str,
+		str_to_rstr(""),
+		pr_str(arg1, NIL, true),
+		nconc(pr_str(arg1, NIL, true),
+			nconc(str_to_rstr(" "), pr_str(arg2, NIL, true))))
 
+DEF_FN_R(b_println_str,
+		str_to_rstr(""),
+		pr_str(arg1, NIL, false),
+		nconc(pr_str(arg1, NIL, false),
+			nconc(str_to_rstr(" "), pr_str(arg2, NIL, false))))
+
+DEF_FN_VARG(b_println, (printline(b_println_str(body, env), stdout), NIL))
+
+DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
+
+////////// other functions
 static value_t b_list(value_t body, value_t env)
 {
 	if(nilp(body))
@@ -171,12 +164,6 @@ static value_t b_list(value_t body, value_t env)
 	{
 		return cons(car(body), b_list(cdr(body), env));
 	}
-}
-
-static value_t consp(value_t body, value_t env)
-{
-	value_t arg = car(body);
-	return rtypeof(arg) == CONS_T && !nilp(arg) ? SYM_TRUE : SYM_FALSE;
 }
 
 static value_t count1(value_t body)
@@ -215,128 +202,6 @@ static value_t count(value_t body, value_t env)
 	return count1(arg);
 }
 
-static value_t b_equal(value_t body, value_t env)
-{
-	return equal(car(body), car(cdr(body))) ? SYM_TRUE : SYM_FALSE;
-}
-
-static value_t b_eq(value_t body, value_t env)
-{
-	return eq(car(body), car(cdr(body))) ? SYM_TRUE : SYM_FALSE;
-}
-
-static value_t b_atom(value_t body, value_t env)
-{
-	return atom(car(body)) ? SYM_TRUE : SYM_FALSE;
-}
-
-static value_t comp(value_t body, bool (*comp_fn)(int, int))
-{
-	value_t a = car(body);
-	value_t b = car(cdr(body));
-	if(rtypeof(a) == INT_T && rtypeof(b) == INT_T)
-	{
-		return comp_fn(a.rint.val, b.rint.val) ? SYM_TRUE : SYM_FALSE;
-	}
-	else
-	{
-		return RERR(ERR_TYPE);
-	}
-}
-
-static bool comp_lt(int a, int b)
-{
-	return a < b;
-}
-
-static bool comp_elt(int a, int b)
-{
-	return a <= b;
-}
-
-static bool comp_mt(int a, int b)
-{
-	return a > b;
-}
-
-static bool comp_emt(int a, int b)
-{
-	return a >= b;
-}
-
-static value_t lt(value_t body, value_t env)
-{
-	return comp(body, comp_lt);
-}
-
-static value_t elt(value_t body, value_t env)
-{
-	return comp(body, comp_elt);
-}
-
-static value_t mt(value_t body, value_t env)
-{
-	return comp(body, comp_mt);
-}
-
-static value_t emt(value_t body, value_t env)
-{
-	return comp(body, comp_emt);
-}
-
-static value_t read_string(value_t body, value_t env)
-{
-	return read_str(car(body));
-}
-
-static value_t slurp(value_t body, value_t env)
-{
-	// filename
-	value_t fn = car(body);
-	if(rtypeof(fn) != STR_T)
-	{
-		return RERR(ERR_TYPE);
-	}
-
-	// to cstr
-	char* fn_cstr = rstr_to_str(fn);
-	FILE* fp = fopen(fn_cstr, "r");
-	free(fn_cstr);
-
-	// read all
-	if(fp)
-	{
-		value_t buf = NIL;
-		value_t* cur = &buf;
-
-		int c;
-		while((c = fgetc(fp)) != EOF)
-		{
-			cur = cons_and_cdr(RCHAR(c), cur);
-		}
-		fclose(fp);
-		buf.type.main = STR_T;
-
-		return buf;
-	}
-	else	// file not found or other error.
-	{
-		return RERR(ERR_FILENOTFOUND);
-	}
-}
-
-static value_t b_eval(value_t body, value_t env)
-{
-	value_t ast = car(body);
-	return eval(ast, last(env));	// use root environment
-}
-
-static value_t b_cons(value_t body, value_t env)
-{
-	value_t a = car(body);
-	value_t b = car(cdr(body));
-	return cons(a, b);
-}
 
 static value_t b_concat(value_t body, value_t env)
 {
@@ -362,24 +227,6 @@ static value_t b_nth(value_t body, value_t env)
 	{
 		return nth(arg2.rint.val, arg1);
 	}
-}
-
-static value_t b_car(value_t body, value_t env)
-{
-	return car(car(body));
-}
-
-static value_t b_cdr(value_t body, value_t env)
-{
-	return cdr(car(body));
-}
-
-static value_t b_init(value_t body, value_t env)
-{
-	// initialize root environment
-	value_t last_env = last(env);
-	rplaca(last_env, car(create_root_env()));
-	return eval(read_str(str_to_rstr("(eval (read-string (str \"(do \" (slurp \"init.rud\") \")\")))")), last_env);
 }
 
 
@@ -423,19 +270,19 @@ value_t	create_root_env	(void)
 	value_t val = list(29,
 			      NIL,
 			      str_to_sym("t"),
-	                      cfn(RFN(add), NIL),
-	                      cfn(RFN(sub), NIL),
-	                      cfn(RFN(mul), NIL),
-	                      cfn(RFN(divide), NIL),
+	                      cfn(RFN(b_add), NIL),
+	                      cfn(RFN(b_sub), NIL),
+	                      cfn(RFN(b_mul), NIL),
+	                      cfn(RFN(b_div), NIL),
 	                      cfn(RFN(b_pr_str), NIL),
-	                      cfn(RFN(str), NIL),
-	                      cfn(RFN(prn), NIL),
-	                      cfn(RFN(println), NIL),
+	                      cfn(RFN(b_str), NIL),
+	                      cfn(RFN(b_prn), NIL),
+	                      cfn(RFN(b_println), NIL),
 	                      cfn(RFN(b_list), NIL),
-	                      cfn(RFN(consp), NIL),
+	                      cfn(RFN(b_consp), NIL),
 	                      cfn(RFN(count), NIL),
-	                      cfn(RFN(read_string), NIL),
-	                      cfn(RFN(slurp), NIL),
+	                      cfn(RFN(b_read_string), NIL),
+	                      cfn(RFN(b_slurp), NIL),
 	                      cfn(RFN(b_eval), NIL),
 	                      cfn(RFN(b_cons), NIL),
 	                      cfn(RFN(b_concat), NIL),
@@ -446,10 +293,10 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_eq), NIL),
 	                      cfn(RFN(b_atom), NIL),
 	                      cfn(RFN(b_init), NIL),
-	                      cfn(RFN(lt), NIL),
-	                      cfn(RFN(elt), NIL),
-	                      cfn(RFN(mt), NIL),
-	                      cfn(RFN(emt), NIL)
+	                      cfn(RFN(b_lt), NIL),
+	                      cfn(RFN(b_elt), NIL),
+	                      cfn(RFN(b_mt), NIL),
+	                      cfn(RFN(b_emt), NIL)
 			  );
 
 	return create_env(key, val, NIL);

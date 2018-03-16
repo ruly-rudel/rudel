@@ -1,11 +1,12 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "builtin.h"
+#include "eval.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: cons allocator
 
-static cons_t* aligned_addr(value_t v)
+static inline cons_t* aligned_addr(value_t v)
 {
 #if __WORDSIZE == 32
 	return (cons_t*) (((uint32_t)v.cons) & 0xfffffff8);
@@ -14,7 +15,7 @@ static cons_t* aligned_addr(value_t v)
 #endif
 }
 
-static cons_t* alloc_cons(void)
+static inline cons_t* alloc_cons(void)
 {
 	cons_t* c = (cons_t*)malloc(sizeof(cons_t));
 #if 0
@@ -28,6 +29,20 @@ static cons_t* alloc_cons(void)
 	return c;
 }
 
+static inline bool is_cons_pair(value_t x)
+{
+	return rtypeof(x) < OTH_T && (x.type.sub != 0 || x.type.val != 0);
+}
+
+static inline bool is_cons_pair_or_nil(value_t x)
+{
+	return rtypeof(x) < OTH_T;
+}
+
+static inline bool is_seq(value_t x)
+{
+	return rtypeof(x) <= STR_T;
+}
 
 
 /////////////////////////////////////////////////////////////////////
@@ -40,9 +55,10 @@ rtype_t rtypeof(value_t v)
 
 value_t car(value_t x)
 {
-	if(rtypeof(x) == CONS_T)
+	if(is_cons_pair_or_nil(x))
 	{
-		return x.raw != 0 ? x.cons->car : NIL;
+		cons_t* c = aligned_addr(x);
+		return c ? c->car : NIL;
 	}
 	else
 	{
@@ -52,9 +68,10 @@ value_t car(value_t x)
 
 value_t cdr(value_t x)
 {
-	if(rtypeof(x) == CONS_T)
+	if(is_cons_pair_or_nil(x))
 	{
-		return x.raw != 0 ? x.cons->cdr : NIL;
+		cons_t* c = aligned_addr(x);
+		return c ? c->cdr : NIL;
 	}
 	else
 	{
@@ -107,7 +124,7 @@ bool intp(value_t x)
 
 value_t rplaca(value_t x, value_t v)
 {
-	if(rtypeof(x) == CONS_T || rtypeof(x) == STR_T)
+	if(is_cons_pair(x))
 	{
 		cons_t* c = aligned_addr(x);
 		c->car = v;
@@ -122,7 +139,7 @@ value_t rplaca(value_t x, value_t v)
 
 value_t rplacd(value_t x, value_t v)
 {
-	if(rtypeof(x) == CONS_T || rtypeof(x) == STR_T)
+	if(is_cons_pair(x))
 	{
 		cons_t* c = aligned_addr(x);
 		c->cdr = v;
@@ -137,17 +154,18 @@ value_t rplacd(value_t x, value_t v)
 
 value_t last(value_t x)
 {
-	if(rtypeof(x) == CONS_T || rtypeof(x) == STR_T || rtypeof(x) == SYM_T)
+	if(is_seq(x))
 	{
-		if(nilp(x))
+		value_t i;
+		i.cons = aligned_addr(x);
+		if(nilp(i))
 		{
-			return NIL;
+			return x;
 		}
 		else
 		{
-			value_t i;
-			for(i.cons = aligned_addr(x); !nilp(cdr(i)); i = cdr(i))
-				;
+			for(; !nilp(cdr(i)); i = cdr(i))
+				assert(rtypeof(i) == CONS_T);
 
 			return i;
 		}
@@ -160,31 +178,36 @@ value_t last(value_t x)
 
 value_t nth(int n, value_t x)
 {
-	if(rtypeof(x) != CONS_T && rtypeof(x) != STR_T && rtypeof(x) != SYM_T)
+	if(is_seq(x))
 	{
-		return RERR(ERR_TYPE);
-	}
-	x.type.main = CONS_T;
+		x.cons = aligned_addr(x);
+		if(nilp(x))
+		{
+			return RERR(ERR_RANGE);
+		}
+		else
+		{
+			if(n == 0)
+			{
+				return car(x);
+			}
+			else
+			{
+				return nth(n - 1, cdr(x));
+			}
+		}
 
-	if(nilp(x))
-	{
-		return RERR(ERR_RANGE);
-	}
-
-	if(n == 0)
-	{
-		return car(x);
 	}
 	else
 	{
-		return nth(n - 1, cdr(x));
+		return RERR(ERR_TYPE);
 	}
 }
 
 value_t nconc(value_t a, value_t b)
 {
-	assert(rtypeof(a) == CONS_T || rtypeof(a) == STR_T || rtypeof(a) == SYM_T);
-
+	//assert(rtypeof(a) == CONS_T || rtypeof(a) == STR_T || rtypeof(a) == SYM_T);
+	assert(is_seq(a));
 
 	value_t l = last(a);
 	if(nilp(l))
@@ -234,17 +257,17 @@ bool equal(value_t x, value_t y)
 	{
 		return false;
 	}
-	else if(rtypeof(x) == CONS_T || rtypeof(x) == SYM_T || rtypeof(x) == STR_T)
+	else if(is_cons_pair_or_nil(x))
 	{
-		x.type.main = CONS_T;
-		y.type.main = CONS_T;
+		x.cons = aligned_addr(x);
+		y.cons = aligned_addr(y);
 		if(nilp(x))
 		{
 			return nilp(y);
 		}
 		else if(nilp(y))
 		{
-			return nilp(x);
+			return false;
 		}
 		else
 		{
@@ -264,9 +287,9 @@ bool atom(value_t x)
 
 value_t copy_list(value_t list)
 {
-	assert(rtypeof(list) == CONS_T || rtypeof(list) == SYM_T || rtypeof(list) == STR_T);
+	assert(is_cons_pair_or_nil(list));
 	unsigned int type = list.type.main;
-	list.type.main = CONS_T;
+	list.cons    = aligned_addr(list);
 	value_t    r = NIL;
 	value_t* cur = &r;
 
@@ -309,38 +332,24 @@ value_t acons(value_t key, value_t val, value_t list)
 	return cons(cons(key, val), list);
 }
 
-value_t pairlis1(value_t key, value_t val, value_t alist)
-{
-	assert(rtypeof(key)   == CONS_T);
-	assert(rtypeof(val)   == CONS_T);
-	assert(rtypeof(alist) == CONS_T);
-
-	if(nilp(key))
-	{
-		return alist;
-	}
-	else
-	{
-		return pairlis1(cdr(key), cdr(val), acons(car(key), car(val), alist));
-	}
-}
-
 value_t pairlis		(value_t key, value_t val)
 {
-	assert(rtypeof(key) == CONS_T);
-	assert(rtypeof(val) == CONS_T);
+	value_t r = NIL;
+	while(!nilp(key))
+	{
+		assert(rtypeof(key) == CONS_T);
+		assert(rtypeof(val) == CONS_T);
 
-	return pairlis1(key, val, NIL);
+		r = cons(cons(car(key), car(val)), r);
+		key = cdr(key);
+		val = cdr(val);
+	}
+	return r;
 }
 
-bool is_pair		(value_t list)
+bool consp(value_t list)
 {
 	return rtypeof(list) == CONS_T && !nilp(list);
-}
-
-bool is_empty(value_t list)
-{
-	return nilp(list);
 }
 
 value_t concat(int n, ...)
@@ -353,7 +362,7 @@ value_t concat(int n, ...)
 	{
 		value_t arg1 = va_arg(arg, value_t);
 		value_t copy = copy_list(arg1);
-		copy.type.main = CONS_T;
+		copy.cons    = aligned_addr(copy);
 
 		r = nconc(r, copy);
 	}
@@ -361,6 +370,47 @@ value_t concat(int n, ...)
 	va_end(arg);
 
 	return r;
+}
+
+value_t slurp(char* fn)
+{
+	FILE* fp = fopen(fn, "r");
+
+	// read all
+	if(fp)
+	{
+		value_t buf = NIL;
+		value_t* cur = &buf;
+
+		int c;
+		while((c = fgetc(fp)) != EOF)
+		{
+			cur = cons_and_cdr(RCHAR(c), cur);
+		}
+		fclose(fp);
+		buf.type.main = STR_T;
+
+		return buf;
+	}
+	else	// file not found or other error.
+	{
+		return RERR(ERR_FILENOTFOUND);
+	}
+}
+
+value_t reduce(value_t (*fn)(value_t, value_t), value_t args)
+{
+	value_t arg1 = car(args);
+	value_t arg2 = car(cdr(args));
+	args = cdr(args);
+
+	do {
+		args = cdr(args);
+		arg1 = fn(arg1, arg2);
+		arg2 = car(args);
+	} while(!nilp(args));
+
+	return arg1;
 }
 
 /////////////////////////////////////////////////////////////////////

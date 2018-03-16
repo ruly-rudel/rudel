@@ -30,7 +30,7 @@ static value_t read_int(value_t token)
 
 		if(nilp(token))	// not int
 		{
-			return RERR(ERR_PARSE);
+			return NIL;
 		}
 
 		tcar  = car(token);
@@ -54,7 +54,7 @@ static value_t read_int(value_t token)
 		}
 		else
 		{
-			return RERR(ERR_PARSE);
+			return NIL;
 		}
 	}
 
@@ -68,7 +68,7 @@ static value_t read_atom(scan_t* st)
 	if(rtypeof(token) == SYM_T)
 	{
 		value_t rint = read_int(token);
-		if(!errp(rint))
+		if(!nilp(rint))
 		{
 			token = rint;
 		}

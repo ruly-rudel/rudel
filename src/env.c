@@ -6,41 +6,38 @@
 /////////////////////////////////////////////////////////////////////
 // private: support functions
 
-static value_t make_bind(value_t key, value_t val, value_t alist)
-{
-	assert(rtypeof(key)   == CONS_T);
-	assert(rtypeof(val)   == CONS_T);
-	assert(rtypeof(alist) == CONS_T);
-
-	value_t key_car = car(key);
-	value_t val_car = car(val);
-
-	if(nilp(key))
-	{
-		return alist;
-	}
-	else if(equal(key_car, str_to_sym("&")))	// rest parameter
-	{
-		key_car = car(cdr(key));
-		return acons(key_car, val, alist);
-	}
-	else
-	{
-		return make_bind(cdr(key), cdr(val), acons(key_car, val_car, alist));
-	}
-}
-
 
 /////////////////////////////////////////////////////////////////////
 // public: Environment create, search and modify functions
 
 value_t	create_env	(value_t key, value_t val, value_t outer)
 {
-	assert(rtypeof(outer) == CONS_T);
-	assert(rtypeof(key)   == CONS_T);
-	assert(rtypeof(val)   == CONS_T);
+	value_t amp = str_to_sym("&");
+	value_t alist = NIL;
 
-	return cons(make_bind(key, val, NIL), outer);
+	while(!nilp(key))
+	{
+		assert(rtypeof(key)   == CONS_T);
+		assert(rtypeof(val)   == CONS_T);
+
+		value_t key_car = car(key);
+		value_t val_car = car(val);
+
+		if(equal(key_car, amp))	// rest parameter
+		{
+			key_car = car(cdr(key));
+			alist = acons(key_car, val, alist);
+			break;
+		}
+		else
+		{
+			alist = acons(key_car, val_car, alist);
+		}
+		key = cdr(key);
+		val = cdr(val);
+	}
+
+	return cons(alist, outer);
 }
 
 // search only current environment, set only on current environment
@@ -79,27 +76,41 @@ value_t	find_env	(value_t key, value_t env)
 }
 
 // search whole environment
-value_t	get_env_value	(value_t key, value_t env)
+value_t	find_env_all	(value_t key, value_t env)
 {
-	assert(rtypeof(env) == CONS_T);
 	assert(rtypeof(key) == SYM_T);
 
-	if(nilp(env))
+	while(!nilp(env))
 	{
-		return RERR(ERR_NOTFOUND);
-	}
-	else
-	{
+		assert(rtypeof(env) == CONS_T);
 		value_t s = assoc(key, car(env));
-		if(nilp(s))
+		if(!nilp(s))
 		{
-			return get_env_value(key, cdr(env));
+			return s;
 		}
-		else
+		env = cdr(env);
+	}
+
+	return NIL;
+}
+
+// search whole environment
+value_t	get_env_value	(value_t key, value_t env)
+{
+	assert(rtypeof(key) == SYM_T);
+
+	while(!nilp(env))
+	{
+		assert(rtypeof(env) == CONS_T);
+		value_t s = assoc(key, car(env));
+		if(!nilp(s))
 		{
 			return cdr(s);
 		}
+		env = cdr(env);
 	}
+
+	return RERR(ERR_NOTFOUND);
 }
 
 // End of File

@@ -184,13 +184,13 @@ static value_t pr_str_cfn(value_t s, value_t cyclic)
 
 #ifdef PRINT_CLOS_ENV
 	s.type.main = CONS_T;
-	value_t r = str_to_rstr("(#<C-FUNCTION> . ");
+	value_t r = str_to_rstr("(#<COMPILED-FUNCTION> . ");
 	nconc(r, pr_str(cdr(s), cyclic));
 	nconc(r, str_to_rstr(")"));
 
 	return r;
 #else  // PRINT_CLOS_ENV
-	return str_to_rstr("#<C-FUNCTION>");
+	return str_to_rstr("#<CCOMPILED-FUNCTION>");
 #endif // PRINT_CLOS_ENV
 }
 
