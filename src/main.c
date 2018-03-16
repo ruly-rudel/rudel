@@ -16,9 +16,9 @@ int main(int argc, char* argv[])
 #endif // USE_LINENOISE
 
 	value_t r, e;
-	value_t env = create_root_env();
+	value_t env = create_env(NIL, NIL, NIL);
 
-	eval(read_str(str_to_rstr("(eval (read-string (str \"(do \" (slurp \"init.rud\") \")\")))")), env);
+	init(env);
 
 	for(;;)
 	{

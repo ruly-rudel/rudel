@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "builtin.h"
 #include "eval.h"
+#include "core.h"
+#include "reader.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: cons allocator
@@ -396,6 +398,16 @@ value_t slurp(char* fn)
 	{
 		return RERR(ERR_FILENOTFOUND);
 	}
+}
+
+value_t init(value_t env)
+{
+	env = last(env);
+	rplaca(env, car(create_root_env()));
+
+	value_t c = concat(3, str_to_rstr("(do "), slurp("init.rud"), str_to_rstr(")"));
+	c.type.main = STR_T;
+	return eval(read_str(c), env);
 }
 
 value_t reduce(value_t (*fn)(value_t, value_t), value_t args)

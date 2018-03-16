@@ -13,6 +13,42 @@
 (defun! load-file (f)
 	(eval (read-string (str "(do " (slurp f) ")"))))
 
+;(defun! list (& body) body)
+(defun! list (& body) (copy-list body))
+
+(defun! count (x)
+	(if x
+	  (+ 1 (count (cdr x)))
+	  0))
+
+(defun! copy-list (x)
+	(if x
+	  (if (not (consp x))
+	    x
+	    (cons (car x) (copy-list (cdr x))))
+	  nil))
+
+(defun! last (x)
+	(if x
+	  (if (consp x)
+	    (if (cdr x)
+	      (last (cdr x))
+	      x))
+	  nil))
+
+;(defun! nth (x n)
+;	(if (eq n 0)
+;	  (car x)
+;	  (nth (cdr x) (- n 1))))
+
+(defm! concat (& body)
+       (if (not body) nil
+	 `(let* (concat_car (copy-list ,(car body)))
+	   (do (if (consp concat_car)
+		 (rplacd (last concat_car) (concat ,@(cdr body)))
+		 (concat ,@(cdr body)))
+	      concat_car))))
+
 (defm! cond (& xs)
        (if (> (count xs) 0)
 	 (list 'if (car xs)

@@ -146,6 +146,7 @@ bool    consp		(value_t list);
 value_t concat		(int n, ...);
 value_t slurp		(char* fn);
 value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);
+value_t init		(value_t env);
 
 value_t str_to_cons	(const char* s);
 value_t str_to_rstr	(const char* s);
