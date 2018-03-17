@@ -32,6 +32,13 @@
 	    (cons (car x) (copy-list (cdr x))))
 	  nil))
 
+;(defun! copy-list (x n)
+;	(if (and n (= n 0)) nil
+;	   (if x
+;	     (if (not (consp x))
+;	       x
+;	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))))))
+
 (defun! last (x)
 	(if x
 	  (if (consp x)
@@ -48,6 +55,22 @@
 (defun! repeat (n x fn)
 	(if (<= n 1) x
 	  (fn x (repeat (- n 1) x fn))))
+
+;(if (cond)
+;    (true)
+;    (false)
+;(defun! name (args)
+;    (body))
+;(let* (a b
+;       c d)
+;    (body))
+;(do
+;    (body1)
+;    (body2))
+;(def! x
+;    (value))
+;(fn* name (args)
+;    (body))
 
 (defun! pp (tree)
 	(let*
@@ -68,13 +91,25 @@
 				       (loop tr)))))
 	  (println (format-one-list tree indent))))
 
-(defm! concat (& body)
-       (if (not body) nil
-	 `(let* (concat_car (copy-list ,(car body)))
-	   (do (if (consp concat_car)
-		 (rplacd (last concat_car) (concat ,@(cdr body)))
-		 (concat ,@(cdr body)))
-	      concat_car))))
+;(defm! concat (& body)
+;       (if (not body) nil
+;	 `(let* (concat_car (copy-list ,(car body)))
+;	   (do (if (consp concat_car)
+;		 (rplacd (last concat_car) (concat ,@(cdr body)))
+;		 (concat ,@(cdr body)))
+;	      concat_car))))
+(defun! concat (& body)
+	(let* (rec (fn* (x)
+			(if (not x) nil
+			  (if (consp x)
+			    (let* (copy (copy-list (car x)))
+			      (if (consp copy)
+				 (do
+				   (rplacd (last copy) (rec (cdr x)))
+				   copy)
+				 (rec (cdr x))))
+			    x))))
+	  (rec body)))
 
 (defm! cond (& xs)
        (if (> (count xs) 0)
@@ -92,4 +127,13 @@
 	   `(let* (or_FIXME ,(car xs))
 	      (if or_FIXME or_FIXME
 		(or ,@(cdr xs)))))))
+
+(defm! and (& xs)
+       (if (not xs)
+	 t
+	 (if (= 1 (count xs))
+	   (car xs)
+	   `(let* (and_FIXME ,(car xs))
+	      (if (not and_FIXME) and_FIXME
+		(and ,@(cdr xs)))))))
 
