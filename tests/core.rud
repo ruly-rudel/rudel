@@ -4,11 +4,11 @@
 
 (def! zero? (fn* (n) (= 0 n)))
 
-(def! reduce
-  (fn* (f init xs)
-    (if (> (count xs) 0)
-      (reduce f (f init (car xs)) (cdr xs))
-      init)))
+;(def! reduce
+;  (fn* (f init xs)
+;    (if (> (count xs) 0)
+;      (reduce f (f init (car xs)) (cdr xs))
+;      init)))
 
 (def! identity (fn* (x) x))
 
@@ -31,34 +31,34 @@
           (some pred (cdr xs))))
       nil)))
 
-(defmacro! and
-  (fn* (& xs)
-    (if (not xs)
-      t
-      (if (= 1 (count xs))
-        (car xs)
-        (let* (condvar (gensym))
-          `(let* (,condvar ,(car xs))
-            (if ,condvar (and ,@(cdr xs)) ,condvar)))))))
+;(defmacro! and
+;  (fn* (& xs)
+;    (if (not xs)
+;      t
+;      (if (= 1 (count xs))
+;        (car xs)
+;        (let* (condvar (gensym))
+;          `(let* (,condvar ,(car xs))
+;            (if ,condvar (and ,@(cdr xs)) ,condvar)))))))
 
-(defmacro! or
-  (fn* (& xs)
-    (if (not xs)
-      nil
-      (if (= 1 (count xs))
-        (car xs)
-        (let* (condvar (gensym))
-          `(let* (,condvar ,(car xs))
-             (if ,condvar ,condvar (or ,@(cdr xs)))))))))
+;(defmacro! or
+;  (fn* (& xs)
+;    (if (not xs)
+;      nil
+;      (if (= 1 (count xs))
+;        (car xs)
+;        (let* (condvar (gensym))
+;          `(let* (,condvar ,(car xs))
+;             (if ,condvar ,condvar (or ,@(cdr xs)))))))))
 
-(defmacro! cond
-  (fn* (& clauses)
-    (if (> (count clauses) 0)
-      (list 'if (car clauses)
-            (if (> (count clauses) 1)
-                (nth clauses 1)
-                (throw "cond requires an even number of forms"))
-            (cons 'cond (cdr (cdr clauses)))))))
+;(defmacro! cond
+;  (fn* (& clauses)
+;    (if (> (count clauses) 0)
+;      (list 'if (car clauses)
+;            (if (> (count clauses) 1)
+;                (nth clauses 1)
+;                (throw "cond requires an even number of forms"))
+;            (cons 'cond (cdr (cdr clauses)))))))
 
 (defmacro! ->
   (fn* (x & xs)

@@ -21,27 +21,28 @@
 ;	  (if (consp x) (+ 1 (count (cdr x))))))
 
 (defun! count (x)
-	(if (not x) 0
-	  (if (seqp x) (+ 1 (count (cdr x)))
-	    0)))
-
-(defun! copy-list (x)
 	(if x
-	  (if (not (consp x))
-	    x
-	    (cons (car x) (copy-list (cdr x))))
-	  nil))
+	  (if (seqp x) (+ 1 (count (cdr x)))
+	    0)
+	  0))
 
-;(defun! copy-list (x n)
-;	(if (and n (= n 0)) nil
-;	   (if x
-;	     (if (not (consp x))
-;	       x
-;	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))))))
+;(defun! copy-list (x)
+;	(if x
+;	  (if (not (consp x))
+;	    x
+;	    (cons (car x) (copy-list (cdr x))))
+;	  nil))
+
+(defun! copy-list (x n)
+	(if (and n (= n 0)) nil
+	   (if x
+	     (if (seqp x)
+	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
+	       x))))
 
 (defun! last (x)
 	(if x
-	  (if (consp x)
+	  (if (seqp x)
 	    (if (cdr x)
 	      (last (cdr x))
 	      x))

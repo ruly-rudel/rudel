@@ -23,11 +23,13 @@ static value_t eval_ast	(value_t ast, value_t env)
 			assert(rtypeof(ast) == CONS_T);
 
 			value_t ast_car = eval(car(ast), env);
-			cur = cons_and_cdr(ast_car, cur);
+#ifndef DONT_ABORT_EVAL_ON_ERROR
 			if(errp(ast_car))
 			{
 				return ast_car;
 			}
+#endif
+			cur = cons_and_cdr(ast_car, cur);
 			ast = cdr(ast);
 		}
 		return new_ast;

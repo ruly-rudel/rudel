@@ -43,7 +43,7 @@ static inline bool is_cons_pair_or_nil(value_t x)
 
 static inline bool is_seq(value_t x)
 {
-	return rtypeof(x) <= STR_T && x.type.sub != 0 && x.type.val != 0;
+	return rtypeof(x) <= STR_T && (x.type.sub != 0 || x.type.val != 0);
 }
 
 static inline bool is_seq_or_nil(value_t x)
