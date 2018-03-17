@@ -43,6 +43,11 @@ static inline bool is_cons_pair_or_nil(value_t x)
 
 static inline bool is_seq(value_t x)
 {
+	return rtypeof(x) <= STR_T && x.type.sub != 0 && x.type.val != 0;
+}
+
+static inline bool is_seq_or_nil(value_t x)
+{
 	return rtypeof(x) <= STR_T;
 }
 
@@ -119,6 +124,11 @@ bool nilp(value_t x)
 	return x.type.main == CONS_T && x.type.sub == 0 && x.type.val == 0;
 }
 
+bool seqnilp(value_t x)
+{
+	return is_seq_or_nil(x) && x.type.sub == 0 && x.type.val == 0;
+}
+
 bool intp(value_t x)
 {
 	return x.type.main == OTH_T && x.type.sub == INT_T;
@@ -156,7 +166,7 @@ value_t rplacd(value_t x, value_t v)
 
 value_t last(value_t x)
 {
-	if(is_seq(x))
+	if(is_seq_or_nil(x))
 	{
 		value_t i;
 		i.cons = aligned_addr(x);
@@ -180,7 +190,7 @@ value_t last(value_t x)
 
 value_t nth(int n, value_t x)
 {
-	if(is_seq(x))
+	if(is_seq_or_nil(x))
 	{
 		x.cons = aligned_addr(x);
 		if(nilp(x))
@@ -209,7 +219,7 @@ value_t nth(int n, value_t x)
 value_t nconc(value_t a, value_t b)
 {
 	//assert(rtypeof(a) == CONS_T || rtypeof(a) == STR_T || rtypeof(a) == SYM_T);
-	assert(is_seq(a));
+	assert(is_seq_or_nil(a));
 
 	value_t l = last(a);
 	if(nilp(l))
@@ -352,6 +362,11 @@ value_t pairlis		(value_t key, value_t val)
 bool consp(value_t list)
 {
 	return rtypeof(list) == CONS_T && !nilp(list);
+}
+
+bool seqp(value_t list)
+{
+	return is_seq(list);
 }
 
 value_t concat(int n, ...)

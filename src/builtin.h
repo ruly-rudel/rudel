@@ -10,9 +10,9 @@
 typedef enum _rtype_t {
 	// main 8types (content is address)
 	CONS_T = 0,	// maybe sequence
-	SYM_T,
 	VEC_T,
 	STR_T,
+	SYM_T,
 	CFN_T,		// dotted list
 	CLOJ_T,
 	MACRO_T,
@@ -125,6 +125,7 @@ value_t cdr		(value_t x);
 value_t	cons		(value_t car, value_t cdr);
 bool    errp		(value_t x);
 bool    nilp		(value_t x);
+bool	seqnilp		(value_t x);
 bool    intp		(value_t x);
 value_t rplaca		(value_t x, value_t v);
 value_t rplacd		(value_t x, value_t v);
@@ -143,6 +144,7 @@ value_t acons		(value_t key, value_t val, value_t list);
 value_t pairlis		(value_t key, value_t val);
 
 bool    consp		(value_t list);
+bool    seqp		(value_t list);
 value_t concat		(int n, ...);
 value_t slurp		(char* fn);
 value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);

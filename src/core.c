@@ -85,17 +85,19 @@ static value_t NAME(value_t body, value_t env) \
 
 ////////// basic functions
 
-DEF_FN_1(b_atom,   atom  (arg1)       ? SYM_TRUE : SYM_FALSE)
-DEF_FN_1(b_consp,  consp (arg1)       ? SYM_TRUE : SYM_FALSE)
-DEF_FN_1(b_car,    car   (arg1))
-DEF_FN_1(b_cdr,    cdr   (arg1))
-DEF_FN_2(b_cons,   cons  (arg1, arg2))
-DEF_FN_2(b_eq,     eq    (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
-DEF_FN_2(b_equal,  equal (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
-DEF_FN_1(b_eval,   eval  (arg1, last(env)))
-DEF_FN_2(b_rplaca, rplaca(arg1, arg2))
-DEF_FN_2(b_rplacd, rplacd(arg1, arg2))
-DEF_FN_2(b_nth,    rtypeof(arg2) != INT_T ? RERR(ERR_TYPE) : nth(arg2.rint.val, arg1))
+DEF_FN_1(b_atom,    atom   (arg1)       ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_consp,   consp  (arg1)       ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_seqp,    seqp   (arg1)       ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_seqnilp, seqnilp(arg1)       ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_car,     car    (arg1))
+DEF_FN_1(b_cdr,     cdr    (arg1))
+DEF_FN_2(b_cons,    cons   (arg1, arg2))
+DEF_FN_2(b_eq,      eq     (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
+DEF_FN_2(b_equal,   equal  (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_eval,    eval   (arg1, last(env)))
+DEF_FN_2(b_rplaca,  rplaca (arg1, arg2))
+DEF_FN_2(b_rplacd,  rplacd (arg1, arg2))
+DEF_FN_2(b_nth,     rtypeof(arg2) != INT_T ? RERR(ERR_TYPE) : nth(arg2.rint.val, arg1))
 
 
 ////////// special functions for rudel (manipulate environment etc...)
@@ -158,7 +160,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(28,
+	value_t key = list(30,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -170,6 +172,8 @@ value_t	create_root_env	(void)
 	                      str_to_sym("prn"),
 	                      str_to_sym("println"),
 	                      str_to_sym("consp"),
+	                      str_to_sym("seqp"),
+	                      str_to_sym("seqnilp"),
 	                      str_to_sym("read-string"),
 	                      str_to_sym("slurp"),
 	                      str_to_sym("eval"),
@@ -189,7 +193,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym(">=")
 	                  );
 
-	value_t val = list(28,
+	value_t val = list(30,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -201,6 +205,8 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_prn), NIL),
 	                      cfn(RFN(b_println), NIL),
 	                      cfn(RFN(b_consp), NIL),
+	                      cfn(RFN(b_seqp), NIL),
+	                      cfn(RFN(b_seqnilp), NIL),
 	                      cfn(RFN(b_read_string), NIL),
 	                      cfn(RFN(b_slurp), NIL),
 	                      cfn(RFN(b_eval), NIL),

@@ -16,10 +16,14 @@
 ;(defun! list (& body) body)
 (defun! list (& body) (copy-list body))
 
+;(defun! count (x)
+;	(if x
+;	  (if (consp x) (+ 1 (count (cdr x))))))
+
 (defun! count (x)
-	(if x
-	  (+ 1 (count (cdr x)))
-	  0))
+	(if (seqnilp x) 0
+	  (if (seqp x) (+ 1 (count (cdr x)))
+	    0)))
 
 (defun! copy-list (x)
 	(if x
@@ -40,6 +44,29 @@
 ;	(if (eq n 0)
 ;	  (car x)
 ;	  (nth (cdr x) (- n 1))))
+
+(defun! repeat (n x fn)
+	(if (<= n 1) x
+	  (fn x (repeat (- n 1) x fn))))
+
+(defun! pp (tree)
+	(let*
+	  (indent 1
+	   insert-space (fn* (n) (repeat n " " str))
+	   format-one-list (fn* (tr n)
+				(str "("
+				     (let* (loop (fn* (l)
+						      (cond (not l) ")"
+							    (consp (car l)) (str
+									       (format-one-list (car l) (+ n indent))
+									       "\n"
+									       (insert-space n)
+									       (loop (cdr l)))
+						            t (str (car l)
+								   (cond (not (cdr l)) ")"
+									 t (str " " (loop (cdr l))))))))
+				       (loop tr)))))
+	  (println (format-one-list tree indent))))
 
 (defm! concat (& body)
        (if (not body) nil
