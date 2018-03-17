@@ -21,7 +21,7 @@
 ;	  (if (consp x) (+ 1 (count (cdr x))))))
 
 (defun! count (x)
-	(if (seqnilp x) 0
+	(if (not x) 0
 	  (if (seqp x) (+ 1 (count (cdr x)))
 	    0)))
 

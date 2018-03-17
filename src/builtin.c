@@ -119,12 +119,13 @@ bool errp(value_t x)
 	return x.type.main == OTH_T && x.type.sub == ERR_T;
 }
 
-bool nilp(value_t x)
+// only for reader and core
+bool cnilp(value_t x)
 {
 	return x.type.main == CONS_T && x.type.sub == 0 && x.type.val == 0;
 }
 
-bool seqnilp(value_t x)
+bool nilp(value_t x)
 {
 	return is_seq_or_nil(x) && x.type.sub == 0 && x.type.val == 0;
 }

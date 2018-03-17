@@ -28,7 +28,7 @@ static value_t read_int(value_t token)
 		token = cdr(token);
 		assert(rtypeof(token) == CONS_T);
 
-		if(nilp(token))	// not int
+		if(cnilp(token))	// not int
 		{
 			return NIL;
 		}
@@ -39,7 +39,7 @@ static value_t read_int(value_t token)
 
 	// value
 	unsigned int val = 0;
-	while(!nilp(token))
+	while(!cnilp(token))
 	{
 		tcar = car(token);
 		assert(rtypeof(tcar) == INT_T);
@@ -90,7 +90,7 @@ static value_t read_list(scan_t* st)
 	value_t token;
 
 	scan_next(st);	// omit '('
-	while(!nilp(token = scan_peek(st)))
+	while(!cnilp(token = scan_peek(st)))
 	{
 		assert(rtypeof(token) == STR_T || rtypeof(token) == SYM_T || errp(token));
 
@@ -107,7 +107,7 @@ static value_t read_list(scan_t* st)
 			assert(rtypeof(c) == INT_T);
 			if(c.rint.val == ')')
 			{
-				if(nilp(r))
+				if(cnilp(r))
 				{
 					r = NIL;		// () is nil
 				}
@@ -133,7 +133,7 @@ static value_t read_form(scan_t* st)
 	assert(st != NULL);
 
 	value_t token = scan_peek(st);
-	if(nilp(token))	// no token
+	if(cnilp(token))	// no token
 	{
 		return NIL;
 	}
@@ -146,11 +146,8 @@ static value_t read_form(scan_t* st)
 		assert(rtypeof(token) == STR_T || rtypeof(token) == SYM_T);
 		if(rtypeof(token) == SYM_T)
 		{
-			value_t tcons   = token;
-			tcons.type.main = CONS_T;
-			assert(!nilp(tcons));
-
-			value_t tcar = car(tcons);
+			value_t tcons = token;
+			value_t tcar  = car(tcons);
 			assert(rtypeof(tcar) == INT_T);
 
 			if(tcar.rint.val == '(')
@@ -178,11 +175,8 @@ static value_t read_form(scan_t* st)
 				assert(rtypeof(token) == STR_T || rtypeof(token) == SYM_T);
 				if(rtypeof(token) == SYM_T)
 				{
-					value_t tcons   = token;
-					tcons.type.main = CONS_T;
-					assert(!nilp(tcons));
-
-					value_t tcar = car(tcons);
+					value_t tcons = token;
+					value_t tcar  = car(tcons);
 					assert(rtypeof(tcar) == INT_T);
 					if(tcar.rint.val == '@')
 					{
@@ -221,7 +215,7 @@ static value_t read_line(FILE* fp)
 	for(;;)
 	{
 		int c = fgetc(fp);
-		if(c == EOF && nilp(r))	// EOF
+		if(c == EOF && cnilp(r))	// EOF
 		{
 			return RERR(ERR_EOF);
 		}
