@@ -315,7 +315,7 @@ value_t copy_list(value_t list)
 	return r;
 }
 
-value_t assoc(value_t key, value_t list)
+value_t assoc(value_t key, value_t list, bool (*test)(value_t, value_t))
 {
 	assert(rtypeof(list) == CONS_T);
 
@@ -330,7 +330,7 @@ value_t assoc(value_t key, value_t list)
 			value_t vcar = car(v);
 			assert(rtypeof(vcar) == CONS_T);
 
-			if(equal(car(vcar), key))
+			if(test(car(vcar), key))
 				return vcar;
 		}
 

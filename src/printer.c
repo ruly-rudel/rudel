@@ -44,7 +44,6 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
 	value_t r    = NIL;
-	x.type.main = CONS_T;
 
 	if(nilp(x))
 	{
@@ -68,7 +67,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 				// check cyclic
 				if(!nilp(cyclic))
 				{
-					value_t ex = assoc(x, cdr(cyclic));
+					value_t ex = assoc(x, cdr(cyclic), eq);
 					if(nilp(ex))
 					{
 						nconc(cyclic, cons(cons(x, NIL), NIL));
@@ -190,7 +189,7 @@ static value_t pr_str_cfn(value_t s, value_t cyclic)
 
 	return r;
 #else  // PRINT_CLOS_ENV
-	return str_to_rstr("#<CCOMPILED-FUNCTION>");
+	return str_to_rstr("#<COMPILED-FUNCTION>");
 #endif // PRINT_CLOS_ENV
 }
 

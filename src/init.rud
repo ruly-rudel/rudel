@@ -113,6 +113,7 @@
 	       trail (if (= n 0) nil (nthcdr (- n 1) lst))
 	       next  (+ indent 3))
 	  (str
+	    "("
 	    (reduce (fn* (x y) (if y
 				 (str
 				   (pp x next) " " (pp y next))
@@ -135,7 +136,7 @@
 	 (let*
 	   (trial (pp-n tree 0 0)
 	    len   (count trial))
-	   (if (> len 30)
+	   (if (> len 10)
 	     (pp-n tree indent 1)
 	     trial))
 	 (str tree)))
