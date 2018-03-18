@@ -2,6 +2,7 @@
 #include "builtin.h"
 #include "eval.h"
 #include "env.h"
+#include "printer.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: eval functions
@@ -256,20 +257,39 @@ static value_t eval_apply(value_t v, value_t env)
 		else
 		{
 			value_t fn = car(ev);
+
+			// trace enter
+			value_t trace_fn = get_env_value(str_to_sym("*trace*"), env);
+			value_t trace_on = nilp(trace_fn) ? NIL : find(car(v), trace_fn);
+			if(!nilp(trace_on))
+			{
+				print(cons(str_to_sym("TRACE enter:"), cons(car(v), cdr(ev))), stderr);
+			}
+
+			// apply
+			value_t ret;
 			if(rtypeof(fn) == CFN_T)		// compiled function
 			{
 				fn.type.main = CONS_T;
 				// apply
-				return car(fn).rfn(cdr(ev), env);
+				ret = car(fn).rfn(cdr(ev), env);
 			}
 			else if(rtypeof(fn) == CLOJ_T)		// (ast . env)
 			{
-				return apply(fn, cdr(ev));
+				ret = apply(fn, cdr(ev));
 			}
 			else
 			{
-				return RERR(ERR_NOTFN);
+				ret = RERR(ERR_NOTFN);
 			}
+
+			// trace exit
+			if(!nilp(trace_on))
+			{
+				print(list(4, str_to_sym("TRACE exit:"), car(v), str_to_sym("with"), ret), stderr);
+			}
+
+			return ret;
 		}
 	}
 }

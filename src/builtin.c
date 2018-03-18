@@ -219,7 +219,6 @@ value_t nth(int n, value_t x)
 
 value_t nconc(value_t a, value_t b)
 {
-	//assert(rtypeof(a) == CONS_T || rtypeof(a) == STR_T || rtypeof(a) == SYM_T);
 	assert(is_seq_or_nil(a));
 
 	value_t l = last(a);
@@ -388,6 +387,26 @@ value_t concat(int n, ...)
 	va_end(arg);
 
 	return r;
+}
+
+value_t find(value_t key, value_t list)
+{
+	assert(is_seq_or_nil(list));
+
+	if(nilp(list))
+	{
+		return NIL;
+	}
+	else
+	{
+		for(value_t v = list; !nilp(v); v = cdr(v))
+		{
+			if(equal(car(v), key))
+				return car(v);
+		}
+
+		return NIL;
+	}
 }
 
 value_t slurp(char* fn)

@@ -159,7 +159,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(29,
+	value_t key = list(30,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -188,10 +188,11 @@ value_t	create_root_env	(void)
 	                      str_to_sym("<"),
 	                      str_to_sym("<="),
 	                      str_to_sym(">"),
-	                      str_to_sym(">=")
+	                      str_to_sym(">="),
+	                      str_to_sym("*trace*")
 	                  );
 
-	value_t val = list(29,
+	value_t val = list(30,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -220,7 +221,8 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_lt), NIL),
 	                      cfn(RFN(b_elt), NIL),
 	                      cfn(RFN(b_mt), NIL),
-	                      cfn(RFN(b_emt), NIL)
+	                      cfn(RFN(b_emt), NIL),
+	                      NIL
 			  );
 
 	return create_env(key, val, NIL);
