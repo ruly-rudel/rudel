@@ -146,7 +146,7 @@ value_t pairlis		(value_t key, value_t val);
 bool    consp		(value_t list);
 bool    seqp		(value_t list);
 value_t concat		(int n, ...);
-value_t find		(value_t key, value_t list);
+value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
 value_t slurp		(char* fn);
 value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);
 value_t init		(value_t env);

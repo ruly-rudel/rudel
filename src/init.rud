@@ -64,6 +64,24 @@
 	(if (<= n 1) x
 	  (fn x (repeat (- n 1) x fn))))
 
+(defun! trace (x)
+	(def! *trace* (if x (cons x *trace*))))
+
+(defun! step ()
+	(def! *debug* (cons '#step# *debug*)))
+
+(defun! cont ()
+	(def! *debug* (remove '#step# *debug*)))
+
+(defun! break (x)
+	(def! *debug* (cons x *debug*)))
+
+(defun! clear (x)
+	(def! *debug* (remove x *debug*)))
+
+(defun! clear-all ()
+	(def! *debug* nil))
+
 ;(defun! reduce (fn lst)
 ;	(let*
 ;	  (rec      (fn* (fn lst)

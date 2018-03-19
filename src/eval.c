@@ -3,6 +3,7 @@
 #include "eval.h"
 #include "env.h"
 #include "printer.h"
+#include "reader.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: eval functions
@@ -16,7 +17,7 @@ static value_t eval_ast	(value_t ast, value_t env)
 	switch(rtypeof(ast))
 	{
 	    case SYM_T:
-		return get_env_value(ast, env);
+		return equal(ast, str_to_sym("env")) ? env : get_env_value(ast, env);
 
 	    case CONS_T:
 		while(!nilp(ast))
@@ -60,7 +61,15 @@ static value_t eval_def(value_t vcdr, value_t env)
 
 	if(!errp(val))
 	{
-		set_env(key, val, env);
+		value_t target = find_env_all(key, env);
+		if(nilp(target))
+		{
+			set_env(key, val, env);		// set to current
+		}
+		else
+		{
+			rplacd(target, val);		// replace
+		}
 	}
 	return val;
 }
@@ -260,10 +269,49 @@ static value_t eval_apply(value_t v, value_t env)
 
 			// trace enter
 			value_t trace_fn = get_env_value(str_to_sym("*trace*"), env);
-			value_t trace_on = nilp(trace_fn) ? NIL : find(car(v), trace_fn);
+			value_t trace_on = nilp(trace_fn) ? NIL : find(car(v), trace_fn, equal);
 			if(!nilp(trace_on))
 			{
 				print(cons(str_to_sym("TRACE enter:"), cons(car(v), cdr(ev))), stderr);
+			}
+
+			// debug hook
+			value_t debug_cmd = get_env_value(str_to_sym("*debug*"), env);
+			if(!nilp(debug_cmd))	// debug on
+			{
+				value_t debug_step = find(str_to_sym("#step#"), debug_cmd, equal);
+				value_t is_break   = find(car(v), debug_cmd, equal);
+				if(!nilp(debug_step) || !nilp(is_break))	// debug REPL
+				{
+					print(cons(str_to_sym("DEBUG break:"), cons(car(v), cdr(ev))), stderr);
+					for(;;) {
+						value_t r = READ("debug> ", stdin);
+						if(errp(r))
+						{
+							if(r.type.val == ERR_EOF)
+							{
+								break;
+							}
+							else
+							{
+								print(r, stderr);
+							}
+						}
+						else
+						{
+							value_t e = eval(r, env);
+							if(!errp(e))
+							{
+								print(e, stdout);
+							}
+							else
+							{
+								print(e, stderr);
+							}
+						}
+					}
+				}
+
 			}
 
 			// apply

@@ -389,7 +389,7 @@ value_t concat(int n, ...)
 	return r;
 }
 
-value_t find(value_t key, value_t list)
+value_t find(value_t key, value_t list, bool (*test)(value_t, value_t))
 {
 	assert(is_seq_or_nil(list));
 
@@ -401,7 +401,7 @@ value_t find(value_t key, value_t list)
 	{
 		for(value_t v = list; !nilp(v); v = cdr(v))
 		{
-			if(equal(car(v), key))
+			if(test(car(v), key))
 				return car(v);
 		}
 
