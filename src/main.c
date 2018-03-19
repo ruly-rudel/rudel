@@ -9,17 +9,13 @@
 #include "eval.h"
 #include "core.h"
 
-int main(int argc, char* argv[])
+void repl(value_t env)
 {
 #ifdef USE_LINENOISE
 	init_linenoise();
 #endif // USE_LINENOISE
 
 	value_t r, e;
-	value_t env = create_env(NIL, NIL, NIL);
-
-	init(env);
-
 	for(;;)
 	{
 		r = READ("user> ", stdin);
@@ -47,6 +43,29 @@ int main(int argc, char* argv[])
 				print(e, stderr);
 			}
 		}
+	}
+}
+
+void rep_file(char* fn, value_t env)
+{
+	value_t c = concat(3, str_to_rstr("(do "), slurp(fn), str_to_rstr(")"));
+	c.type.main = STR_T;
+	print(eval(read_str(c), env), stdout);
+}
+
+int main(int argc, char* argv[])
+{
+	value_t env = create_env(NIL, NIL, NIL);
+
+	print(init(env), stdout);
+
+	if(argc == 1)
+	{
+		repl(env);
+	}
+	else
+	{
+		rep_file(argv[1], env);
 	}
 
 	return 0;

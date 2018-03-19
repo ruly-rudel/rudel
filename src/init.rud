@@ -7,46 +7,41 @@
 	   (fn* (name arg body)
 		`(defmacro! ,name (fn* ,arg ,body))))
 
+;; conditions
 (defun! not (a)
 	(if a nil t))
 
-(defun! load-file (f)
-	(eval (read-string (str "(do " (slurp f) ")"))))
+(defm! or (& xs)
+       (if (not xs)
+	 nil
+	 (if (= 1 (count xs))
+	   (car xs)
+	   `(let* (or_FIXME ,(car xs))
+	      (if or_FIXME or_FIXME
+		(or ,@(cdr xs)))))))
 
-;(defun! list (& body) body)
-(defun! list (& body) (copy-list body))
+(defm! and (& xs)
+       (if (not xs)
+	 t
+	 (if (= 1 (count xs))
+	   (car xs)
+	   `(let* (and_FIXME ,(car xs))
+	      (if (not and_FIXME) and_FIXME
+		(and ,@(cdr xs)))))))
 
-;(defun! count (x)
-;	(if x
-;	  (if (consp x) (+ 1 (count (cdr x))))))
+(defm! cond (& xs)
+       (if (> (count xs) 0)
+	 (list 'if (car xs)
+	          (if (> (count xs) 1)
+		    (nth xs 1)
+		    (throw "odd number of forms to cond"))
+		  (cons 'cond (cdr (cdr xs))))))
 
-(defun! count (x)
-	(if x
-	  (if (seqp x) (+ 1 (count (cdr x)))
-	    0)
-	  0))
 
-;(defun! copy-list (x)
-;	(if x
-;	  (if (not (consp x))
-;	    x
-;	    (cons (car x) (copy-list (cdr x))))
-;	  nil))
-
-(defun! copy-list (x n)
-	(if (and n (= n 0)) nil
-	   (if x
-	     (if (seqp x)
-	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
-	       x))))
-
-(defun! last (x)
-	(if x
-	  (if (seqp x)
-	    (if (cdr x)
-	      (last (cdr x))
-	      x))
-	  nil))
+;; list manipulation functions
+(defun! cadr (x) (car (cdr x)))
+(defun! cddr (x) (cdr (cdr x)))
+(defun! caddr (x) (car (cdr (cdr x))))
 
 ;(defun! nth (x n)
 ;	(if (eq n 0)
@@ -60,43 +55,57 @@
 	    (nthcdr (- n 1) (cdr x)))
 	  x))
 
-(defun! repeat (n x fn)
-	(if (<= n 1) x
-	  (fn x (repeat (- n 1) x fn))))
+(defun! last (x)
+	(if x
+	  (if (seqp x)
+	    (if (cdr x)
+	      (last (cdr x))
+	      x))
+	  nil))
 
-(defun! trace (x)
-	(def! *trace* (if x (cons x *trace*))))
+;(defun! count (x)
+;	(if x
+;	  (if (consp x) (+ 1 (count (cdr x))))))
 
-(defun! step ()
-	(def! *debug* (cons '#step# *debug*)))
+(defun! count (x)
+	(if x
+	  (if (seqp x) (+ 1 (count (cdr x)))
+	    0)
+	  0))
 
-(defun! cont ()
-	(def! *debug* (remove '#step# *debug*)))
+;; list duplication functions
 
-(defun! break (x)
-	(def! *debug* (cons x *debug*)))
+;(defun! list (& body) body)
+(defun! list (& body) (copy-list body))
 
-(defun! clear (x)
-	(def! *debug* (remove x *debug*)))
+(defun! copy-list (x n)
+	(if (and n (= n 0)) nil
+	   (if x
+	     (if (seqp x)
+	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
+	       x))))
 
-(defun! clear-all ()
-	(def! *debug* nil))
+;(defm! concat (& body)
+;       (if (not body) nil
+;	 `(let* (concat_car (copy-list ,(car body)))
+;	   (do (if (consp concat_car)
+;		 (rplacd (last concat_car) (concat ,@(cdr body)))
+;		 (concat ,@(cdr body)))
+;	      concat_car))))
+(defun! concat (& body)
+	(let* (rec (fn* (x)
+			(if (not x) nil
+			  (if (consp x)
+			    (let* (copy (copy-list (car x)))
+			      (if (consp copy)
+				 (do
+				   (rplacd (last copy) (rec (cdr x)))
+				   copy)
+				 (rec (cdr x))))
+			    x))))
+	  (rec body)))
 
-;(defun! reduce (fn lst)
-;	(let*
-;	  (rec      (fn* (fn lst)
-;			 (if (cdr lst)
-;			   (fn (car lst) (rec fn (cdr lst)))
-;			   (car lst))))
-;	  (if lst		;; 1 or more arg
-;	    (if (cdr arg)	;; 2 or more arg
-;	      (rec fn lst)
-;	      (fn (car lst) nil)))))
-
-(defun! cadr (x) (car (cdr x)))
-(defun! cddr (x) (cdr (cdr x)))
-(defun! caddr (x) (car (cdr (cdr x))))
-
+;; map functions
 (defun! reduce (fn lst)
 	(let*
 	  (rec      (fn* (head lst)
@@ -105,11 +114,22 @@
 			   head)))
 	  (if (cdr lst)	;; 2 or more arg
 	      (rec (fn (car lst) (cadr lst)) (cddr lst))
-	      (car lst))))	;; 1 elements iin lst
+	      (car lst))))	;; 1 element in lst
 
 (defun! mapcar (fn lst)
 	(if lst
 	  (cons (fn (car lst)) (mapcar fn (cdr lst)))))
+
+(defun! repeat (n x fn)
+	(if (<= n 1) x
+	  (fn x (repeat (- n 1) x fn))))
+
+
+
+
+;; rudel-specific functions
+(defun! load-file (f)
+	(eval (read-string (str "(do " (slurp f) ")"))))
 
 ;(if (cond)
 ;    (true)
@@ -126,12 +146,6 @@
 ;    (value))
 ;(fn* name (args)
 ;    (body))
-
-(defun! pp-item (lst indent)
-	(if (eq 0 indent)
-	  (str (pp (car lst) 0) (pp-item (cdr lst) indent))
-	  )
-	)
 
 (defun! insert-space (n)
 	(repeat n " " str))
@@ -170,49 +184,25 @@
 	     trial))
 	 (pr-str tree)))
 
-;(defm! concat (& body)
-;       (if (not body) nil
-;	 `(let* (concat_car (copy-list ,(car body)))
-;	   (do (if (consp concat_car)
-;		 (rplacd (last concat_car) (concat ,@(cdr body)))
-;		 (concat ,@(cdr body)))
-;	      concat_car))))
-(defun! concat (& body)
-	(let* (rec (fn* (x)
-			(if (not x) nil
-			  (if (consp x)
-			    (let* (copy (copy-list (car x)))
-			      (if (consp copy)
-				 (do
-				   (rplacd (last copy) (rec (cdr x)))
-				   copy)
-				 (rec (cdr x))))
-			    x))))
-	  (rec body)))
+(defun! ppln (tree)
+	(println (pp tree 0)))
 
-(defm! cond (& xs)
-       (if (> (count xs) 0)
-	 (list 'if (car xs)
-	          (if (> (count xs) 1)
-		    (nth xs 1)
-		    (throw "odd number of forms to cond"))
-		  (cons 'cond (cdr (cdr xs))))))
+;; debug functions
+(defun! trace (x)
+	(def! *trace* (if x (cons x *trace*))))
 
-(defm! or (& xs)
-       (if (not xs)
-	 nil
-	 (if (= 1 (count xs))
-	   (car xs)
-	   `(let* (or_FIXME ,(car xs))
-	      (if or_FIXME or_FIXME
-		(or ,@(cdr xs)))))))
+(defun! step ()
+	(def! *debug* (cons '#step# *debug*)))
 
-(defm! and (& xs)
-       (if (not xs)
-	 t
-	 (if (= 1 (count xs))
-	   (car xs)
-	   `(let* (and_FIXME ,(car xs))
-	      (if (not and_FIXME) and_FIXME
-		(and ,@(cdr xs)))))))
+(defun! cont ()
+	(def! *debug* (remove '#step# *debug*)))
+
+(defun! break (x)
+	(def! *debug* (cons x *debug*)))
+
+(defun! clear (x)
+	(def! *debug* (remove x *debug*)))
+
+(defun! clear-all ()
+	(def! *debug* nil))
 
