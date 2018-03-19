@@ -85,6 +85,12 @@
 	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
 	       x))))
 
+(defun! remove (x lst)
+	(if lst
+	  (if (= x (car lst))
+	    (remove x (cdr lst))
+	    (cons (car lst) (remove x (cdr lst))))))
+
 ;(defm! concat (& body)
 ;       (if (not body) nil
 ;	 `(let* (concat_car (copy-list ,(car body)))

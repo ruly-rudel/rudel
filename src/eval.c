@@ -219,6 +219,56 @@ static value_t is_macro_call(value_t ast, value_t env)
 	return NIL;
 }
 
+static void debug_repl(value_t env)
+{
+	for(;;) {
+		value_t r = READ("debug# ", stdin);
+		if(errp(r))
+		{
+			if(r.type.val == ERR_EOF)
+			{
+				break;
+			}
+			else
+			{
+				print(r, stderr);
+			}
+		}
+		else
+		{
+			value_t e = eval(r, env);
+			if(!errp(e))
+			{
+				print(e, stdout);
+			}
+			else
+			{
+				print(e, stderr);
+			}
+		}
+	}
+}
+
+static bool is_break(value_t v, value_t env)
+{
+	// debug hook
+	value_t debug_cmd = get_env_value(s_debug, env);
+	if(!nilp(debug_cmd))	// debug on
+	{
+		value_t debug_step = find(str_to_sym("#step#"), debug_cmd, equal);
+		value_t is_brk   = find(car(v), debug_cmd, equal);
+		if(!nilp(debug_step) || !nilp(is_brk))	// debug REPL
+		{
+			print(str_to_sym("DEBUG break:"), stderr);
+			eval(list(2, str_to_sym("ppln"), list(2, s_quote, v)), env);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static value_t eval_apply(value_t v, value_t env)
 {
 	assert(rtypeof(v) == CONS_T);
@@ -294,55 +344,21 @@ static value_t eval_apply(value_t v, value_t env)
 			}
 
 			// debug hook
-			value_t debug_cmd = get_env_value(s_debug, env);
-			if(!nilp(debug_cmd))	// debug on
-			{
-				value_t debug_step = find(str_to_sym("#step#"), debug_cmd, equal);
-				value_t is_break   = find(car(v), debug_cmd, equal);
-				if(!nilp(debug_step) || !nilp(is_break))	// debug REPL
-				{
-					print(cons(str_to_sym("DEBUG break:"), cons(car(v), cdr(ev))), stderr);
-					for(;;) {
-						value_t r = READ("debug> ", stdin);
-						if(errp(r))
-						{
-							if(r.type.val == ERR_EOF)
-							{
-								break;
-							}
-							else
-							{
-								print(r, stderr);
-							}
-						}
-						else
-						{
-							value_t e = eval(r, env);
-							if(!errp(e))
-							{
-								print(e, stdout);
-							}
-							else
-							{
-								print(e, stderr);
-							}
-						}
-					}
-				}
-
-			}
+			bool debug_mode = is_break(cons(car(v), cdr(ev)), env);
 
 			// apply
 			value_t ret;
 			if(rtypeof(fn) == CFN_T)		// compiled function
 			{
+				if(debug_mode) debug_repl(env);
+
 				fn.type.main = CONS_T;
 				// apply
 				ret = car(fn).rfn(cdr(ev), env);
 			}
 			else if(rtypeof(fn) == CLOJ_T)		// (ast . env)
 			{
-				ret = apply(fn, cdr(ev));
+				ret = apply(fn, cdr(ev), debug_mode);
 			}
 			else
 			{
@@ -369,13 +385,13 @@ value_t macroexpand(value_t ast, value_t env)
 	value_t macro;
 	while(!nilp(macro = is_macro_call(ast, env)))
 	{
-		ast = apply(macro, cdr(ast));
+		ast = apply(macro, cdr(ast), false);
 	}
 
 	return ast;
 }
 
-value_t apply(value_t fn, value_t args)
+value_t apply(value_t fn, value_t args, bool blk)
 {
 	fn.type.main = CONS_T;
 
@@ -402,6 +418,9 @@ value_t apply(value_t fn, value_t args)
 
 	// create bindings (is environment)
 	value_t fn_env = create_env(fn_args, args, cdr(fn));
+
+	// debug repl
+	if(blk) debug_repl(fn_env);
 
 	// apply
 	return eval(fn_body, fn_env);
