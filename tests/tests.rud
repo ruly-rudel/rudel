@@ -924,3 +924,69 @@ x
 ;=>t
 (eq cons or)
 ;=>nil
+
+
+(copy-list (list 1 2 3 4 5))
+;=>(1 2 3 4 5)
+(copy-list (list 1 2 '(6 8) 4 5))
+;=>(1 2 (6 8) 4 5)
+(def! x (list 1 2 3 4 5))
+;=>(1 2 3 4 5)
+(eq x (list 1 2 3 4 5))
+;=>nil
+(= x (list 1 2 3 4 5))
+;=>t
+(copy-list x 3)
+;=>(1 2 3)
+(copy-list x 0)
+;=>nil
+(copy-list x 10)
+;=>(1 2 3 4 5)
+(copy-list)
+;=>nil
+(copy-list nil 5)
+;=>nil
+(copy-list 'cond 5)
+;=>cond
+x
+;=>(1 2 3 4 5)
+
+(last '(6 7 8 9 10))
+;=>(10)
+(last)
+;=>nil
+(last 10)
+;=>nil
+
+(nthcdr)
+;=>nil
+(nthcdr 5)
+;=>nil
+(nthcdr 0 '(a b c d e))
+;=>(b c d e)
+(nthcdr 3 '(a b c d e))
+;=>(e)
+(nthcdr 4 '(a b c d e))
+;=>nil
+(nthcdr 5 '(a b c d e))
+;=>nil
+
+(reduce)
+;=>nil
+(reduce cons)
+;=>nil
+(reduce cons 1)
+; .*\type error\..*
+(reduce cons '(1 2))
+;=>(1 . 2)
+(reduce cons '(1 2 3 4 5))
+;=>((((1 . 2) . 3) . 4) . 5)
+
+(mapcar)
+;=>nil
+(mapcar (fn* (x) (+ 1 x)))
+;=>nil
+(mapcar (fn* (x) (* 2 x)) '(1))
+;=>(2)
+(mapcar (fn* (x) (* 2 x)) '(1 2 3 4))
+;=>(2 4 6 8)

@@ -74,14 +74,24 @@
 ;	    (if (cdr arg)	;; 2 or more arg
 ;	      (rec fn lst)
 ;	      (fn (car lst) nil)))))
+
+(defun! cadr (x) (car (cdr x)))
+(defun! cddr (x) (cdr (cdr x)))
+(defun! caddr (x) (car (cdr (cdr x))))
+
 (defun! reduce (fn lst)
 	(let*
-	  (rec      (fn* (lst)
-			 (if (cdr lst)
-			   (fn (car lst) (rec (cdr lst)))
-			   (car lst))))
-	  (if lst		;; 1 or more arg
-	      (rec lst))))
+	  (rec      (fn* (head lst)
+			 (if lst
+			   (rec (fn head (car lst)) (cdr lst))
+			   head)))
+	  (if (cdr lst)	;; 2 or more arg
+	      (rec (fn (car lst) (cadr lst)) (cddr lst))
+	      (car lst))))	;; 1 elements iin lst
+
+(defun! mapcar (fn lst)
+	(if lst
+	  (cons (fn (car lst)) (mapcar fn (cdr lst)))))
 
 ;(if (cond)
 ;    (true)
@@ -114,20 +124,14 @@
 	       next  (+ indent 3))
 	  (str
 	    "("
-	    (reduce (fn* (x y) (if y
-				 (str
-				   (pp x next) " " (pp y next))
-				 (pp x next)))
-		    prec)
+	    (reduce (fn* (x y) (str x " " y))
+		    (mapcar (fn* (x) (pp x next)) prec))
 	    (if trail
 	      (str
 	         "\n"
 	         (insert-space next)
-	         (reduce (fn* (x y) (if y
-				 (str
-				   (pp x next) "\n" (insert-space next) (pp y next))
-				 (pp x next)))
-		          trail)
+		 (reduce (fn* (x y) (str x "\n" (insert-space next) y))
+			 (mapcar (fn* (x) (pp x next)) trail))
 		 ")")
 	      ")"))))
 
@@ -136,29 +140,17 @@
 	 (let*
 	   (trial (pp-n tree 0 0)
 	    len   (count trial))
-	   (if (> len 10)
-	     (pp-n tree indent 1)
+	   (if (> len 30)
+	     (let* (fn (car tree))
+	       (cond
+		 (= fn 'if)      (pp-n tree indent 2)
+		 (= fn 'def!)    (pp-n tree indent 2)
+		 (= fn 'fn*)     (pp-n tree indent 2)
+		 (= fn 'defun!)  (pp-n tree indent 3)
+		 (= fn 'defm!)   (pp-n tree indent 3)
+		 t               (pp-n tree indent 1)))
 	     trial))
-	 (str tree)))
-
-;(defun! pp (tree)
-;	(let*
-;	  (indent 1
-;	   insert-space (fn* (n) (repeat n " " str))
-;	   format-one-list (fn* (tr n)
-;				(str "("
-;				     (let* (loop (fn* (l)
-;						      (cond (not l) ")"
-;							    (consp (car l)) (str
-;									       (format-one-list (car l) (+ n indent))
-;									       "\n"
-;									       (insert-space n)
-;									       (loop (cdr l)))
-;						            t (str (car l)
-;								   (cond (not (cdr l)) ")"
-;									 t (str " " (loop (cdr l))))))))
-;				       (loop tr)))))
-;	  (println (format-one-list tree indent))))
+	 (pr-str tree)))
 
 ;(defm! concat (& body)
 ;       (if (not body) nil
