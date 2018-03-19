@@ -67,7 +67,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 				// check cyclic
 				if(!nilp(cyclic))
 				{
-					value_t ex = assoc(x, cdr(cyclic), eq);
+					value_t ex = assoceq(x, cdr(cyclic));
 					if(nilp(ex))
 					{
 						nconc(cyclic, cons(cons(x, NIL), NIL));

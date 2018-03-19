@@ -7,7 +7,8 @@ AR=ar
 #DEBUG=-g3 -DDEBUG
 #DEBUG=-g3 -DDONT_ABORT_EVAL_ON_ERROR
 DEBUG=-g3
-OPT=-O0 -m32
+OPT=-O3 -m32
+#OPT=-O3 -m32 -pg
 CFLAGS=$(OPT) -Wall $(DEBUG) $(INCPATHS)
 LDFLAGS=$(OPT) $(DEBUG) $(LIBPATHS) -L.
 
@@ -38,7 +39,7 @@ test:	$(TARGET)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags ../tags
+	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags ../tags gmon.out
 
 -include .deps
 

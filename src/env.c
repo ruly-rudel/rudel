@@ -71,7 +71,7 @@ value_t	find_env	(value_t key, value_t env)
 	}
 	else
 	{
-		return assoc(key, car(env), equal);
+		return assoceq(key, car(env));
 	}
 }
 
@@ -83,7 +83,7 @@ value_t	find_env_all	(value_t key, value_t env)
 	while(!nilp(env))
 	{
 		assert(rtypeof(env) == CONS_T);
-		value_t s = assoc(key, car(env), equal);
+		value_t s = assoceq(key, car(env));
 		if(!nilp(s))
 		{
 			return s;
@@ -102,7 +102,7 @@ value_t	get_env_value	(value_t key, value_t env)
 	while(!nilp(env))
 	{
 		assert(rtypeof(env) == CONS_T);
-		value_t s = assoc(key, car(env), equal);
+		value_t s = assoceq(key, car(env));
 		if(!nilp(s))
 		{
 			return cdr(s);

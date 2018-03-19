@@ -6,6 +6,24 @@
 #include "reader.h"
 
 /////////////////////////////////////////////////////////////////////
+// private: well-known symbols
+
+static value_t s_env;
+static value_t s_unquote;
+static value_t s_splice_unquote;
+static value_t s_def;
+static value_t s_let;
+static value_t s_do;
+static value_t s_if;
+static value_t s_fn;
+static value_t s_quote;
+static value_t s_quasiquote;
+static value_t s_defmacro;
+static value_t s_macroexpand;
+static value_t s_trace;
+static value_t s_debug;
+
+/////////////////////////////////////////////////////////////////////
 // private: eval functions
 
 
@@ -17,7 +35,7 @@ static value_t eval_ast	(value_t ast, value_t env)
 	switch(rtypeof(ast))
 	{
 	    case SYM_T:
-		return equal(ast, str_to_sym("env")) ? env : get_env_value(ast, env);
+		return eq(ast, s_env) ? env : get_env_value(ast, env);
 
 	    case CONS_T:
 		while(!nilp(ast))
@@ -144,13 +162,13 @@ static value_t eval_quasiquote	(value_t vcdr, value_t env)
 	}
 
 	value_t arg1 = car(vcdr);
-	if(equal(arg1, str_to_sym("unquote")))			// (unquote x)
+	if(eq(arg1, s_unquote))			// (unquote x)
 	{
 		value_t arg2 = car(cdr(vcdr));
 		return eval(arg2, env);				    // -> return evalueated x
 	}
 	else if(consp(arg1) &&
-		equal(car(arg1), str_to_sym("splice-unquote")))	// ((splice-unquote x) ...)
+		eq(car(arg1), s_splice_unquote))	// ((splice-unquote x) ...)
 	{
 		return concat(2,
 		              eval(car(cdr(arg1)), env),
@@ -220,39 +238,39 @@ static value_t eval_apply(value_t v, value_t env)
 	value_t vcar = car(v);
 	value_t vcdr = cdr(v);
 
-	if(equal(vcar, str_to_sym("def!")))		// def!
+	if(eq(vcar, s_def))		// def!
 	{
 		return eval_def(vcdr, env);
 	}
-	else if(equal(vcar, str_to_sym("let*")))	// let*
+	else if(eq(vcar, s_let))	// let*
 	{
 		return eval_let(vcdr, env);
 	}
-	else if(equal(vcar, str_to_sym("do")))		// do
+	else if(eq(vcar, s_do))		// do
 	{
 		return eval_do(vcdr, env);
 	}
-	else if(equal(vcar, str_to_sym("if")))		// if
+	else if(eq(vcar, s_if))		// if
 	{
 		return eval_if(vcdr, env);
 	}
-	else if(equal(vcar, str_to_sym("fn*")))		// fn*
+	else if(eq(vcar, s_fn))		// fn*
 	{
 		return cloj(vcdr, env);
 	}
-	else if(equal(vcar, str_to_sym("quote")))	// quote
+	else if(eq(vcar, s_quote))	// quote
 	{
 		return car(vcdr);
 	}
-	else if(equal(vcar, str_to_sym("quasiquote")))	// quasiquote
+	else if(eq(vcar, s_quasiquote))	// quasiquote
 	{
 		return car(eval_quasiquote(vcdr, env));
 	}
-	else if(equal(vcar, str_to_sym("defmacro!")))	// defmacro!
+	else if(eq(vcar, s_defmacro))	// defmacro!
 	{
 		return eval_defmacro(vcdr, env);
 	}
-	else if(equal(vcar, str_to_sym("macroexpand")))	// macroexpand
+	else if(eq(vcar, s_macroexpand))	// macroexpand
 	{
 		return macroexpand(car(vcdr), env);
 	}
@@ -268,15 +286,15 @@ static value_t eval_apply(value_t v, value_t env)
 			value_t fn = car(ev);
 
 			// trace enter
-			value_t trace_fn = get_env_value(str_to_sym("*trace*"), env);
-			value_t trace_on = nilp(trace_fn) ? NIL : find(car(v), trace_fn, equal);
+			value_t trace_fn = get_env_value(s_trace, env);
+			value_t trace_on = nilp(trace_fn) ? NIL : find(car(v), trace_fn, eq);
 			if(!nilp(trace_on))
 			{
 				print(cons(str_to_sym("TRACE enter:"), cons(car(v), cdr(ev))), stderr);
 			}
 
 			// debug hook
-			value_t debug_cmd = get_env_value(str_to_sym("*debug*"), env);
+			value_t debug_cmd = get_env_value(s_debug, env);
 			if(!nilp(debug_cmd))	// debug on
 			{
 				value_t debug_step = find(str_to_sym("#step#"), debug_cmd, equal);
@@ -412,6 +430,23 @@ value_t eval(value_t v, value_t env)
 	}
 }
 
+void init_eval(void)
+{
+	s_env		= str_to_sym("env");
+	s_unquote	= str_to_sym("unquote");
+	s_splice_unquote= str_to_sym("splice-unquote");
+	s_def		= str_to_sym("def!");
+	s_let		= str_to_sym("let*");
+	s_do		= str_to_sym("do");
+	s_if		= str_to_sym("if");
+	s_fn		= str_to_sym("fn*");
+	s_quote		= str_to_sym("quote");
+	s_quasiquote	= str_to_sym("quasiquote");
+	s_defmacro	= str_to_sym("defmacro!");
+	s_macroexpand	= str_to_sym("macroexpand");
+	s_trace		= str_to_sym("*trace*");
+	s_debug		= str_to_sym("*debug*");
+}
 
 // End of File
 /////////////////////////////////////////////////////////////////////

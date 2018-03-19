@@ -55,8 +55,9 @@ void rep_file(char* fn, value_t env)
 
 int main(int argc, char* argv[])
 {
-	value_t env = create_env(NIL, NIL, NIL);
+	init_eval();
 
+	value_t env = create_env(NIL, NIL, NIL);
 	print(init(env), stdout);
 
 	if(argc == 1)

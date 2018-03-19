@@ -72,6 +72,10 @@ static value_t read_atom(scan_t* st)
 		{
 			token = rint;
 		}
+		else
+		{
+			token = register_sym(token);
+		}
 	}
 
 	scan_next(st);

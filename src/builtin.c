@@ -6,6 +6,11 @@
 #include "reader.h"
 
 /////////////////////////////////////////////////////////////////////
+// private: symbol pool
+
+static value_t s_symbol_pool = NIL;
+
+/////////////////////////////////////////////////////////////////////
 // private: cons allocator
 
 static inline cons_t* aligned_addr(value_t v)
@@ -338,6 +343,29 @@ value_t assoc(value_t key, value_t list, bool (*test)(value_t, value_t))
 	}
 }
 
+value_t assoceq(value_t key, value_t list)
+{
+	assert(rtypeof(list) == CONS_T);
+
+	if(nilp(list))
+	{
+		return NIL;
+	}
+	else
+	{
+		for(value_t v = list; !nilp(v); v = cdr(v))
+		{
+			value_t vcar = car(v);
+			assert(rtypeof(vcar) == CONS_T);
+
+			if(car(vcar).raw == key.raw)
+				return vcar;
+		}
+
+		return NIL;
+	}
+}
+
 value_t acons(value_t key, value_t val, value_t list)
 {
 	assert(rtypeof(list) == CONS_T);
@@ -483,7 +511,7 @@ value_t str_to_sym	(const char* s)
 	value_t r = str_to_cons(s);
 	r.type.main = SYM_T;
 
-	return r;
+	return register_sym(r);
 }
 
 value_t str_to_rstr	(const char* s)
@@ -514,6 +542,22 @@ char*   rstr_to_str	(value_t s)
 	return buf;
 }
 
+/////////////////////////////////////////////////////////////////////
+// public: symbol functions
+
+value_t register_sym(value_t s)
+{
+	value_t sym = find(s, s_symbol_pool, equal);
+	if(nilp(sym))
+	{
+		s_symbol_pool = cons(s, s_symbol_pool);
+		return s;
+	}
+	else
+	{
+		return sym;
+	}
+}
 
 /////////////////////////////////////////////////////////////////////
 // public: support functions writing LISP on C
