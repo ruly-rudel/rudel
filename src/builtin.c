@@ -183,7 +183,7 @@ value_t last(value_t x)
 		else
 		{
 			for(; !nilp(cdr(i)); i = cdr(i))
-				assert(rtypeof(i) == CONS_T);
+				assert(is_seq_or_nil(i));
 
 			return i;
 		}
@@ -565,6 +565,14 @@ value_t* cons_and_cdr(value_t v, value_t* c)
 {
 	*c = cons(v, NIL);
 	return &c->cons->cdr;
+}
+
+value_t* nconc_and_last(value_t v, value_t* c)
+{
+	*c = v;
+	value_t l = last(v);
+	c->type.main = CONS_T;
+	return &l.cons->cdr;
 }
 
 // End of File

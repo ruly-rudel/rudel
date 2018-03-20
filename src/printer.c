@@ -44,6 +44,10 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
 	value_t r    = NIL;
+	value_t* cur = &r;
+
+	value_t  cyc = NIL;	// current list's cyclic tests
+	bool     self_c = false;
 
 	if(nilp(x))
 	{
@@ -55,11 +59,11 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 		{
 			if(nilp(r))
 			{
-				r = str_to_rstr("(");
+				cur = cons_and_cdr(RCHAR('('), cur);
 			}
 			else
 			{
-				nconc(r, str_to_rstr(" "));
+				cur = cons_and_cdr(RCHAR(' '), cur);
 			}
 
 			if(rtypeof(x) == CONS_T)
@@ -70,9 +74,21 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 					value_t ex = assoceq(x, cdr(cyclic));
 					if(nilp(ex))
 					{
-						nconc(cyclic, cons(cons(x, NIL), NIL));
+						//nconc(cyclic, cons(cons(x, NIL), NIL));
+						rplacd(cyclic, cons(cons(x, NIL), cdr(cyclic)));
+
+						// check if current cons is used cyclic later
+						value_t nc  = pr_str(car(x), cyclic, print_readably);
+						value_t nex = assoceq(x, cdr(cyclic));
+						if(!nilp(cdr(nex)))
+						{
+							cur = cons_and_cdr(RCHAR('#'), cur);
+							cur = nconc_and_last(pr_str_int(cdr(nex).rint.val), cur);
+							cur = cons_and_cdr(RCHAR('='), cur);
+						}
+
 						// append string
-						nconc(r, pr_str(car(x), cyclic, print_readably));
+						cur = nconc_and_last(nc, cur);
 					}
 					else
 					{
@@ -85,30 +101,55 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 							rplaca(cyclic, RINT(n.rint.val + 1));
 						}
 
-						nconc(r, str_to_rstr("#"));
-						nconc(r, pr_str_int(n.rint.val));
-						nconc(r, str_to_rstr("#"));
+						if(!nilp(find(x, cyc, eq)))	// self-cyclic
+						{
+							cur = cons_and_cdr(RCHAR('.'), cur);
+							cur = cons_and_cdr(RCHAR(' '), cur);
+						}
+
+						cur = cons_and_cdr(RCHAR('#'), cur);
+						cur = nconc_and_last(pr_str_int(n.rint.val), cur);
+						cur = cons_and_cdr(RCHAR('#'), cur);
 					}
 				}
 				else	// does not chech cyclic
 				{
 					// append string
-					nconc(r, pr_str(car(x), cyclic, print_readably));
+					cur = nconc_and_last(pr_str(car(x), cyclic, print_readably), cur);
 				}
 
-				x = cdr(x);
+				// self-cyclic list check
+				if(nilp(find(x, cyc, eq)))
+				{
+					cyc = cons(x, cyc);
+					x = cdr(x);
+				}
+				else
+				{
+					x = NIL;
+					self_c = true;
+				}
 			}
 			else	// dotted
 			{
-				nconc(r, str_to_rstr(". "));
-				nconc(r, pr_str(x, cyclic, print_readably));
+				cur = cons_and_cdr(RCHAR('.'), cur);
+				cur = cons_and_cdr(RCHAR(' '), cur);
+				cur = nconc_and_last(pr_str(x, cyclic, print_readably), cur);
 				x = NIL;
 			}
 		} while(!nilp(x));
 
-		nconc(r, str_to_rstr(")"));
+		cur = cons_and_cdr(RCHAR(')'), cur);
 	}
 
+	if(self_c && !nilp(cyclic))
+	{
+		value_t new_r = NIL;
+		cur = cons_and_cdr(RCHAR('#'), &new_r);
+		cur = cons_and_cdr(RCHAR('='), cur);
+		cur = nconc_and_last(r, cur);
+		r = new_r;
+	}
 	r.type.main = STR_T;
 
 	return r;
