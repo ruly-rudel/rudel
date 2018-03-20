@@ -68,7 +68,6 @@ static value_t NAME ## _reduce(value_t arg1, value_t arg2) \
 static value_t NAME(value_t body, value_t env) \
 { \
 	value_t arg1 = car(body); \
-	value_t arg2 = car(cdr(body)); \
 	if(cnilp(body)) \
 	{ \
 		return ZERO; \
