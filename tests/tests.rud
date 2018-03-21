@@ -242,25 +242,25 @@ a
 ;; Testing builtin and user defined functions
 (+ 1 2)
 ;=>3
-( (fn* (a b) (+ b a)) 3 4)
+( (lambda (a b) (+ b a)) 3 4)
 ;=>7
-( (fn* () 4) )
+( (lambda () 4) )
 ;=>4
 
-( (fn* (f x) (f x)) (fn* (a) (+ 1 a)) 7)
+( (lambda (f x) (f x)) (lambda (a) (+ 1 a)) 7)
 ;=>8
 
 
 ;; Testing closures
-( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)
+( ( (lambda (a) (lambda (b) (+ a b))) 5) 7)
 ;=>12
 
-(setq gen-plus5 (fn* () (fn* (b) (+ 5 b))))
+(setq gen-plus5 (lambda () (lambda (b) (+ 5 b))))
 (setq plus5 (gen-plus5))
 (plus5 7)
 ;=>12
 
-(setq gen-plusX (fn* (x) (fn* (b) (+ x b))))
+(setq gen-plusX (lambda (x) (lambda (b) (+ x b))))
 (setq plus7 (gen-plusX 7))
 (plus7 8)
 ;=>15
@@ -283,12 +283,12 @@ a
 ;=>6
 
 ;; Testing special form case-sensitivity
-(setq DO (fn* (a) 7))
+(setq DO (lambda (a) 7))
 (DO 3)
 ;=>7
 
 ;; Testing recursive sumdown function
-(setq sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+(setq sumdown (lambda (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
 (sumdown 1)
 ;=>1
 (sumdown 2)
@@ -298,7 +298,7 @@ a
 
 
 ;; Testing recursive fibonacci function
-(setq fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+(setq fib (lambda (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
 (fib 1)
 ;=>1
 (fib 2)
@@ -316,21 +316,21 @@ a
 
 ;; Testing variable length arguments
 
-( (fn* (& more) (count more)) 1 2 3)
+( (lambda (& more) (count more)) 1 2 3)
 ;=>3
-( (fn* (& more) (consp more)) 1 2 3)
+( (lambda (& more) (consp more)) 1 2 3)
 ;=>t
-( (fn* (& more) (count more)) 1)
+( (lambda (& more) (count more)) 1)
 ;=>1
-( (fn* (& more) (count more)) )
+( (lambda (& more) (count more)) )
 ;=>0
-( (fn* (& more) (consp more)) )
+( (lambda (& more) (consp more)) )
 ;=>nil
-( (fn* (a & more) (count more)) 1 2 3)
+( (lambda (a & more) (count more)) 1 2 3)
 ;=>2
-( (fn* (a & more) (count more)) 1)
+( (lambda (a & more) (count more)) 1)
 ;=>0
-( (fn* (a & more) (consp more)) 1)
+( (lambda (a & more) (consp more)) 1)
 ;=>nil
 
 
@@ -514,7 +514,7 @@ nil
 
 ;; Testing recursive tail-call function
 
-(setq sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))
+(setq sum2 (lambda (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))
 
 ;; TODO: test let*, and do for TCO
 
@@ -530,8 +530,8 @@ res2
 
 ;; Test mutually recursive tail-call functions
 
-(setq foo (fn* (n) (if (= n 0) 0 (bar (- n 1)))))
-(setq bar (fn* (n) (if (= n 0) 0 (foo (- n 1)))))
+(setq foo (lambda (n) (if (= n 0) 0 (bar (- n 1)))))
+(setq bar (lambda (n) (if (= n 0) 0 (foo (- n 1)))))
 
 (foo 10000)
 ;=>0
@@ -698,8 +698,8 @@ b
 
 ;;;;; Test quine
 ;;; TODO: needs expect line length fix
-;;;((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
-;;;=>((fn* [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* [q] (quasiquote ((unquote q) (quote (unquote q)))))))
+;;;((lambda [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (lambda [q] (quasiquote ((unquote q) (quote (unquote q)))))))
+;;;=>((lambda [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (lambda [q] (quasiquote ((unquote q) (quote (unquote q)))))))
 
 ;>>> deferrable=True
 ;;
@@ -984,9 +984,9 @@ x
 
 (mapcar)
 ;=>nil
-(mapcar (fn* (x) (+ 1 x)))
+(mapcar (lambda (x) (+ 1 x)))
 ;=>nil
-(mapcar (fn* (x) (* 2 x)) '(1))
+(mapcar (lambda (x) (* 2 x)) '(1))
 ;=>(2)
-(mapcar (fn* (x) (* 2 x)) '(1 2 3 4))
+(mapcar (lambda (x) (* 2 x)) '(1 2 3 4))
 ;=>(2 4 6 8)

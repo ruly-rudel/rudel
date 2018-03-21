@@ -15,7 +15,7 @@ static value_t s_setq;
 static value_t s_let;
 static value_t s_progn;
 static value_t s_if;
-static value_t s_fn;
+static value_t s_lambda;
 static value_t s_quote;
 static value_t s_quasiquote;
 static value_t s_macro;
@@ -285,7 +285,7 @@ static value_t eval_apply(value_t v, value_t env)
 	{
 		return eval_if(vcdr, env);
 	}
-	else if(eq(vcar, s_fn))		// fn*
+	else if(eq(vcar, s_lambda))	// lambda
 	{
 		return cloj(vcdr, env);
 	}
@@ -439,7 +439,7 @@ void init_eval(void)
 	s_let		= str_to_sym("let*");
 	s_progn		= str_to_sym("progn");
 	s_if		= str_to_sym("if");
-	s_fn		= str_to_sym("fn*");
+	s_lambda	= str_to_sym("lambda");
 	s_quote		= str_to_sym("quote");
 	s_quasiquote	= str_to_sym("quasiquote");
 	s_macro		= str_to_sym("macro");

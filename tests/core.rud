@@ -1,29 +1,29 @@
-(setq inc (fn* (a) (+ a 1)))
+(setq inc (lambda (a) (+ a 1)))
 
-(setq dec (fn* (a) (- a 1)))
+(setq dec (lambda (a) (- a 1)))
 
-(setq zero? (fn* (n) (= 0 n)))
+(setq zero? (lambda (n) (= 0 n)))
 
 ;(setq reduce
-;  (fn* (f init xs)
+;  (lambda (f init xs)
 ;    (if (> (count xs) 0)
 ;      (reduce f (f init (car xs)) (cdr xs))
 ;      init)))
 
-(setq identity (fn* (x) x))
+(setq identity (lambda (x) x))
 
 (setq every?
-  (fn* (pred xs)
+  (lambda (pred xs)
     (if (> (count xs) 0)
       (if (pred (car xs))
         (every? pred (cdr xs))
         nil)
       t)))
 
-(setq not (fn* (x) (if x nil t)))
+(setq not (lambda (x) (if x nil t)))
 
 (setq some
-  (fn* (pred xs)
+  (lambda (pred xs)
     (if (> (count xs) 0)
       (let* ((res (pred (car xs))))
         (if (pred (car xs))
@@ -32,7 +32,7 @@
       nil)))
 
 ;(defmacro! and
-;  (fn* (& xs)
+;  (lambda (& xs)
 ;    (if (not xs)
 ;      t
 ;      (if (= 1 (count xs))
@@ -42,7 +42,7 @@
 ;            (if ,condvar (and ,@(cdr xs)) ,condvar)))))))
 
 ;(defmacro! or
-;  (fn* (& xs)
+;  (lambda (& xs)
 ;    (if (not xs)
 ;      nil
 ;      (if (= 1 (count xs))
@@ -52,7 +52,7 @@
 ;             (if ,condvar ,condvar (or ,@(cdr xs)))))))))
 
 ;(defmacro! cond
-;  (fn* (& clauses)
+;  (lambda (& clauses)
 ;    (if (> (count clauses) 0)
 ;      (list 'if (car clauses)
 ;            (if (> (count clauses) 1)

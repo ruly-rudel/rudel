@@ -1,7 +1,7 @@
 
 (setq defun
 	   (macro (name arg body)
-		`(setq ,name (fn* ,arg ,body))))
+		`(setq ,name (lambda ,arg ,body))))
 
 (setq defmacro
 	   (macro (name arg body)
@@ -99,7 +99,7 @@
 ;		 (concat ,@(cdr body)))
 ;	      concat_car))))
 (defun concat (& body)
-	(let* ((rec (fn* (x)
+	(let* ((rec (lambda (x)
 			(if (not x) nil
 			  (if (consp x)
 			    (let* ((copy (copy-list (car x))))
@@ -114,7 +114,7 @@
 ;; map functions
 (defun reduce (fn lst)
 	(let*
-	  ((rec      (fn* (head lst)
+	  ((rec      (lambda (head lst)
 			 (if lst
 			   (rec (fn head (car lst)) (cdr lst))
 			   head))))
@@ -150,7 +150,7 @@
 ;    (body2))
 ;(setq x
 ;    (value))
-;(fn* name (args)
+;(lambda name (args)
 ;    (body))
 
 (defun insert-space (n)
@@ -162,14 +162,14 @@
 	       (next  (+ indent 3)))
 	  (str
 	    "("
-	    (reduce (fn* (x y) (str x " " y))
-		    (mapcar (fn* (x) (pp x next)) prec))
+	    (reduce (lambda (x y) (str x " " y))
+		    (mapcar (lambda (x) (pp x next)) prec))
 	    (if trail
 	      (str
 	         "\n"
 	         (insert-space next)
-		 (reduce (fn* (x y) (str x "\n" (insert-space next) y))
-			 (mapcar (fn* (x) (pp x next)) trail))
+		 (reduce (lambda (x y) (str x "\n" (insert-space next) y))
+			 (mapcar (lambda (x) (pp x next)) trail))
 		 ")")
 	      ")"))))
 
@@ -183,7 +183,7 @@
 	       (cond
 		 (= fn 'if)       (pp-n tree indent 2)
 		 (= fn 'setq)     (pp-n tree indent 2)
-		 (= fn 'fn*)      (pp-n tree indent 2)
+		 (= fn 'lambda)   (pp-n tree indent 2)
 		 (= fn 'defun)    (pp-n tree indent 3)
 		 (= fn 'defmacro) (pp-n tree indent 3)
 		 t                (pp-n tree indent 1)))

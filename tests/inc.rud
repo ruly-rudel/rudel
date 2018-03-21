@@ -1,4 +1,4 @@
-(setq inc1 (fn* (a) (+ 1 a)))
-(setq inc2 (fn* (a) (+ 2 a)))
-(setq inc3 (fn* (a)
+(setq inc1 (lambda (a) (+ 1 a)))
+(setq inc2 (lambda (a) (+ 2 a)))
+(setq inc3 (lambda (a)
   (+ 3 a)))
