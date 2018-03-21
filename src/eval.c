@@ -182,26 +182,6 @@ static value_t eval_quasiquote	(value_t vcdr, value_t env)
 	}
 }
 
-static value_t eval_macro(value_t vcdr, value_t env)
-{
-	// key
-	value_t key = car(vcdr);
-	if(rtypeof(key) != SYM_T)
-	{
-		return RERR(ERR_NOTSYM);
-	}
-
-	// val
-	value_t val = eval(car(cdr(vcdr)), env);
-	if(!errp(val) && val.type.main == CLOJ_T)
-	{
-		val.type.main = MACRO_T;
-		set_env(key, val, env);
-	}
-
-	return val;
-}
-
 static value_t is_macro_call(value_t ast, value_t env)
 {
 	if(rtypeof(ast) == CONS_T)
@@ -319,7 +299,7 @@ static value_t eval_apply(value_t v, value_t env)
 	}
 	else if(eq(vcar, s_macro))	// macro
 	{
-		return eval_macro(vcdr, env);
+		return macro(vcdr, env);
 	}
 	else if(eq(vcar, s_macroexpand))	// macroexpand
 	{
@@ -462,7 +442,7 @@ void init_eval(void)
 	s_fn		= str_to_sym("fn*");
 	s_quote		= str_to_sym("quote");
 	s_quasiquote	= str_to_sym("quasiquote");
-	s_macro		= str_to_sym("defmacro!");
+	s_macro		= str_to_sym("macro");
 	s_macroexpand	= str_to_sym("macroexpand");
 	s_trace		= str_to_sym("*trace*");
 	s_debug		= str_to_sym("*debug*");

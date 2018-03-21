@@ -119,6 +119,14 @@ value_t	cloj(value_t car, value_t cdr)
 	return r;
 }
 
+value_t	macro(value_t car, value_t cdr)
+{
+	value_t	r	= cons(car, cdr);
+	r.type.main	= MACRO_T;
+
+	return r;
+}
+
 bool errp(value_t x)
 {
 	return x.type.main == OTH_T && x.type.sub == ERR_T;

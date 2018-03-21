@@ -1,17 +1,17 @@
 
-(defmacro! defun!
-	   (fn* (name arg body)
+(setq defun
+	   (macro (name arg body)
 		`(setq ,name (fn* ,arg ,body))))
 
-(defmacro! defm!
-	   (fn* (name arg body)
-		`(defmacro! ,name (fn* ,arg ,body))))
+(setq defmacro
+	   (macro (name arg body)
+		`(setq ,name (macro ,arg ,body))))
 
 ;; conditions
-(defun! not (a)
+(defun not (a)
 	(if a nil t))
 
-(defm! or (& xs)
+(defmacro or (& xs)
        (if (not xs)
 	 nil
 	 (if (= 1 (count xs))
@@ -20,7 +20,7 @@
 	      (if or_FIXME or_FIXME
 		(or ,@(cdr xs)))))))
 
-(defm! and (& xs)
+(defmacro and (& xs)
        (if (not xs)
 	 t
 	 (if (= 1 (count xs))
@@ -29,7 +29,7 @@
 	      (if (not and_FIXME) and_FIXME
 		(and ,@(cdr xs)))))))
 
-(defm! cond (& xs)
+(defmacro cond (& xs)
        (if (> (count xs) 0)
 	 (list 'if (car xs)
 	          (if (> (count xs) 1)
@@ -39,23 +39,23 @@
 
 
 ;; list manipulation functions
-(defun! cadr (x) (car (cdr x)))
-(defun! cddr (x) (cdr (cdr x)))
-(defun! caddr (x) (car (cdr (cdr x))))
+(defun cadr (x) (car (cdr x)))
+(defun cddr (x) (cdr (cdr x)))
+(defun caddr (x) (car (cdr (cdr x))))
 
-;(defun! nth (x n)
+;(defun nth (x n)
 ;	(if (eq n 0)
 ;	  (car x)
 ;	  (nth (cdr x) (- n 1))))
 
-(defun! nthcdr (n x)
+(defun nthcdr (n x)
 	(if n
 	  (if (eq n 0)
 	    (cdr x)
 	    (nthcdr (- n 1) (cdr x)))
 	  x))
 
-(defun! last (x)
+(defun last (x)
 	(if x
 	  (if (seqp x)
 	    (if (cdr x)
@@ -63,11 +63,11 @@
 	      x))
 	  nil))
 
-;(defun! count (x)
+;(defun count (x)
 ;	(if x
 ;	  (if (consp x) (+ 1 (count (cdr x))))))
 
-(defun! count (x)
+(defun count (x)
 	(if x
 	  (if (seqp x) (+ 1 (count (cdr x)))
 	    0)
@@ -75,30 +75,30 @@
 
 ;; list duplication functions
 
-;(defun! list (& body) body)
-(defun! list (& body) (copy-list body))
+;(defun list (& body) body)
+(defun list (& body) (copy-list body))
 
-(defun! copy-list (x n)
+(defun copy-list (x n)
 	(if (and n (= n 0)) nil
 	   (if x
 	     (if (seqp x)
 	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
 	       x))))
 
-(defun! remove (x lst)
+(defun remove (x lst)
 	(if lst
 	  (if (= x (car lst))
 	    (remove x (cdr lst))
 	    (cons (car lst) (remove x (cdr lst))))))
 
-;(defm! concat (& body)
+;(defmacro concat (& body)
 ;       (if (not body) nil
 ;	 `(let* (concat_car (copy-list ,(car body)))
 ;	   (progn (if (consp concat_car)
 ;		 (rplacd (last concat_car) (concat ,@(cdr body)))
 ;		 (concat ,@(cdr body)))
 ;	      concat_car))))
-(defun! concat (& body)
+(defun concat (& body)
 	(let* ((rec (fn* (x)
 			(if (not x) nil
 			  (if (consp x)
@@ -112,7 +112,7 @@
 	  (rec body)))
 
 ;; map functions
-(defun! reduce (fn lst)
+(defun reduce (fn lst)
 	(let*
 	  ((rec      (fn* (head lst)
 			 (if lst
@@ -122,11 +122,11 @@
 	      (rec (fn (car lst) (cadr lst)) (cddr lst))
 	      (car lst))))	;; 1 element in lst
 
-(defun! mapcar (fn lst)
+(defun mapcar (fn lst)
 	(if lst
 	  (cons (fn (car lst)) (mapcar fn (cdr lst)))))
 
-(defun! repeat (n x fn)
+(defun repeat (n x fn)
 	(if (<= n 1) x
 	  (fn x (repeat (- n 1) x fn))))
 
@@ -134,13 +134,13 @@
 
 
 ;; rudel-specific functions
-(defun! load-file (f)
+(defun load-file (f)
 	(eval (read-string (str "(progn " (slurp f) ")"))))
 
 ;(if (cond)
 ;    (true)
 ;    (false)
-;(defun! name (args)
+;(defun name (args)
 ;    (body))
 ;(let* (a b
 ;       c d)
@@ -153,10 +153,10 @@
 ;(fn* name (args)
 ;    (body))
 
-(defun! insert-space (n)
+(defun insert-space (n)
 	(repeat n " " str))
 
-(defun! pp-n (lst indent n)
+(defun pp-n (lst indent n)
 	(let* ((prec  (copy-list lst (if (= n 0) nil n)))
 	       (trail (if (= n 0) nil (nthcdr (- n 1) lst)))
 	       (next  (+ indent 3)))
@@ -173,7 +173,7 @@
 		 ")")
 	      ")"))))
 
-(defun! pp (tree indent)
+(defun pp (tree indent)
 	(if (consp tree)
 	 (let*
 	   ((trial (pp-n tree 0 0))
@@ -181,34 +181,34 @@
 	   (if (> len 30)
 	     (let* ((fn (car tree)))
 	       (cond
-		 (= fn 'if)      (pp-n tree indent 2)
-		 (= fn 'setq)    (pp-n tree indent 2)
-		 (= fn 'fn*)     (pp-n tree indent 2)
-		 (= fn 'defun!)  (pp-n tree indent 3)
-		 (= fn 'defm!)   (pp-n tree indent 3)
-		 t               (pp-n tree indent 1)))
+		 (= fn 'if)       (pp-n tree indent 2)
+		 (= fn 'setq)     (pp-n tree indent 2)
+		 (= fn 'fn*)      (pp-n tree indent 2)
+		 (= fn 'defun)    (pp-n tree indent 3)
+		 (= fn 'defmacro) (pp-n tree indent 3)
+		 t                (pp-n tree indent 1)))
 	     trial))
 	 (pr-str tree)))
 
-(defun! ppln (tree)
+(defun ppln (tree)
 	(println (pp tree 0)))
 
 ;; debug functions
-(defun! trace (x)
+(defun trace (x)
 	(setq *trace* (if x (cons x *trace*))))
 
-(defun! step ()
+(defun step ()
 	(setq *debug* (cons '#step# *debug*)))
 
-(defun! cont ()
+(defun cont ()
 	(setq *debug* (remove '#step# *debug*)))
 
-(defun! break (x)
+(defun break (x)
 	(setq *debug* (cons x *debug*)))
 
-(defun! clear (x)
+(defun clear (x)
 	(setq *debug* (remove x *debug*)))
 
-(defun! clear-all ()
+(defun clear-all ()
 	(setq *debug* nil))
 

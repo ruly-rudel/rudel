@@ -138,6 +138,7 @@ bool	atom		(value_t x);
 value_t list		(int n, ...);
 value_t	cfn		(value_t fn, value_t env);
 value_t	cloj		(value_t fn, value_t env);
+value_t	macro		(value_t fn, value_t env);
 value_t copy_list	(value_t list);
 value_t	assoc		(value_t key, value_t list, bool (*test)(value_t, value_t));
 value_t assoceq		(value_t key, value_t list);
