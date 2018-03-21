@@ -91,13 +91,6 @@
 	    (remove x (cdr lst))
 	    (cons (car lst) (remove x (cdr lst))))))
 
-;(defmacro concat (& body)
-;       (if (not body) nil
-;	 `(let* (concat_car (copy-list ,(car body)))
-;	   (progn (if (consp concat_car)
-;		 (rplacd (last concat_car) (concat ,@(cdr body)))
-;		 (concat ,@(cdr body)))
-;	      concat_car))))
 (defun concat (& body)
 	(let* ((rec (lambda (x)
 			(if (not x) nil

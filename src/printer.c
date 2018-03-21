@@ -5,26 +5,13 @@
 /////////////////////////////////////////////////////////////////////
 // private: printer support functions
 
-static value_t pr_str_int_rec(unsigned int x, value_t s)
-{
-	if(x == 0)
-	{
-		return s;
-	}
-	else
-	{
-		value_t r   = cons(RCHAR('0' + (x % 10)), s);
-
-		return pr_str_int_rec(x / 10, r);
-	}
-}
-
 static value_t pr_str_int(int x)
 {
-	value_t r;
+	value_t r = NIL;
+
 	if(x < 0)
 	{
-		r = cons(RCHAR('-'), pr_str_int_rec(-x, NIL));
+		r = nconc(cons(RCHAR('-'), NIL), pr_str_int(-x));
 	}
 	else if(x == 0)
 	{
@@ -32,7 +19,11 @@ static value_t pr_str_int(int x)
 	}
 	else
 	{
-		r = pr_str_int_rec(x, NIL);
+		while(x != 0)
+		{
+			r = cons(RCHAR('0' + (x % 10)), r);
+			x /= 10;
+		}
 	}
 
 	r.type.main = STR_T;
@@ -40,6 +31,46 @@ static value_t pr_str_int(int x)
 }
 
 
+static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
+{
+	assert(rtypeof(x) == CONS_T);
+	value_t r    = NIL;
+	value_t* cur = &r;
+
+	if(nilp(x))
+	{
+		r = str_to_rstr("nil");
+	}
+	else
+	{
+		do
+		{
+			cur = cons_and_cdr(RCHAR(nilp(r) ? '(' : ' '), cur);
+
+			if(rtypeof(x) == CONS_T)
+			{
+				// append string
+				cur = nconc_and_last(pr_str(car(x), cyclic, print_readably), cur);
+				x = cdr(x);
+			}
+			else	// dotted
+			{
+				cur = cons_and_cdr(RCHAR('.'), cur);
+				cur = cons_and_cdr(RCHAR(' '), cur);
+				cur = nconc_and_last(pr_str(x, cyclic, print_readably), cur);
+				x = NIL;
+			}
+		} while(!nilp(x));
+
+		cur = cons_and_cdr(RCHAR(')'), cur);
+	}
+
+	r.type.main = STR_T;
+
+	return r;
+}
+
+#if 0
 static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
@@ -154,23 +185,18 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 
 	return r;
 }
+#endif
 
 static value_t pr_str_str(value_t s, bool print_readably)
 {
 	assert(rtypeof(s) == STR_T);
 	s.type.main = CONS_T;
 
-	value_t r;
-	value_t *cur;
+	value_t r = NIL;
+	value_t *cur = &r;
 	if(print_readably)
 	{
-		r = cons(RCHAR('"'), NIL);
-		cur = &r.cons->cdr;
-	}
-	else
-	{
-		r = NIL;
-		cur = &r;
+		cur = cons_and_cdr(RCHAR('"'), cur);
 	}
 
 	while(!nilp(s))
@@ -211,7 +237,7 @@ static value_t pr_str_str(value_t s, bool print_readably)
 
 	if(print_readably)
 	{
-		*cur = cons(RCHAR('"'), NIL);
+		cur = cons_and_cdr(RCHAR('"'), cur);
 	}
 
 	r.type.main = STR_T;
