@@ -48,12 +48,12 @@ static inline bool is_cons_pair_or_nil(value_t x)
 
 static inline bool is_seq(value_t x)
 {
-	return rtypeof(x) <= STR_T && (x.type.sub != 0 || x.type.val != 0);
+	return rtypeof(x) <= VEC_T && (x.type.sub != 0 || x.type.val != 0);
 }
 
 static inline bool is_seq_or_nil(value_t x)
 {
-	return rtypeof(x) <= STR_T;
+	return rtypeof(x) <= VEC_T;
 }
 
 
@@ -461,7 +461,6 @@ value_t slurp(char* fn)
 			cur = cons_and_cdr(RCHAR(c), cur);
 		}
 		fclose(fp);
-		buf.type.main = STR_T;
 
 		return buf;
 	}
@@ -477,7 +476,6 @@ value_t init(value_t env)
 	rplaca(env, car(create_root_env()));
 
 	value_t c = concat(3, str_to_rstr("(progn "), slurp("init.rud"), str_to_rstr(")"));
-	c.type.main = STR_T;
 	return eval(read_str(c), env);
 }
 
@@ -508,7 +506,7 @@ value_t str_to_cons	(const char* s)
 	int c;
 	while((c = *s++) != '\0')
 	{
-		cur = cons_and_cdr(RCHAR(c), cur);
+		cur = cons_and_cdr(RINT(c), cur);
 	}
 
 	return r;
@@ -516,7 +514,7 @@ value_t str_to_cons	(const char* s)
 
 value_t str_to_sym	(const char* s)
 {
-	value_t r = str_to_cons(s);
+	value_t r = str_to_rstr(s);
 	r.type.main = SYM_T;
 
 	return register_sym(r);
@@ -524,16 +522,29 @@ value_t str_to_sym	(const char* s)
 
 value_t str_to_rstr	(const char* s)
 {
-	value_t r = str_to_cons(s);
-	r.type.main = STR_T;
+	assert(s != NULL);
+	value_t    r = NIL;
+	value_t* cur = &r;
+
+	if(*s == '\0')	// null string
+	{
+		*cur = cons(RCHAR('\0'), NIL);
+	}
+	else
+	{
+		int c;
+		while((c = *s++) != '\0')
+		{
+			cur = cons_and_cdr(RCHAR(c), cur);
+		}
+	}
 
 	return r;
 }
 
 char*   rstr_to_str	(value_t s)
 {
-	assert(rtypeof(s) == STR_T);
-	s.type.main = CONS_T;
+	assert(rtypeof(s) == CONS_T);
 
 	char* buf = (char*)malloc(512);	// fix it
 	if(buf)
@@ -541,6 +552,7 @@ char*   rstr_to_str	(value_t s)
 		char *p = buf;
 		while(!nilp(s))
 		{
+			assert(rtypeof(car(s)) == CHAR_T);
 			*p++ = car(s).rint.val;
 			s = cdr(s);
 		}
@@ -581,6 +593,32 @@ value_t* nconc_and_last(value_t v, value_t* c)
 	value_t l = last(v);
 	c->type.main = CONS_T;
 	return &l.cons->cdr;
+}
+
+bool is_str(value_t v)
+{
+#ifdef STR_EASY_CHECK
+	return rtypeof(v) == CONS_T && rtypeof(car(v)) == CHAR_T;
+#else  // STR_EASY_CHECK
+	if(nilp(v)) return false;	// nil is not strgin
+
+	while(!nilp(v))
+	{
+		if(rtypeof(v) != CONS_T)
+		{
+			return false;
+		}
+		else
+		{
+			if(rtypeof(car(v)) != CHAR_T)
+			{
+				return false;
+			}
+		}
+		v = cdr(v);
+	}
+	return true;
+#endif // STR_EASY_CHECK
 }
 
 // End of File

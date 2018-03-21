@@ -167,7 +167,7 @@
 	      ")"))))
 
 (defun pp (tree indent)
-	(if (consp tree)
+	(if (and (consp tree) (not (strp tree)))
 	 (let*
 	   ((trial (pp-n tree 0 0))
 	    (len   (count trial)))

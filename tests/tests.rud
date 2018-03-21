@@ -131,8 +131,8 @@ a
 ;=>8
 (if 0 7 8)
 ;=>7
-(if "" 7 8)  ; now "" is nil
-;=>8
+(if "" 7 8)
+;=>7
 (if (list) 7 8)
 ;=>8
 (if (list 1 2 3) 7 8)
@@ -900,7 +900,7 @@ x
 (atom 0)
 ;=>t
 (atom "string")
-;=>t
+;=>nil
 (atom cons)
 ;=>t
 (atom or)
@@ -990,3 +990,14 @@ x
 ;=>(2)
 (mapcar (lambda (x) (* 2 x)) '(1 2 3 4))
 ;=>(2 4 6 8)
+
+(strp "")
+;=>t
+(strp " ")
+;=>t
+(strp "hoge")
+;=>t
+(strp 'hoge)
+;=>nil
+(strp 1)
+;=>nil

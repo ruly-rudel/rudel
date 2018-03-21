@@ -6,12 +6,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 typedef enum _rtype_t {
 	// main 8types (content is address)
 	CONS_T = 0,	// maybe sequence
 	VEC_T,
-	STR_T,
+	PLACEHOLDER_T,	// will be error type
 	SYM_T,
 	CFN_T,		// dotted list
 	CLOJ_T,
@@ -20,6 +21,7 @@ typedef enum _rtype_t {
 
 	// sub types (content is value)
 	INT_T,
+	CHAR_T,
 	FLOAT_T,
 	ERR_T
 } rtype_t;
@@ -99,7 +101,7 @@ typedef struct _cons_t
 	#define RERR(X)   ((value_t){ .type.main   = OTH_T,   .type.sub   = ERR_T, .type.val = (X) })
 #endif
 
-#define RCHAR(X)  ((value_t){ .rint.type   = INT_T   << 3 | OTH_T, .rint.val   = (X) })
+#define RCHAR(X)  ((value_t){ .rint.type   = CHAR_T  << 3 | OTH_T, .rint.val   = (X) })
 #define RINT(X)   ((value_t){ .rint.type   = INT_T   << 3 | OTH_T, .rint.val   = (X) })
 #define RFLOAT(X) ((value_t){ .rfloat.type = FLOAT_T << 3 | OTH_T, .rfloat.val = (X) })
 #define RFN(X)    ((value_t){ .rfn = (X) })
@@ -162,5 +164,6 @@ value_t register_sym	(value_t s);
 
 value_t* cons_and_cdr	(value_t v, value_t* c);
 value_t* nconc_and_last	(value_t v, value_t* c);
+bool	is_str		(value_t v);
 
 #endif // _builtin_h_

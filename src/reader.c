@@ -10,12 +10,12 @@
 
 static value_t read_int(value_t token)
 {
-	assert(rtypeof(token) == STR_T || rtypeof(token) == SYM_T);
+	assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T);
 	token.type.main = CONS_T;
 
 	// sign (if exists)
 	value_t tcar = car(token);
-	assert(rtypeof(tcar) == INT_T);
+	assert(rtypeof(tcar) == CHAR_T);
 	int sign = 1;
 	if(tcar.rint.val == '-' || tcar.rint.val == '+')
 	{
@@ -34,7 +34,7 @@ static value_t read_int(value_t token)
 		}
 
 		tcar  = car(token);
-		assert(rtypeof(tcar) == INT_T);
+		assert(rtypeof(tcar) == CHAR_T);
 	}
 
 	// value
@@ -42,7 +42,7 @@ static value_t read_int(value_t token)
 	while(!cnilp(token))
 	{
 		tcar = car(token);
-		assert(rtypeof(tcar) == INT_T);
+		assert(rtypeof(tcar) == CHAR_T);
 
 		int cv = tcar.rint.val - '0';
 		if(cv >= 0 && cv <= 9)
@@ -96,7 +96,7 @@ static value_t read_list(scan_t* st)
 	scan_next(st);	// omit '('
 	while(!cnilp(token = scan_peek(st)))
 	{
-		assert(rtypeof(token) == STR_T || rtypeof(token) == SYM_T || errp(token));
+		assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T || errp(token));
 
 		if(errp(token))
 		{
@@ -108,7 +108,7 @@ static value_t read_list(scan_t* st)
 
 			value_t c = car(token);	// first char of token
 
-			assert(rtypeof(c) == INT_T);
+			assert(rtypeof(c) == CHAR_T);
 			if(c.rint.val == ')')
 			{
 				if(cnilp(r))
@@ -147,12 +147,12 @@ static value_t read_form(scan_t* st)
 	}
 	else
 	{
-		assert(rtypeof(token) == STR_T || rtypeof(token) == SYM_T);
+		assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T);
 		if(rtypeof(token) == SYM_T)
 		{
 			value_t tcons = token;
 			value_t tcar  = car(tcons);
-			assert(rtypeof(tcar) == INT_T);
+			assert(rtypeof(tcar) == CHAR_T);
 
 			if(tcar.rint.val == '(')
 			{
@@ -176,12 +176,12 @@ static value_t read_form(scan_t* st)
 					return token;
 				}
 
-				assert(rtypeof(token) == STR_T || rtypeof(token) == SYM_T);
+				assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T);
 				if(rtypeof(token) == SYM_T)
 				{
 					value_t tcons = token;
 					value_t tcar  = car(tcons);
-					assert(rtypeof(tcar) == INT_T);
+					assert(rtypeof(tcar) == CHAR_T);
 					if(tcar.rint.val == '@')
 					{
 						scan_next(st);

@@ -16,7 +16,7 @@ static void scan_to_lf(value_t *s)
 		assert(rtypeof(*s) == CONS_T);
 
 		value_t c = car(*s);	// current char
-		assert(rtypeof(c) == INT_T);
+		assert(rtypeof(c) == CHAR_T);
 
 		if(c.rint.val == '\n')
 		{
@@ -44,7 +44,7 @@ static value_t scan_to_whitespace(value_t *s)
 
 		value_t c = car(*s);	// current char
 
-		assert(rtypeof(c) == INT_T);
+		assert(rtypeof(c) == CHAR_T);
 
 		if( c.rint.val == ' '  ||
 		    c.rint.val == '\t' ||
@@ -86,7 +86,7 @@ static value_t scan_to_doublequote(value_t *s)
 
 		value_t c = car(*s);	// current char
 
-		assert(rtypeof(c) == INT_T);
+		assert(rtypeof(c) == CHAR_T);
 
 		switch(st)
 		{
@@ -98,7 +98,10 @@ static value_t scan_to_doublequote(value_t *s)
 			else if(c.rint.val == '"')
 			{
 				*s = cdr(*s);
-				r.type.main = STR_T;
+				if(nilp(r))
+				{
+					r = cons(RCHAR('\0'), NIL);	// null string
+				}
 				return r;
 			}
 			else
@@ -137,7 +140,7 @@ static value_t scan1(value_t *s)
 		assert(rtypeof(*s) == CONS_T);
 
 		value_t c = car(*s);	// current char
-		assert(rtypeof(c) == INT_T);
+		assert(rtypeof(c) == CHAR_T);
 
 		// skip white space
 		if( c.rint.val == ' '  ||
@@ -192,10 +195,6 @@ scan_t scan_init(value_t str)
 {
 	scan_t r = { 0 };
 	r.cur    = str;
-	if(r.cur.type.main == STR_T)
-	{
-		r.cur.type.main = CONS_T;
-	}
 	r.token  = scan1(&r.cur);
 
 	return r;

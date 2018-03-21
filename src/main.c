@@ -48,8 +48,7 @@ void repl(value_t env)
 
 void rep_file(char* fn, value_t env)
 {
-	value_t c = concat(3, str_to_rstr("(do "), slurp(fn), str_to_rstr(")"));
-	c.type.main = STR_T;
+	value_t c = concat(3, str_to_rstr("(progn "), slurp(fn), str_to_rstr(")"));
 	print(eval(read_str(c), env), stdout);
 }
 

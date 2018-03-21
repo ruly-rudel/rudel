@@ -26,12 +26,11 @@ static value_t pr_str_int(int x)
 		}
 	}
 
-	r.type.main = STR_T;
 	return r;
 }
 
 
-static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
+static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
 	value_t r    = NIL;
@@ -50,22 +49,20 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 			if(rtypeof(x) == CONS_T)
 			{
 				// append string
-				cur = nconc_and_last(pr_str(car(x), cyclic, print_readably), cur);
+				cur = nconc_and_last(pr_str(car(x), annotate, print_readably), cur);
 				x = cdr(x);
 			}
 			else	// dotted
 			{
 				cur = cons_and_cdr(RCHAR('.'), cur);
 				cur = cons_and_cdr(RCHAR(' '), cur);
-				cur = nconc_and_last(pr_str(x, cyclic, print_readably), cur);
+				cur = nconc_and_last(pr_str(x, annotate, print_readably), cur);
 				x = NIL;
 			}
 		} while(!nilp(x));
 
 		cur = cons_and_cdr(RCHAR(')'), cur);
 	}
-
-	r.type.main = STR_T;
 
 	return r;
 }
@@ -189,10 +186,9 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 
 static value_t pr_str_str(value_t s, bool print_readably)
 {
-	assert(rtypeof(s) == STR_T);
-	s.type.main = CONS_T;
+	assert(rtypeof(s) == CONS_T);
 
-	value_t r = NIL;
+	value_t r = cons(RCHAR('\0'), NIL);
 	value_t *cur = &r;
 	if(print_readably)
 	{
@@ -202,11 +198,15 @@ static value_t pr_str_str(value_t s, bool print_readably)
 	while(!nilp(s))
 	{
 		value_t tcar = car(s);
-		assert(rtypeof(tcar) == INT_T);
+		assert(rtypeof(tcar) == CHAR_T);
 
 		if(print_readably)	// escape
 		{
-			if(tcar.rint.val == '"')
+			if(tcar.rint.val == '\0')	// null string
+			{
+				break;
+			}
+			else if(tcar.rint.val == '"')
 			{
 				cur = cons_and_cdr(RCHAR('\\'), cur);
 				cur = cons_and_cdr(tcar,        cur);
@@ -228,7 +228,14 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		}
 		else
 		{
-			cur = cons_and_cdr(tcar, cur);
+			if(tcar.rint.val == '\0')	// null string
+			{
+				break;
+			}
+			else
+			{
+				cur = cons_and_cdr(tcar, cur);
+			}
 		}
 
 		s = cdr(s);
@@ -240,18 +247,17 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		cur = cons_and_cdr(RCHAR('"'), cur);
 	}
 
-	r.type.main = STR_T;
 	return r;
 }
 
-static value_t pr_str_cfn(value_t s, value_t cyclic)
+static value_t pr_str_cfn(value_t s, value_t annotate)
 {
 	assert(rtypeof(s) == CFN_T);
 
 #ifdef PRINT_CLOS_ENV
 	s.type.main = CONS_T;
 	value_t r = str_to_rstr("(#<COMPILED-FUNCTION> . ");
-	nconc(r, pr_str(cdr(s), cyclic));
+	nconc(r, pr_str(cdr(s), annotate));
 	nconc(r, str_to_rstr(")"));
 
 	return r;
@@ -260,14 +266,14 @@ static value_t pr_str_cfn(value_t s, value_t cyclic)
 #endif // PRINT_CLOS_ENV
 }
 
-static value_t pr_str_cloj(value_t s, value_t cyclic)
+static value_t pr_str_cloj(value_t s, value_t annotate)
 {
 	assert(rtypeof(s) == CLOJ_T);
 
 #ifdef PRINT_CLOS_ENV
 	s.type.main = CONS_T;
 	value_t r = str_to_rstr("(#<CLOJURE> . ");
-	nconc(r, pr_str(cdr(s), cyclic));
+	nconc(r, pr_str(cdr(s), annotate));
 	nconc(r, str_to_rstr(")"));
 
 	return r;
@@ -276,14 +282,14 @@ static value_t pr_str_cloj(value_t s, value_t cyclic)
 #endif // PRINT_CLOS_ENV
 }
 
-static value_t pr_str_macro(value_t s, value_t cyclic)
+static value_t pr_str_macro(value_t s, value_t annotate)
 {
 	assert(rtypeof(s) == MACRO_T);
 
 #ifdef PRINT_CLOS_ENV
 	s.type.main = CONS_T;
 	value_t r = str_to_rstr("(#<MACRO> . ");
-	nconc(r, pr_str(cdr(s), cyclic));
+	nconc(r, pr_str(cdr(s), annotate));
 	nconc(r, str_to_rstr(")"));
 
 	return r;
@@ -329,20 +335,34 @@ static value_t pr_err(value_t s)
 static value_t pr_sym(value_t s)
 {
 	value_t r = copy_list(s);
-	r.type.main = STR_T;
+	r.type.main = CONS_T;
 	return r;
 }
 
+static value_t pr_str_char(value_t s)
+{
+	assert(rtypeof(s) == CHAR_T);
+	value_t r    = NIL;
+	value_t* cur = &r;
+
+	cur = cons_and_cdr(RCHAR('\''), cur);
+	cur = cons_and_cdr(s, cur);
+	cur = cons_and_cdr(RCHAR('\''), cur);
+	return r;
+}
 /////////////////////////////////////////////////////////////////////
 // public: Rudel-specific functions
 
 void printline(value_t s, FILE* fp)
 {
-	assert(rtypeof(s) == STR_T || rtypeof(s) == SYM_T || rtypeof(s) == CONS_T);
+	assert(rtypeof(s) == CONS_T);
 	s.type.main = CONS_T;
 
-	for(; !nilp(s); s = cdr(s))
+	while(!nilp(s) && car(s).rint.val != '\0')
+	{
 		fputc(car(s).rint.val, fp);
+		s = cdr(s);
+	}
 
 	fputc('\n', fp);
 	fflush(fp);
@@ -350,12 +370,12 @@ void printline(value_t s, FILE* fp)
 	return ;
 }
 
-value_t pr_str(value_t s, value_t cyclic, bool print_readably)
+value_t pr_str(value_t s, value_t annotate, bool print_readably)
 {
 	switch(rtypeof(s))
 	{
 	    case CONS_T:
-		return pr_str_cons(s, cyclic, print_readably);
+		return is_str(s) ? pr_str_str(s, print_readably) : pr_str_cons(s, annotate, print_readably);
 
 	    case SYM_T:
 		return pr_sym(s);
@@ -363,17 +383,17 @@ value_t pr_str(value_t s, value_t cyclic, bool print_readably)
 	    case INT_T:
 		return pr_str_int(s.rint.val);
 
-	    case STR_T:
-		return pr_str_str(s, print_readably);
-
 	    case CFN_T:
-		return pr_str_cfn(s, cyclic);
+		return pr_str_cfn(s, annotate);
 
 	    case CLOJ_T:
-		return pr_str_cloj(s, cyclic);
+		return pr_str_cloj(s, annotate);
 
 	    case MACRO_T:
-		return pr_str_macro(s, cyclic);
+		return pr_str_macro(s, annotate);
+
+	    case CHAR_T:
+		return pr_str_char(s);
 
 	    case ERR_T:
 		return pr_err(s);

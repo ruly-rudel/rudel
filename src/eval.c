@@ -38,6 +38,8 @@ static value_t eval_ast	(value_t ast, value_t env)
 		return eq(ast, s_env) ? env : get_env_value(ast, env);
 
 	    case CONS_T:
+		if(is_str(ast)) return ast;
+
 		while(!nilp(ast))
 		{
 			assert(rtypeof(ast) == CONS_T);
@@ -241,7 +243,8 @@ static bool is_break(value_t v, value_t env)
 		if(!nilp(debug_step) || !nilp(is_brk))	// debug REPL
 		{
 			print(str_to_sym("DEBUG break:"), stderr);
-			eval(list(2, str_to_sym("ppln"), list(2, s_quote, v)), env);
+			//eval(list(2, str_to_sym("ppln"), list(2, s_quote, v)), env);
+			print(v, stderr);
 
 			return true;
 		}
@@ -260,7 +263,7 @@ static value_t eval_apply(value_t v, value_t env)
 	{
 		return eval_ast(v, env);
 	}
-	else if(nilp(v))
+	else if(nilp(v) || is_str(v))
 	{
 		return v;
 	}
@@ -418,6 +421,10 @@ value_t eval(value_t v, value_t env)
 		if(nilp(v))
 		{
 			return NIL;
+		}
+		else if(is_str(v))
+		{
+			return v;
 		}
 		else
 		{

@@ -4,30 +4,36 @@ CC=gcc-5
 LD=$(CC)
 AR=ar
 
-#DEBUG=-g3 -DDEBUG
-#DEBUG=-g3 -DDONT_ABORT_EVAL_ON_ERROR
-DEBUG=-g3
-OPT=-O3 -m32
-#OPT=-O3 -m32 -pg
-CFLAGS=$(OPT) -Wall $(DEBUG) $(INCPATHS)
-LDFLAGS=$(OPT) $(DEBUG) $(LIBPATHS) -L.
+#DEBUG_OPT=-g3 -O0 -DEBUG -DDONT_ABORT_EVAL_ON_ERROR
+DEBUG_OPT=-g3 -O0 -DSTR_EASY_CHECK
+PROF_OPT=-O3 -pg -DSTR_EASY_CHECK
+OPT=-O3 -DSTR_EASY_CHECK
+ARCH=-m32
+CFLAGS=$(ARCH) -Wall $(INCPATHS)
+LDFLAGS=$(ARCH) $(LIBPATHS) -L.
 
 LIBSOURCES=builtin.c scanner.c reader.c printer.c eval.c env.c core.c ../linenoise/linenoise.c
 LIBOBJS=$(LIBSOURCES:%.c=%.o)
 
 TARGET=rudel
 
-.PHONY:	all clean
+.PHONY:	all clean debug prof
 
 .SUFFIXES: .c .o
 
 all: $(TARGET)
 
+debug:	OPT=$(DEBUG_OPT)
+debug:	all
+
+prof:	OPT=$(PROF_OPT)
+prof:	all
+
 .deps: *.c *.h
 	$(CC) $(CFLAGS) -MM *.c > .deps
 
 $(TARGET): %: main.o librudel.a
-	$(LD) $^ -o $@ $(LDFLAGS)
+	$(LD) $^ -o $@ $(OPT) $(LDFLAGS)
 
 librudel.a: $(LIBOBJS)
 	$(AR) rcs $@ $^
@@ -36,7 +42,7 @@ test:	$(TARGET)
 	../scr/runtest.py ../tests/tests.rud ./$(TARGET)
 
 .c.o:
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(OPT) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags ../tags gmon.out
