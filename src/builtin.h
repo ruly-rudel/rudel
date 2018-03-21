@@ -10,20 +10,19 @@
 
 typedef enum _rtype_t {
 	// main 8types (content is address)
-	CONS_T = 0,	// maybe sequence
-	VEC_T,
-	PLACEHOLDER_T,	// will be error type
+	CONS_T = 0,	// sequence
+	VEC_T,		// sequence
+	ERR_T,
 	SYM_T,
-	CFN_T,		// dotted list
-	CLOJ_T,
-	MACRO_T,
+	CFN_T,		// dotted
+	CLOJ_T,		// dotted
+	MACRO_T,	// dotted
 	OTH_T,
 
 	// sub types (content is value)
 	INT_T,
 	CHAR_T,
-	FLOAT_T,
-	ERR_T
+	FLOAT_T
 } rtype_t;
 
 #if __WORDSIZE == 32
@@ -95,16 +94,17 @@ typedef struct _cons_t
 
 
 #define NIL       ((value_t){ .type.main   = CONS_T,  .type.sub   = 0,     .type.val = 0   })
-#ifdef DEBUG
-	#define RERR(X)   (abort(), (value_t){ .type.main   = OTH_T,   .type.sub   = ERR_T, .type.val = (X) })
-#else
-	#define RERR(X)   ((value_t){ .type.main   = OTH_T,   .type.sub   = ERR_T, .type.val = (X) })
-#endif
 
 #define RCHAR(X)  ((value_t){ .rint.type   = CHAR_T  << 3 | OTH_T, .rint.val   = (X) })
 #define RINT(X)   ((value_t){ .rint.type   = INT_T   << 3 | OTH_T, .rint.val   = (X) })
 #define RFLOAT(X) ((value_t){ .rfloat.type = FLOAT_T << 3 | OTH_T, .rfloat.val = (X) })
 #define RFN(X)    ((value_t){ .rfn = (X) })
+
+#ifdef DEBUG
+	#define RERR(X)   (abort(), rerr(RINT(X)) })
+#else
+	#define RERR(X)   (rerr(RINT(X)))
+#endif
 
 #define SYM_TRUE   str_to_sym("t")
 #define SYM_FALSE  NIL
@@ -125,6 +125,7 @@ rtype_t rtypeof	(value_t v);
 value_t car		(value_t x);
 value_t cdr		(value_t x);
 value_t	cons		(value_t car, value_t cdr);
+value_t	rerr		(value_t data);
 bool    errp		(value_t x);
 bool	cnilp		(value_t x);
 bool    nilp		(value_t x);

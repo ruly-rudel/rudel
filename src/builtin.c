@@ -105,6 +105,19 @@ value_t	cons(value_t car, value_t cdr)
 	return r;
 }
 
+value_t rerr(value_t data)
+{
+	assert(rtypeof(data) == CONS_T || rtypeof(data) == INT_T);
+
+	if(rtypeof(data) == INT_T)
+	{
+		data = cons(data, NIL);
+	}
+	data.type.main = ERR_T;
+
+	return data;
+}
+
 value_t	cfn(value_t car, value_t cdr)
 {
 	value_t	r	= cons(car, cdr);
@@ -131,7 +144,7 @@ value_t	macro(value_t car, value_t cdr)
 
 bool errp(value_t x)
 {
-	return x.type.main == OTH_T && x.type.sub == ERR_T;
+	return x.type.main == ERR_T;
 }
 
 // only for reader and core

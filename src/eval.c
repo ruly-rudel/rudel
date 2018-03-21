@@ -208,7 +208,7 @@ static void debug_repl(value_t env)
 		value_t r = READ("debug# ", stdin);
 		if(errp(r))
 		{
-			if(r.type.val == ERR_EOF)
+			if(rtypeof(car(r)) == INT_T && car(r).rint.val == ERR_EOF)
 			{
 				break;
 			}

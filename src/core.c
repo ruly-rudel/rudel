@@ -91,6 +91,7 @@ DEF_FN_1(b_strp,    is_str (arg1)       ? SYM_TRUE : SYM_FALSE)
 DEF_FN_1(b_car,     car    (arg1))
 DEF_FN_1(b_cdr,     cdr    (arg1))
 DEF_FN_2(b_cons,    cons   (arg1, arg2))
+DEF_FN_1(b_err,     rerr   (arg1))
 DEF_FN_2(b_eq,      eq     (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
 DEF_FN_2(b_equal,   equal  (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
 DEF_FN_1(b_eval,    eval   (arg1, last(env)))
@@ -161,7 +162,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(34,
+	value_t key = list(35,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -179,6 +180,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("slurp"),
 	                      str_to_sym("eval"),
 	                      str_to_sym("cons"),
+	                      str_to_sym("err"),
 	                      str_to_sym("nth"),
 	                      str_to_sym("car"),
 	                      str_to_sym("cdr"),
@@ -198,7 +200,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("*trace*")
 	                  );
 
-	value_t val = list(34,
+	value_t val = list(35,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -216,6 +218,7 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_slurp), NIL),
 	                      cfn(RFN(b_eval), NIL),
 	                      cfn(RFN(b_cons), NIL),
+	                      cfn(RFN(b_err), NIL),
 	                      cfn(RFN(b_nth), NIL),
 	                      cfn(RFN(b_car), NIL),
 	                      cfn(RFN(b_cdr), NIL),

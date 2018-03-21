@@ -301,6 +301,16 @@ static value_t pr_str_macro(value_t s, value_t annotate)
 static value_t pr_err(value_t s)
 {
 	assert(rtypeof(s) == ERR_T);
+	s = car(s);
+	if(rtypeof(s) == CONS_T)
+	{
+		return s;
+	}
+	else if(rtypeof(s) != INT_T)
+	{
+		return str_to_rstr("invalid type of error.");
+	}
+
 	switch(s.type.val)
 	{
 	    case ERR_TYPE:

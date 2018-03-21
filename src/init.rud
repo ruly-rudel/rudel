@@ -34,7 +34,7 @@
       (list 'if (car clauses)
             (if (> (count clauses) 1)
                 (nth clauses 1)
-                (throw "cond requires an even number of forms"))
+                (err (list "cond requires an even number of forms")))
             (cons 'cond (cdr (cdr clauses))))))
 
 ;; list manipulation functions

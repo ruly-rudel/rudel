@@ -21,9 +21,8 @@ void repl(value_t env)
 		r = READ("user> ", stdin);
 		if(errp(r))
 		{
-			if(r.type.val == ERR_EOF)
+			if(rtypeof(car(r)) == INT_T && car(r).rint.val == ERR_EOF)
 			{
-				fprintf(stdout, "\n");
 				break;
 			}
 			else
