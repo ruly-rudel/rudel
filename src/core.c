@@ -98,6 +98,8 @@ DEF_FN_2(b_rplaca,  rplaca (arg1, arg2))
 DEF_FN_2(b_rplacd,  rplacd (arg1, arg2))
 DEF_FN_2(b_nth,     rtypeof(arg2) != INT_T ? RERR(ERR_TYPE) : nth(arg2.rint.val, arg1))
 
+DEF_FN_VARG(b_gensym, gensym(last(env)))
+
 
 ////////// special functions for rudel (manipulate environment etc...)
 
@@ -159,7 +161,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(32,
+	value_t key = list(34,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -186,15 +188,17 @@ value_t	create_root_env	(void)
 	                      str_to_sym("init"),
 	                      str_to_sym("rplaca"),
 	                      str_to_sym("rplacd"),
+	                      str_to_sym("gensym"),
 	                      str_to_sym("<"),
 	                      str_to_sym("<="),
 	                      str_to_sym(">"),
 	                      str_to_sym(">="),
+	                      str_to_sym("*gensym-counter*"),
 	                      str_to_sym("*debug*"),
 	                      str_to_sym("*trace*")
 	                  );
 
-	value_t val = list(32,
+	value_t val = list(34,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -221,10 +225,12 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_init), NIL),
 	                      cfn(RFN(b_rplaca), NIL),
 	                      cfn(RFN(b_rplacd), NIL),
+	                      cfn(RFN(b_gensym), NIL),
 	                      cfn(RFN(b_lt), NIL),
 	                      cfn(RFN(b_elt), NIL),
 	                      cfn(RFN(b_mt), NIL),
 	                      cfn(RFN(b_emt), NIL),
+			      RINT(0),
 	                      NIL,
 	                      NIL
 			  );

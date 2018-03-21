@@ -161,6 +161,7 @@ value_t str_to_sym	(const char* s);
 char*   rstr_to_str	(value_t s);
 
 value_t register_sym	(value_t s);
+value_t gensym		(value_t env);
 
 value_t* cons_and_cdr	(value_t v, value_t* c);
 value_t* nconc_and_last	(value_t v, value_t* c);

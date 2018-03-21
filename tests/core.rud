@@ -20,8 +20,6 @@
         nil)
       t)))
 
-(setq not (lambda (x) (if x nil t)))
-
 (setq some
   (lambda (pred xs)
     (if (> (count xs) 0)
@@ -31,34 +29,6 @@
           (some pred (cdr xs))))
       nil)))
 
-;(defmacro! and
-;  (lambda (& xs)
-;    (if (not xs)
-;      t
-;      (if (= 1 (count xs))
-;        (car xs)
-;        (let* (condvar (gensym))
-;          `(let* (,condvar ,(car xs))
-;            (if ,condvar (and ,@(cdr xs)) ,condvar)))))))
-
-;(defmacro! or
-;  (lambda (& xs)
-;    (if (not xs)
-;      nil
-;      (if (= 1 (count xs))
-;        (car xs)
-;        (let* (condvar (gensym))
-;          `(let* (,condvar ,(car xs))
-;             (if ,condvar ,condvar (or ,@(cdr xs)))))))))
-
-;(defmacro! cond
-;  (lambda (& clauses)
-;    (if (> (count clauses) 0)
-;      (list 'if (car clauses)
-;            (if (> (count clauses) 1)
-;                (nth clauses 1)
-;                (throw "cond requires an even number of forms"))
-;            (cons 'cond (cdr (cdr clauses)))))))
 
 (defmacro -> (x & xs)
     (if (not xs)

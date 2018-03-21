@@ -4,6 +4,8 @@
 #include "eval.h"
 #include "core.h"
 #include "reader.h"
+#include "env.h"
+#include "printer.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: symbol pool
@@ -577,6 +579,18 @@ value_t register_sym(value_t s)
 	{
 		return sym;
 	}
+}
+
+value_t gensym	(value_t env)
+{
+	value_t r = str_to_rstr("#:G");
+	value_t n = get_env_value(str_to_sym("*gensym-counter*"), env);
+	r         = nconc(r, pr_str(n, NIL, false));
+	r.type.main = SYM_T;
+
+	set_env(str_to_sym("*gensym-counter*"), RINT(n.rint.val + 1), env);
+
+	return r;	// gensym symbol is unregisterd: so same name doesn't cause eq.
 }
 
 /////////////////////////////////////////////////////////////////////
