@@ -1,4 +1,4 @@
-(def! mylist (list "a"
+(setq mylist (list "a"
              1))
 
 (prn "incC.rud finished")

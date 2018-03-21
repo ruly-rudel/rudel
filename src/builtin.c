@@ -468,7 +468,7 @@ value_t init(value_t env)
 	env = last(env);
 	rplaca(env, car(create_root_env()));
 
-	value_t c = concat(3, str_to_rstr("(do "), slurp("init.rud"), str_to_rstr(")"));
+	value_t c = concat(3, str_to_rstr("(progn "), slurp("init.rud"), str_to_rstr(")"));
 	c.type.main = STR_T;
 	return eval(read_str(c), env);
 }

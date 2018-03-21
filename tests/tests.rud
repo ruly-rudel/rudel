@@ -34,24 +34,24 @@
 ;=>2
 
 
-;; Testing def!
-(def! x 3)
+;; Testing setq
+(setq x 3)
 ;=>3
 x
 ;=>3
-(def! x 4)
+(setq x 4)
 ;=>4
 x
 ;=>4
-(def! y (+ 1 7))
+(setq y (+ 1 7))
 ;=>8
 y
 ;=>8
 
 ;; Verifying symbols are case-sensitive
-(def! mynum 111)
+(setq mynum 111)
 ;=>111
-(def! MYNUM 222)
+(setq MYNUM 222)
 ;=>222
 mynum
 ;=>111
@@ -61,37 +61,37 @@ MYNUM
 ;; Check env lookup non-fatal error
 (abc 1 2 3)
 ; .*\'abc\' not found.*
-;; Check that error aborts def!
-(def! w 123)
-(def! w (abc))
+;; Check that error aborts setq
+(setq w 123)
+(setq w (abc))
 w
 ;=>123
 
 ;; Testing let*
-(let* (z 9) z)
+(let* ((z 9)) z)
 ;=>9
-(let* (x 9) x)
+(let* ((x 9)) x)
 ;=>9
 x
 ;=>4
-(let* (z (+ 2 3)) (+ 1 z))
+(let* ((z (+ 2 3))) (+ 1 z))
 ;=>6
-(let* (p (+ 2 3) q (+ 2 p)) (+ p q))
+(let* ((p (+ 2 3)) (q (+ 2 p))) (+ p q))
 ;=>12
-(def! y (let* (z 7) z))
+(setq y (let* ((z 7)) z))
 y
 ;=>7
 
 ;; Testing outer environment
-(def! a 4)
+(setq a 4)
 ;=>4
-(let* (q 9) q)
+(let* ((q 9)) q)
 ;=>9
-(let* (q 9) a)
+(let* ((q 9)) a)
 ;=>4
-(let* (z 2) (let* (q 9) a))
+(let* ((z 2)) (let* ((q 9)) a))
 ;=>4
-(let* (x 4) (def! a 5))
+(let* ((x 4)) (setq a 5))
 ;=>5
 a
 ;=>5
@@ -255,40 +255,40 @@ a
 ( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)
 ;=>12
 
-(def! gen-plus5 (fn* () (fn* (b) (+ 5 b))))
-(def! plus5 (gen-plus5))
+(setq gen-plus5 (fn* () (fn* (b) (+ 5 b))))
+(setq plus5 (gen-plus5))
 (plus5 7)
 ;=>12
 
-(def! gen-plusX (fn* (x) (fn* (b) (+ x b))))
-(def! plus7 (gen-plusX 7))
+(setq gen-plusX (fn* (x) (fn* (b) (+ x b))))
+(setq plus7 (gen-plusX 7))
 (plus7 8)
 ;=>15
 
-;; Testing do form
-(do (prn "prn output1"))
+;; Testing progn form
+(progn (prn "prn output1"))
 ; "prn output1"
 ;=>nil
-(do (prn "prn output2") 7)
+(progn (prn "prn output2") 7)
 ; "prn output2"
 ;=>7
-(do (prn "prn output1") (prn "prn output2") (+ 1 2))
+(progn (prn "prn output1") (prn "prn output2") (+ 1 2))
 ; "prn output1"
 ; "prn output2"
 ;=>3
 
-(do (def! a 6) 7 (+ a 8))
+(progn (setq a 6) 7 (+ a 8))
 ;=>14
 a
 ;=>6
 
 ;; Testing special form case-sensitivity
-(def! DO (fn* (a) 7))
+(setq DO (fn* (a) 7))
 (DO 3)
 ;=>7
 
 ;; Testing recursive sumdown function
-(def! sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+(setq sumdown (fn* (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
 (sumdown 1)
 ;=>1
 (sumdown 2)
@@ -298,7 +298,7 @@ a
 
 
 ;; Testing recursive fibonacci function
-(def! fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+(setq fib (fn* (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
 (fib 1)
 ;=>1
 (fib 2)
@@ -514,31 +514,31 @@ nil
 
 ;; Testing recursive tail-call function
 
-(def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))
+(setq sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))
 
 ;; TODO: test let*, and do for TCO
 
 (sum2 10 0)
 ;=>55
 
-(def! res2 nil)
+(setq res2 nil)
 ;=>nil
-(def! res2 (sum2 1000 0))
+(setq res2 (sum2 1000 0))
 res2
 ;=>500500
 
 
 ;; Test mutually recursive tail-call functions
 
-(def! foo (fn* (n) (if (= n 0) 0 (bar (- n 1)))))
-(def! bar (fn* (n) (if (= n 0) 0 (foo (- n 1)))))
+(setq foo (fn* (n) (if (= n 0) 0 (bar (- n 1)))))
+(setq bar (fn* (n) (if (= n 0) 0 (foo (- n 1)))))
 
 (foo 10000)
 ;=>0
 ;;; TODO: really a step5 test
 ;;
 ;; Testing that (do (do)) not broken by TCO
-(do (do 1 2))
+(progn (progn 1 2))
 ;=>2
 
 ;;
@@ -602,7 +602,7 @@ mylist
 (cons (list 1) (list 2 3))
 ;=>((1) 2 3)
 
-(def! a (list 2 3))
+(setq a (list 2 3))
 (cons 1 a)
 ;=>(1 2 3)
 a
@@ -622,8 +622,8 @@ a
 (concat (list) (list))
 ;=>nil
 
-(def! a (list 1 2))
-(def! b (list 3 4))
+(setq a (list 1 2))
+(setq b (list 3 4))
 (concat a b (list 5 6))
 ;=>(1 2 3 4 5 6)
 a
@@ -652,7 +652,7 @@ b
 ;; Testing unquote
 (quasiquote (unquote 7))
 ;=>7
-(def! a 8)
+(setq a 8)
 ;=>8
 (quasiquote a)
 ;=>a
@@ -662,7 +662,7 @@ b
 ;=>(1 a 3)
 (quasiquote (1 (unquote a) 3))
 ;=>(1 8 3)
-(def! b (quote (1 "b" "d")))
+(setq b (quote (1 "b" "d")))
 ;=>(1 "b" "d")
 (quasiquote (1 b 3))
 ;=>(1 b 3)
@@ -672,7 +672,7 @@ b
 ;=>(1 2)
 
 ;; Testing splice-unquote
-(def! c (quote (1 "b" "d")))
+(setq c (quote (1 "b" "d")))
 ;=>(1 "b" "d")
 (quasiquote (1 c 3))
 ;=>(1 c 3)
@@ -726,11 +726,11 @@ b
 ;; Testing , (unquote) reader macro
 `,7
 ;=>7
-(def! a 8)
+(setq a 8)
 ;=>8
 `(1 ,a 3)
 ;=>(1 8 3)
-(def! b '(1 "b" "d"))
+(setq b '(1 "b" "d"))
 ;=>(1 "b" "d")
 `(1 b 3)
 ;=>(1 b 3)
@@ -738,7 +738,7 @@ b
 ;=>(1 (1 "b" "d") 3)
 
 ;; Testing ,@ (splice-unquote) reader macro
-(def! c '(1 "b" "d"))
+(setq c '(1 "b" "d"))
 ;=>(1 "b" "d")
 `(1 c 3)
 ;=>(1 c 3)
@@ -772,7 +772,7 @@ b
 
 ;; Testing evaluation of macro result
 (defmacro! identity (fn* (x) x))
-(let* (a 123) (identity a))
+(let* ((a 123)) (identity a))
 ;=>123
 
 
@@ -793,8 +793,8 @@ b
 ;=>1
 (nth (list 1 2) 1)
 ;=>2
-(def! x "x")
-(def! x (nth (list 1 2) 2))
+(setq x "x")
+(setq x (nth (list 1 2) 2))
 x
 ;=>"x"
 
@@ -850,7 +850,7 @@ x
 
 ;; Testing EVAL in let*
 
-(let* (x (or nil "yes")) x)
+(let* ((x (or nil "yes"))) x)
 ;=>"yes"
 
 
@@ -930,7 +930,7 @@ x
 ;=>(1 2 3 4 5)
 (copy-list (list 1 2 '(6 8) 4 5))
 ;=>(1 2 (6 8) 4 5)
-(def! x (list 1 2 3 4 5))
+(setq x (list 1 2 3 4 5))
 ;=>(1 2 3 4 5)
 (eq x (list 1 2 3 4 5))
 ;=>nil

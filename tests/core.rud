@@ -1,18 +1,18 @@
-(def! inc (fn* (a) (+ a 1)))
+(setq inc (fn* (a) (+ a 1)))
 
-(def! dec (fn* (a) (- a 1)))
+(setq dec (fn* (a) (- a 1)))
 
-(def! zero? (fn* (n) (= 0 n)))
+(setq zero? (fn* (n) (= 0 n)))
 
-;(def! reduce
+;(setq reduce
 ;  (fn* (f init xs)
 ;    (if (> (count xs) 0)
 ;      (reduce f (f init (car xs)) (cdr xs))
 ;      init)))
 
-(def! identity (fn* (x) x))
+(setq identity (fn* (x) x))
 
-(def! every?
+(setq every?
   (fn* (pred xs)
     (if (> (count xs) 0)
       (if (pred (car xs))
@@ -20,12 +20,12 @@
         nil)
       t)))
 
-(def! not (fn* (x) (if x nil t)))
+(setq not (fn* (x) (if x nil t)))
 
-(def! some
+(setq some
   (fn* (pred xs)
     (if (> (count xs) 0)
-      (let* (res (pred (car xs)))
+      (let* ((res (pred (car xs))))
         (if (pred (car xs))
           res
           (some pred (cdr xs))))
@@ -64,8 +64,8 @@
   (fn* (x & xs)
     (if (not xs)
       x
-      (let* (form (car xs)
-             more (cdr xs))
+      (let* ((form (car xs))
+             (more (cdr xs)))
         (if (not more)
           (if (consp form)
             `(,(car form) ,x ,@(cdr form))
@@ -76,8 +76,8 @@
   (fn* (x & xs)
     (if (not xs)
       x
-      (let* (form (car xs)
-             more (cdr xs))
+      (let* ((form (car xs))
+             (more (cdr xs)))
         (if (not more)
           (if (consp form)
             `(,(car form) ,@(cdr form) ,x)

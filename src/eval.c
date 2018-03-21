@@ -11,14 +11,14 @@
 static value_t s_env;
 static value_t s_unquote;
 static value_t s_splice_unquote;
-static value_t s_def;
+static value_t s_setq;
 static value_t s_let;
-static value_t s_do;
+static value_t s_progn;
 static value_t s_if;
 static value_t s_fn;
 static value_t s_quote;
 static value_t s_quasiquote;
-static value_t s_defmacro;
+static value_t s_macro;
 static value_t s_macroexpand;
 static value_t s_trace;
 static value_t s_debug;
@@ -59,7 +59,7 @@ static value_t eval_ast	(value_t ast, value_t env)
 	}
 }
 
-static value_t eval_def(value_t vcdr, value_t env)
+static value_t eval_setq(value_t vcdr, value_t env)
 {
 	// key
 	value_t key = car(vcdr);
@@ -92,7 +92,7 @@ static value_t eval_def(value_t vcdr, value_t env)
 	return val;
 }
 
-static value_t eval_do(value_t vcdr, value_t env)
+static value_t eval_progn(value_t vcdr, value_t env)
 {
 	return car(last(eval_ast(vcdr, env)));
 }
@@ -130,17 +130,18 @@ static value_t eval_let(value_t vcdr, value_t env)
 
 	while(!nilp(def))
 	{
-		// symbol
-		value_t sym = car(def);
+		value_t bind = car(def);
 		def = cdr(def);
+
+		// symbol
+		value_t sym = car(bind);
 		if(rtypeof(sym) != SYM_T)
 		{
 			return RERR(ERR_ARG);
 		}
 
 		// body
-		value_t body = eval(car(def), let_env);
-		def = cdr(def);
+		value_t body = eval(car(cdr(bind)), let_env);
 		if(errp(body))
 		{
 			return body;
@@ -181,7 +182,7 @@ static value_t eval_quasiquote	(value_t vcdr, value_t env)
 	}
 }
 
-static value_t eval_defmacro(value_t vcdr, value_t env)
+static value_t eval_macro(value_t vcdr, value_t env)
 {
 	// key
 	value_t key = car(vcdr);
@@ -288,17 +289,17 @@ static value_t eval_apply(value_t v, value_t env)
 	value_t vcar = car(v);
 	value_t vcdr = cdr(v);
 
-	if(eq(vcar, s_def))		// def!
+	if(eq(vcar, s_setq))		// setq
 	{
-		return eval_def(vcdr, env);
+		return eval_setq(vcdr, env);
 	}
 	else if(eq(vcar, s_let))	// let*
 	{
 		return eval_let(vcdr, env);
 	}
-	else if(eq(vcar, s_do))		// do
+	else if(eq(vcar, s_progn))	// progn
 	{
-		return eval_do(vcdr, env);
+		return eval_progn(vcdr, env);
 	}
 	else if(eq(vcar, s_if))		// if
 	{
@@ -316,9 +317,9 @@ static value_t eval_apply(value_t v, value_t env)
 	{
 		return car(eval_quasiquote(vcdr, env));
 	}
-	else if(eq(vcar, s_defmacro))	// defmacro!
+	else if(eq(vcar, s_macro))	// macro
 	{
-		return eval_defmacro(vcdr, env);
+		return eval_macro(vcdr, env);
 	}
 	else if(eq(vcar, s_macroexpand))	// macroexpand
 	{
@@ -454,14 +455,14 @@ void init_eval(void)
 	s_env		= str_to_sym("env");
 	s_unquote	= str_to_sym("unquote");
 	s_splice_unquote= str_to_sym("splice-unquote");
-	s_def		= str_to_sym("def!");
+	s_setq		= str_to_sym("setq");
 	s_let		= str_to_sym("let*");
-	s_do		= str_to_sym("do");
+	s_progn		= str_to_sym("progn");
 	s_if		= str_to_sym("if");
 	s_fn		= str_to_sym("fn*");
 	s_quote		= str_to_sym("quote");
 	s_quasiquote	= str_to_sym("quasiquote");
-	s_defmacro	= str_to_sym("defmacro!");
+	s_macro		= str_to_sym("defmacro!");
 	s_macroexpand	= str_to_sym("macroexpand");
 	s_trace		= str_to_sym("*trace*");
 	s_debug		= str_to_sym("*debug*");

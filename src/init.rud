@@ -1,7 +1,7 @@
 
 (defmacro! defun!
 	   (fn* (name arg body)
-		`(def! ,name (fn* ,arg ,body))))
+		`(setq ,name (fn* ,arg ,body))))
 
 (defmacro! defm!
 	   (fn* (name arg body)
@@ -16,7 +16,7 @@
 	 nil
 	 (if (= 1 (count xs))
 	   (car xs)
-	   `(let* (or_FIXME ,(car xs))
+	   `(let* ((or_FIXME ,(car xs)))
 	      (if or_FIXME or_FIXME
 		(or ,@(cdr xs)))))))
 
@@ -25,7 +25,7 @@
 	 t
 	 (if (= 1 (count xs))
 	   (car xs)
-	   `(let* (and_FIXME ,(car xs))
+	   `(let* ((and_FIXME ,(car xs)))
 	      (if (not and_FIXME) and_FIXME
 		(and ,@(cdr xs)))))))
 
@@ -94,30 +94,30 @@
 ;(defm! concat (& body)
 ;       (if (not body) nil
 ;	 `(let* (concat_car (copy-list ,(car body)))
-;	   (do (if (consp concat_car)
+;	   (progn (if (consp concat_car)
 ;		 (rplacd (last concat_car) (concat ,@(cdr body)))
 ;		 (concat ,@(cdr body)))
 ;	      concat_car))))
 (defun! concat (& body)
-	(let* (rec (fn* (x)
+	(let* ((rec (fn* (x)
 			(if (not x) nil
 			  (if (consp x)
-			    (let* (copy (copy-list (car x)))
+			    (let* ((copy (copy-list (car x))))
 			      (if (consp copy)
-				 (do
+				 (progn
 				   (rplacd (last copy) (rec (cdr x)))
 				   copy)
 				 (rec (cdr x))))
-			    x))))
+			    x)))))
 	  (rec body)))
 
 ;; map functions
 (defun! reduce (fn lst)
 	(let*
-	  (rec      (fn* (head lst)
+	  ((rec      (fn* (head lst)
 			 (if lst
 			   (rec (fn head (car lst)) (cdr lst))
-			   head)))
+			   head))))
 	  (if (cdr lst)	;; 2 or more arg
 	      (rec (fn (car lst) (cadr lst)) (cddr lst))
 	      (car lst))))	;; 1 element in lst
@@ -135,7 +135,7 @@
 
 ;; rudel-specific functions
 (defun! load-file (f)
-	(eval (read-string (str "(do " (slurp f) ")"))))
+	(eval (read-string (str "(progn " (slurp f) ")"))))
 
 ;(if (cond)
 ;    (true)
@@ -145,10 +145,10 @@
 ;(let* (a b
 ;       c d)
 ;    (body))
-;(do
+;(progn
 ;    (body1)
 ;    (body2))
-;(def! x
+;(setq x
 ;    (value))
 ;(fn* name (args)
 ;    (body))
@@ -157,9 +157,9 @@
 	(repeat n " " str))
 
 (defun! pp-n (lst indent n)
-	(let* (prec  (copy-list lst (if (= n 0) nil n))
-	       trail (if (= n 0) nil (nthcdr (- n 1) lst))
-	       next  (+ indent 3))
+	(let* ((prec  (copy-list lst (if (= n 0) nil n)))
+	       (trail (if (= n 0) nil (nthcdr (- n 1) lst)))
+	       (next  (+ indent 3)))
 	  (str
 	    "("
 	    (reduce (fn* (x y) (str x " " y))
@@ -176,13 +176,13 @@
 (defun! pp (tree indent)
 	(if (consp tree)
 	 (let*
-	   (trial (pp-n tree 0 0)
-	    len   (count trial))
+	   ((trial (pp-n tree 0 0))
+	    (len   (count trial)))
 	   (if (> len 30)
-	     (let* (fn (car tree))
+	     (let* ((fn (car tree)))
 	       (cond
 		 (= fn 'if)      (pp-n tree indent 2)
-		 (= fn 'def!)    (pp-n tree indent 2)
+		 (= fn 'setq)    (pp-n tree indent 2)
 		 (= fn 'fn*)     (pp-n tree indent 2)
 		 (= fn 'defun!)  (pp-n tree indent 3)
 		 (= fn 'defm!)   (pp-n tree indent 3)
@@ -195,20 +195,20 @@
 
 ;; debug functions
 (defun! trace (x)
-	(def! *trace* (if x (cons x *trace*))))
+	(setq *trace* (if x (cons x *trace*))))
 
 (defun! step ()
-	(def! *debug* (cons '#step# *debug*)))
+	(setq *debug* (cons '#step# *debug*)))
 
 (defun! cont ()
-	(def! *debug* (remove '#step# *debug*)))
+	(setq *debug* (remove '#step# *debug*)))
 
 (defun! break (x)
-	(def! *debug* (cons x *debug*)))
+	(setq *debug* (cons x *debug*)))
 
 (defun! clear (x)
-	(def! *debug* (remove x *debug*)))
+	(setq *debug* (remove x *debug*)))
 
 (defun! clear-all ()
-	(def! *debug* nil))
+	(setq *debug* nil))
 
