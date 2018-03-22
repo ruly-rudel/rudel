@@ -46,7 +46,14 @@ static value_t NAME(value_t body, value_t env) \
 	} \
 	else \
 	{ \
-		return RERR(ERR_TYPE); \
+		if(rtypeof(arg1v) != INT_T) \
+		{ \
+			return RERR(ERR_TYPE, body); \
+		} \
+		else \
+		{ \
+			return RERR(ERR_TYPE, cdr(body)); \
+		} \
 	} \
 }
 
@@ -91,13 +98,13 @@ DEF_FN_1(b_strp,    is_str (arg1)       ? SYM_TRUE : SYM_FALSE)
 DEF_FN_1(b_car,     car    (arg1))
 DEF_FN_1(b_cdr,     cdr    (arg1))
 DEF_FN_2(b_cons,    cons   (arg1, arg2))
-DEF_FN_1(b_err,     rerr   (arg1))
+DEF_FN_1(b_err,     rerr   (arg1, body))
 DEF_FN_2(b_eq,      eq     (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
 DEF_FN_2(b_equal,   equal  (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
 DEF_FN_1(b_eval,    eval   (arg1, last(env)))
 DEF_FN_2(b_rplaca,  rplaca (arg1, arg2))
 DEF_FN_2(b_rplacd,  rplacd (arg1, arg2))
-DEF_FN_2(b_nth,     rtypeof(arg2) != INT_T ? RERR(ERR_TYPE) : nth(INTOF(arg2), arg1))
+DEF_FN_2(b_nth,     rtypeof(arg2) != INT_T ? RERR(ERR_TYPE, body) : nth(INTOF(arg2), arg1))
 
 DEF_FN_VARG(b_gensym, gensym(last(env)))
 
@@ -109,7 +116,7 @@ DEF_FN_1(b_read_string,  read_str(arg1))
 DEF_FN_1_BEGIN(b_slurp)
 	if(rtypeof(arg1) != CONS_T)
 	{
-		return RERR(ERR_TYPE);
+		return RERR(ERR_TYPE, body);
 	}
 	char* fn  = rstr_to_str(arg1);
 	value_t r = slurp(fn);
@@ -128,10 +135,10 @@ DEF_FN_2INT(b_elt, arg1 <= arg2 ? SYM_TRUE : SYM_FALSE)
 DEF_FN_2INT(b_mt,  arg1 >  arg2 ? SYM_TRUE : SYM_FALSE)
 DEF_FN_2INT(b_emt, arg1 >= arg2 ? SYM_TRUE : SYM_FALSE)
 
-DEF_FN_R(b_add, RINT(0),       arg1,                 RINT(INTOF(arg1) + INTOF(arg2)))
-DEF_FN_R(b_sub, RINT(0),       RINT(-INTOF(arg1)),   RINT(INTOF(arg1) - INTOF(arg2)))
-DEF_FN_R(b_mul, RINT(1),       arg1,                 RINT(INTOF(arg1) * INTOF(arg2)))
-DEF_FN_R(b_div, RERR(ERR_ARG), arg1,                 RINT(INTOF(arg1) / INTOF(arg2)))
+DEF_FN_R(b_add, RINT(0),             arg1,                 RINT(INTOF(arg1) + INTOF(arg2)))
+DEF_FN_R(b_sub, RINT(0),             RINT(-INTOF(arg1)),   RINT(INTOF(arg1) - INTOF(arg2)))
+DEF_FN_R(b_mul, RINT(1),             arg1,                 RINT(INTOF(arg1) * INTOF(arg2)))
+DEF_FN_R(b_div, RERR(ERR_ARG, body), arg1,                 RINT(INTOF(arg1) / INTOF(arg2)))
 
 ////////// string and print functions
 DEF_FN_R(b_str,

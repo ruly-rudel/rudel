@@ -48,7 +48,7 @@ static value_t eval_ast	(value_t ast, value_t env)
 #ifndef DONT_ABORT_EVAL_ON_ERROR
 			if(errp(ast_car))
 			{
-				return ast_car;
+				return rerr_add_pos(ast, ast_car);
 			}
 #endif
 			cur = cons_and_cdr(ast_car, cur);
@@ -67,14 +67,14 @@ static value_t eval_setq(value_t vcdr, value_t env)
 	value_t key = car(vcdr);
 	if(rtypeof(key) != SYM_T)
 	{
-		return RERR(ERR_NOTSYM);
+		return RERR(ERR_NOTSYM, vcdr);
 	}
 
 	// value
 	value_t val_notev = cdr(vcdr);
 	if(rtypeof(val_notev) != CONS_T)
 	{
-		return RERR(ERR_ARG);
+		return RERR(ERR_ARG, cdr(vcdr));
 	}
 
 	value_t val = eval(car(val_notev), env);
@@ -90,8 +90,12 @@ static value_t eval_setq(value_t vcdr, value_t env)
 		{
 			rplacd(target, val);		// replace
 		}
+		return val;
 	}
-	return val;
+	else
+	{
+		return rerr_add_pos(val_notev, val);
+	}
 }
 
 static value_t eval_progn(value_t vcdr, value_t env)
@@ -117,7 +121,7 @@ static value_t eval_let(value_t vcdr, value_t env)
 {
 	if(rtypeof(vcdr) != CONS_T)
 	{
-		return RERR(ERR_ARG);
+		return RERR(ERR_ARG, vcdr);
 	}
 
 	// allocate new environment
@@ -127,7 +131,7 @@ static value_t eval_let(value_t vcdr, value_t env)
 	value_t def = car(vcdr);
 	if(rtypeof(def) != CONS_T)
 	{
-		return RERR(ERR_ARG);
+		return RERR(ERR_ARG, vcdr);
 	}
 
 	while(!nilp(def))
@@ -139,14 +143,14 @@ static value_t eval_let(value_t vcdr, value_t env)
 		value_t sym = car(bind);
 		if(rtypeof(sym) != SYM_T)
 		{
-			return RERR(ERR_ARG);
+			return RERR(ERR_ARG, bind);
 		}
 
 		// body
 		value_t body = eval(car(cdr(bind)), let_env);
 		if(errp(body))
 		{
-			return body;
+			return rerr_add_pos(cdr(bind), body);
 		}
 		else
 		{
@@ -313,7 +317,7 @@ static value_t eval_apply(value_t v, value_t env)
 		value_t ev = eval_ast(v, env);
 		if(errp(ev))
 		{
-			return ev;
+			return rerr_add_pos(v, ev);
 		}
 		else
 		{
@@ -346,7 +350,7 @@ static value_t eval_apply(value_t v, value_t env)
 			}
 			else
 			{
-				ret = RERR(ERR_NOTFN);
+				ret = RERR(ERR_NOTFN, ev);
 			}
 
 			// trace exit
@@ -382,21 +386,21 @@ value_t apply(value_t fn, value_t args, bool blk)
 	value_t fn_ast = car(fn);
 	if(rtypeof(fn_ast) != CONS_T)
 	{
-		return RERR(ERR_ARG);
+		return RERR(ERR_ARG, fn);
 	}
 
 	// formal arguments from clojure
 	value_t fn_args = car(fn_ast);
 	if(rtypeof(fn_args) != CONS_T)
 	{
-		return RERR(ERR_ARG);
+		return RERR(ERR_ARG, fn_ast);
 	}
 
 	// function body from clojure
 	fn_ast = cdr(fn_ast);
 	if(rtypeof(fn_ast) != CONS_T)
 	{
-		return RERR(ERR_ARG);
+		return RERR(ERR_ARG, fn_ast);
 	}
 	value_t fn_body = car(fn_ast);
 

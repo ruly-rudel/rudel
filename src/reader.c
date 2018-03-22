@@ -129,7 +129,7 @@ static value_t read_list(scan_t* st)
 		}
 	}
 
-	return RERR(ERR_PARSE);	// error: end of token before ')'
+	return RERR(ERR_PARSE, NIL);	// error: end of token before ')'
 }
 
 static value_t read_form(scan_t* st)
@@ -268,7 +268,7 @@ value_t READ(const char* prompt, FILE* fp)
 	}
 	else
 	{
-		return RERR(ERR_EOF);
+		return RERR(ERR_EOF, NIL);
 	}
 #else	// USE_LINENOISE
 	fprintf(stdout, prompt);

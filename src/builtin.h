@@ -75,10 +75,13 @@ typedef struct _cons_t
 #define INTOF(X)  ((X).raw >> 8)
 
 #ifdef DEBUG
-	#define RERR(X)   (abort(), rerr(RINT(X)) })
+	#define RERR(X, Y)   (abort(), rerr(RINT(X), (Y)) })
 #else
-	#define RERR(X)   (rerr(RINT(X)))
+	#define RERR(X, Y)   (rerr(RINT(X), (Y)))
 #endif
+
+#define RERR_CAUSE(X)	car(X)
+#define RERR_POS(X)	cdr(X)
 
 #define SYM_TRUE   str_to_sym("t")
 #define SYM_FALSE  NIL
@@ -99,7 +102,8 @@ rtype_t rtypeof	(value_t v);
 value_t car		(value_t x);
 value_t cdr		(value_t x);
 value_t	cons		(value_t car, value_t cdr);
-value_t	rerr		(value_t data);
+value_t rerr		(value_t cause, value_t pos);
+value_t rerr_add_pos	(value_t pos, value_t e);
 bool    errp		(value_t x);
 bool	cnilp		(value_t x);
 bool    nilp		(value_t x);

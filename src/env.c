@@ -110,7 +110,7 @@ value_t	get_env_value	(value_t key, value_t env)
 		env = cdr(env);
 	}
 
-	return RERR(ERR_NOTFOUND);
+	return RERR(ERR_NOTFOUND, NIL);
 }
 
 // End of File

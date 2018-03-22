@@ -76,7 +76,7 @@ value_t car(value_t x)
 	}
 	else
 	{
-		return RERR(ERR_TYPE);
+		return RERR(ERR_TYPE, NIL);
 	}
 }
 
@@ -89,7 +89,7 @@ value_t cdr(value_t x)
 	}
 	else
 	{
-		return RERR(ERR_TYPE);
+		return RERR(ERR_TYPE, NIL);
 	}
 }
 
@@ -105,17 +105,22 @@ value_t	cons(value_t car, value_t cdr)
 	return r;
 }
 
-value_t rerr(value_t data)
+value_t rerr(value_t cause, value_t pos)
 {
-	assert(rtypeof(data) == CONS_T || rtypeof(data) == INT_T);
+	assert(rtypeof(cause) == CONS_T || rtypeof(cause) == INT_T);
 
-	if(rtypeof(data) == INT_T)
-	{
-		data = cons(data, NIL);
-	}
-	data.type.main = ERR_T;
+	value_t r = cons(cause, pos);
+	r.type.main = ERR_T;
 
-	return data;
+	return r;
+}
+
+value_t rerr_add_pos(value_t pos, value_t e)
+{
+	value_t r = cons(car(e), cons(pos, cdr(e)));
+	r.type.main = ERR_T;
+
+	return r;
 }
 
 value_t	cfn(value_t car, value_t cdr)
@@ -172,7 +177,7 @@ value_t rplaca(value_t x, value_t v)
 	}
 	else
 	{
-		x = RERR(ERR_TYPE);
+		x = RERR(ERR_TYPE, NIL);
 	}
 
 	return x;
@@ -187,7 +192,7 @@ value_t rplacd(value_t x, value_t v)
 	}
 	else
 	{
-		x = RERR(ERR_TYPE);
+		x = RERR(ERR_TYPE, NIL);
 	}
 
 	return x;
@@ -213,7 +218,7 @@ value_t last(value_t x)
 	}
 	else
 	{
-		return RERR(ERR_TYPE);
+		return RERR(ERR_TYPE, NIL);
 	}
 }
 
@@ -224,7 +229,7 @@ value_t nth(int n, value_t x)
 		x.cons = aligned_addr(x);
 		if(nilp(x))
 		{
-			return RERR(ERR_RANGE);
+			return RERR(ERR_RANGE, NIL);
 		}
 		else
 		{
@@ -241,7 +246,7 @@ value_t nth(int n, value_t x)
 	}
 	else
 	{
-		return RERR(ERR_TYPE);
+		return RERR(ERR_TYPE, NIL);
 	}
 }
 
@@ -481,7 +486,7 @@ value_t slurp(char* fn)
 	}
 	else	// file not found or other error.
 	{
-		return RERR(ERR_FILENOTFOUND);
+		return RERR(ERR_FILENOTFOUND, NIL);
 	}
 }
 

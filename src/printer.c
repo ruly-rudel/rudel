@@ -298,48 +298,72 @@ static value_t pr_str_macro(value_t s, value_t annotate)
 #endif // PRINT_CLOS_ENV
 }
 
-static value_t pr_err(value_t s)
+static value_t pr_err_cause(value_t e)
 {
-	assert(rtypeof(s) == ERR_T);
-	s = car(s);
-	if(rtypeof(s) == CONS_T)
+	value_t cause = RERR_CAUSE(e);
+	if(rtypeof(cause) == CONS_T)
 	{
-		return s;
+		return copy_list(cause);
 	}
-	else if(rtypeof(s) != INT_T)
+	else if(rtypeof(cause) == INT_T)
+	{
+		switch(INTOF(cause))
+		{
+		    case ERR_TYPE:
+			return str_to_rstr("type error.");
+
+		    case ERR_PARSE:
+			return str_to_rstr("parse error.");
+
+		    case ERR_NOTFOUND:
+			return str_to_rstr("symbol or variable is not found.");
+
+		    case ERR_ARG:
+			return str_to_rstr("too few argument.");
+
+		    case ERR_NOTFN:
+			return str_to_rstr("first element of the list is not a function.");
+
+		    case ERR_NOTSYM:
+			return str_to_rstr("symbol.");
+
+		    case ERR_FILENOTFOUND:
+			return str_to_rstr("file not found.");
+
+		    case ERR_RANGE:
+			return str_to_rstr("range exceeded.");
+
+		    default:
+			return str_to_rstr("unknown error.");
+		}
+	}
+	else
 	{
 		return str_to_rstr("invalid type of error.");
 	}
+}
+static value_t pr_err_pos(value_t e)
+{
+	value_t pos  = RERR_POS(e);
+	value_t r    = NIL;
+	value_t* cur = &r;
 
-	switch(INTOF(s))
+	while(!nilp(pos))
 	{
-	    case ERR_TYPE:
-		return str_to_rstr("type error.");
-
-	    case ERR_PARSE:
-		return str_to_rstr("parse error.");
-
-	    case ERR_NOTFOUND:
-		return str_to_rstr("symbol or variable is not found.");
-
-	    case ERR_ARG:
-		return str_to_rstr("too few argument.");
-
-	    case ERR_NOTFN:
-		return str_to_rstr("first element of the list is not a function.");
-
-	    case ERR_NOTSYM:
-		return str_to_rstr("symbol.");
-
-	    case ERR_FILENOTFOUND:
-		return str_to_rstr("file not found.");
-
-	    case ERR_RANGE:
-		return str_to_rstr("range exceeded.");
-
-	    default:
-		return str_to_rstr("unknown error.");
+		cur = nconc_and_last(str_to_rstr("\nat "), cur);
+		cur = nconc_and_last(pr_str(car(pos), NIL, true), cur);
+		pos = cdr(pos);
 	}
+
+	return r;
+}
+
+static value_t pr_err(value_t s)
+{
+	assert(rtypeof(s) == ERR_T);
+
+	value_t r = pr_err_cause(s);
+	return nconc(r, pr_err_pos(s));
 }
 
 static value_t pr_sym(value_t s)

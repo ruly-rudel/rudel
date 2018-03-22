@@ -127,7 +127,7 @@ static value_t scan_to_doublequote(value_t *s)
 		*s = cdr(*s);
 	}
 
-	return RERR(ERR_PARSE);	// error: end of source string before doublequote
+	return RERR(ERR_PARSE, NIL);	// error: end of source string before doublequote
 }
 
 static value_t scan1(value_t *s)
