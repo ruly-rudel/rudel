@@ -40,8 +40,8 @@ static value_t NAME(value_t body, value_t env) \
 	value_t arg2v = car(cdr(body)); \
 	if(rtypeof(arg1v) == INT_T && rtypeof(arg2v) == INT_T) \
 	{ \
-		int arg1 = arg1v.rint.val; \
-		int arg2 = arg2v.rint.val; \
+		int arg1 = INTOF(arg1v); \
+		int arg2 = INTOF(arg2v); \
 		return BODY; \
 	} \
 	else \
@@ -97,7 +97,7 @@ DEF_FN_2(b_equal,   equal  (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
 DEF_FN_1(b_eval,    eval   (arg1, last(env)))
 DEF_FN_2(b_rplaca,  rplaca (arg1, arg2))
 DEF_FN_2(b_rplacd,  rplacd (arg1, arg2))
-DEF_FN_2(b_nth,     rtypeof(arg2) != INT_T ? RERR(ERR_TYPE) : nth(arg2.rint.val, arg1))
+DEF_FN_2(b_nth,     rtypeof(arg2) != INT_T ? RERR(ERR_TYPE) : nth(INTOF(arg2), arg1))
 
 DEF_FN_VARG(b_gensym, gensym(last(env)))
 
@@ -128,10 +128,10 @@ DEF_FN_2INT(b_elt, arg1 <= arg2 ? SYM_TRUE : SYM_FALSE)
 DEF_FN_2INT(b_mt,  arg1 >  arg2 ? SYM_TRUE : SYM_FALSE)
 DEF_FN_2INT(b_emt, arg1 >= arg2 ? SYM_TRUE : SYM_FALSE)
 
-DEF_FN_R(b_add, RINT(0),       arg1,                 RINT(arg1.rint.val + arg2.rint.val))
-DEF_FN_R(b_sub, RINT(0),       RINT(-arg1.rint.val), RINT(arg1.rint.val - arg2.rint.val))
-DEF_FN_R(b_mul, RINT(1),       arg1,                 RINT(arg1.rint.val * arg2.rint.val))
-DEF_FN_R(b_div, RERR(ERR_ARG), arg1,                 RINT(arg1.rint.val / arg2.rint.val))
+DEF_FN_R(b_add, RINT(0),       arg1,                 RINT(INTOF(arg1) + INTOF(arg2)))
+DEF_FN_R(b_sub, RINT(0),       RINT(-INTOF(arg1)),   RINT(INTOF(arg1) - INTOF(arg2)))
+DEF_FN_R(b_mul, RINT(1),       arg1,                 RINT(INTOF(arg1) * INTOF(arg2)))
+DEF_FN_R(b_div, RERR(ERR_ARG), arg1,                 RINT(INTOF(arg1) / INTOF(arg2)))
 
 ////////// string and print functions
 DEF_FN_R(b_str,

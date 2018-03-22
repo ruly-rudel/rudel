@@ -568,7 +568,7 @@ char*   rstr_to_str	(value_t s)
 		while(!nilp(s))
 		{
 			assert(rtypeof(car(s)) == CHAR_T);
-			*p++ = car(s).rint.val;
+			*p++ = INTOF(car(s));
 			s = cdr(s);
 		}
 		*p = '\0';
@@ -601,7 +601,7 @@ value_t gensym	(value_t env)
 	r         = nconc(r, pr_str(n, NIL, false));
 	r.type.main = SYM_T;
 
-	set_env(str_to_sym("*gensym-counter*"), RINT(n.rint.val + 1), env);
+	set_env(str_to_sym("*gensym-counter*"), RINT(INTOF(n) + 1), env);
 
 	return r;	// gensym symbol is unregisterd: so same name doesn't cause eq.
 }

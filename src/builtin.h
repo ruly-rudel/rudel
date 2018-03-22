@@ -21,49 +21,23 @@ typedef enum _rtype_t {
 
 	// sub types (content is value)
 	INT_T,
-	CHAR_T,
-	FLOAT_T
+	CHAR_T
 } rtype_t;
 
 #if __WORDSIZE == 32
-
 typedef struct
 {
 	uint32_t	main:   3;
 	uint32_t	sub:    5;
-	uint32_t	val:   24;
-} type_t;
-
-typedef struct
-{
-	int32_t		type:   8;
 	int32_t		val:   24;
-} rint_t;
-
-typedef struct
-{
-	float		val;
-} rfloat_t;
-
+} type_t;
 #else
 typedef struct
 {
 	uint64_t	main:   3;
-	uint64_t	sub:   29;
-	uint64_t	val:   32;
+	uint64_t	sub:    5;
+	int64_t		val:   56;
 } type_t;
-
-typedef struct
-{
-	int64_t		type:  32;
-	int64_t		val:   32;
-} rint_t;
-
-typedef struct
-{
-	uint32_t	type;
-	float		val;
-} rfloat_t;
 #endif
 
 union _value_t;
@@ -73,16 +47,14 @@ struct _cons_t;
 typedef union _value_t
 {
 	type_t		type;
-	rint_t		rint;
-	rfloat_t	rfloat;
 	struct _cons_t*	cons;
-#if __WORDSIZE == 32
-	uint32_t	raw;
-#else
-	uint64_t	raw;
-#endif
 	rfn_t		rfn;
 	void*		ptr;
+#if __WORDSIZE == 32
+	int32_t		raw;
+#else
+	int64_t		raw;
+#endif
 } value_t;
 
 
@@ -93,12 +65,14 @@ typedef struct _cons_t
 } cons_t;
 
 
-#define NIL       ((value_t){ .type.main   = CONS_T,  .type.sub   = 0,     .type.val = 0   })
+#define NIL       ((value_t){ .type.main   = CONS_T, .type.sub = 0,      .type.val = 0   })
 
-#define RCHAR(X)  ((value_t){ .rint.type   = CHAR_T  << 3 | OTH_T, .rint.val   = (X) })
-#define RINT(X)   ((value_t){ .rint.type   = INT_T   << 3 | OTH_T, .rint.val   = (X) })
-#define RFLOAT(X) ((value_t){ .rfloat.type = FLOAT_T << 3 | OTH_T, .rfloat.val = (X) })
+#define RCHAR(X)  ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T, .type.val = (X) })
+#define RINT(X)   ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,  .type.val = (X) })
+//#define RCHAR(X)  ((value_t){ .raw = OTH_T | (CHAR_T << 3) | ((X) << 8) })
+//#define RINT(X)   ((value_t){ .raw = OTH_T | (INT_T << 3)  | ((X) << 8) })
 #define RFN(X)    ((value_t){ .rfn = (X) })
+#define INTOF(X)  ((X).raw >> 8)
 
 #ifdef DEBUG
 	#define RERR(X)   (abort(), rerr(RINT(X)) })

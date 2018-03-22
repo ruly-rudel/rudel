@@ -18,7 +18,7 @@ static void scan_to_lf(value_t *s)
 		value_t c = car(*s);	// current char
 		assert(rtypeof(c) == CHAR_T);
 
-		if(c.rint.val == '\n')
+		if(INTOF(c) == '\n')
 		{
 			*s = cdr(*s);
 			return ;
@@ -46,12 +46,12 @@ static value_t scan_to_whitespace(value_t *s)
 
 		assert(rtypeof(c) == CHAR_T);
 
-		if( c.rint.val == ' '  ||
-		    c.rint.val == '\t' ||
-		    c.rint.val == '\n' ||
-		    c.rint.val == '('  ||
-		    c.rint.val == ')'  ||
-		    c.rint.val == ';'
+		if( INTOF(c) == ' '  ||
+		    INTOF(c) == '\t' ||
+		    INTOF(c) == '\n' ||
+		    INTOF(c) == '('  ||
+		    INTOF(c) == ')'  ||
+		    INTOF(c) == ';'
 		  )
 		{
 			r.type.main = SYM_T;
@@ -91,11 +91,11 @@ static value_t scan_to_doublequote(value_t *s)
 		switch(st)
 		{
 		    case 0:	// not escape
-			if(c.rint.val == '\\')
+			if(INTOF(c) == '\\')
 			{
 				st = 1;	// enter escape mode
 			}
-			else if(c.rint.val == '"')
+			else if(INTOF(c) == '"')
 			{
 				*s = cdr(*s);
 				if(nilp(r))
@@ -111,7 +111,7 @@ static value_t scan_to_doublequote(value_t *s)
 			break;
 
 		    case 1:	// escape
-		    	if(c.rint.val == 'n')	// \n
+			if(INTOF(c) == 'n')	// \n
 			{
 				cur = cons_and_cdr(RCHAR('\n'), cur);
 			}
@@ -143,16 +143,16 @@ static value_t scan1(value_t *s)
 		assert(rtypeof(c) == CHAR_T);
 
 		// skip white space
-		if( c.rint.val == ' '  ||
-		    c.rint.val == '\t' ||
-		    c.rint.val == '\n'
+		if( INTOF(c) == ' '  ||
+		    INTOF(c) == '\t' ||
+		    INTOF(c) == '\n'
 		  )
 		{
 			*s = cdr(*s);
 		}
 		else
 		{
-			switch(c.rint.val)
+			switch(INTOF(c))
 			{
 			    // special character
 			    case ',':

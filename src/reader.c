@@ -17,9 +17,9 @@ static value_t read_int(value_t token)
 	value_t tcar = car(token);
 	assert(rtypeof(tcar) == CHAR_T);
 	int sign = 1;
-	if(tcar.rint.val == '-' || tcar.rint.val == '+')
+	if(INTOF(tcar) == '-' || INTOF(tcar) == '+')
 	{
-		if(tcar.rint.val == '-')
+		if(INTOF(tcar) == '-')
 		{
 			sign = -1;
 		}
@@ -38,13 +38,13 @@ static value_t read_int(value_t token)
 	}
 
 	// value
-	unsigned int val = 0;
+	int val = 0;
 	while(!cnilp(token))
 	{
 		tcar = car(token);
 		assert(rtypeof(tcar) == CHAR_T);
 
-		int cv = tcar.rint.val - '0';
+		int cv = INTOF(tcar) - '0';
 		if(cv >= 0 && cv <= 9)
 		{
 			val *= 10;
@@ -109,7 +109,7 @@ static value_t read_list(scan_t* st)
 			value_t c = car(token);	// first char of token
 
 			assert(rtypeof(c) == CHAR_T);
-			if(c.rint.val == ')')
+			if(INTOF(c) == ')')
 			{
 				if(cnilp(r))
 				{
@@ -154,21 +154,21 @@ static value_t read_form(scan_t* st)
 			value_t tcar  = car(tcons);
 			assert(rtypeof(tcar) == CHAR_T);
 
-			if(tcar.rint.val == '(')
+			if(INTOF(tcar) == '(')
 			{
 				return read_list(st);
 			}
-			else if(tcar.rint.val == '\'')
+			else if(INTOF(tcar) == '\'')
 			{
 				scan_next(st);
 				return cons(str_to_sym("quote"), cons(read_form(st), NIL));
 			}
-			else if(tcar.rint.val == '`')
+			else if(INTOF(tcar) == '`')
 			{
 				scan_next(st);
 				return cons(str_to_sym("quasiquote"), cons(read_form(st), NIL));
 			}
-			else if(tcar.rint.val == ',')
+			else if(INTOF(tcar) == ',')
 			{
 				token = scan_next(st);
 				if(errp(token))	// scan error
@@ -182,7 +182,7 @@ static value_t read_form(scan_t* st)
 					value_t tcons = token;
 					value_t tcar  = car(tcons);
 					assert(rtypeof(tcar) == CHAR_T);
-					if(tcar.rint.val == '@')
+					if(INTOF(tcar) == '@')
 					{
 						scan_next(st);
 						return cons(str_to_sym("splice-unquote"), cons(read_form(st), NIL));

@@ -202,21 +202,21 @@ static value_t pr_str_str(value_t s, bool print_readably)
 
 		if(print_readably)	// escape
 		{
-			if(tcar.rint.val == '\0')	// null string
+			if(INTOF(tcar) == '\0')	// null string
 			{
 				break;
 			}
-			else if(tcar.rint.val == '"')
+			else if(INTOF(tcar) == '"')
 			{
 				cur = cons_and_cdr(RCHAR('\\'), cur);
 				cur = cons_and_cdr(tcar,        cur);
 			}
-			else if(tcar.rint.val == '\n')
+			else if(INTOF(tcar) == '\n')
 			{
 				cur = cons_and_cdr(RCHAR('\\'), cur);
 				cur = cons_and_cdr(RCHAR('n'),  cur);
 			}
-			else if(tcar.rint.val == '\\')
+			else if(INTOF(tcar) == '\\')
 			{
 				cur = cons_and_cdr(RCHAR('\\'), cur);
 				cur = cons_and_cdr(tcar,        cur);
@@ -228,7 +228,7 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		}
 		else
 		{
-			if(tcar.rint.val == '\0')	// null string
+			if(INTOF(tcar) == '\0')		// null string
 			{
 				break;
 			}
@@ -311,7 +311,7 @@ static value_t pr_err(value_t s)
 		return str_to_rstr("invalid type of error.");
 	}
 
-	switch(s.type.val)
+	switch(INTOF(s))
 	{
 	    case ERR_TYPE:
 		return str_to_rstr("type error.");
@@ -368,9 +368,9 @@ void printline(value_t s, FILE* fp)
 	assert(rtypeof(s) == CONS_T);
 	s.type.main = CONS_T;
 
-	while(!nilp(s) && car(s).rint.val != '\0')
+	while(!nilp(s) && INTOF(car(s)) != '\0')
 	{
-		fputc(car(s).rint.val, fp);
+		fputc(INTOF(car(s)), fp);
 		s = cdr(s);
 	}
 
@@ -391,7 +391,7 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 		return pr_sym(s);
 
 	    case INT_T:
-		return pr_str_int(s.rint.val);
+		return pr_str_int(INTOF(s));
 
 	    case CFN_T:
 		return pr_str_cfn(s, annotate);
