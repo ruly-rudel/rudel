@@ -96,6 +96,7 @@ typedef struct _cons_t
 #define ERR_NOTSYM	7
 #define ERR_FILENOTFOUND	8
 #define ERR_RANGE	9
+#define ERR_NOTIMPL	10
 
 rtype_t rtypeof	(value_t v);
 
