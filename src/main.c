@@ -1,5 +1,4 @@
 
-#define DEF_EXTERN
 #include <stdio.h>
 #include <assert.h>
 #include "builtin.h"
@@ -54,8 +53,7 @@ void rep_file(char* fn, value_t env)
 
 int main(int argc, char* argv[])
 {
-	init_eval();
-	init_resolv();
+	init_global();
 
 	value_t env = create_env(NIL, NIL, NIL);
 	print(init(env), stdout);

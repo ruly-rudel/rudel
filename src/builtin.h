@@ -1,7 +1,6 @@
 #ifndef _builtin_h_
 #define _builtin_h_
 
-#include "misc.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>

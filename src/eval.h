@@ -7,6 +7,5 @@
 value_t apply		(value_t fn, value_t args, bool blk);
 value_t macroexpand	(value_t ast, value_t env);
 value_t eval		(value_t v, value_t env);
-void	init_eval	(void);
 
 #endif // _eval_h_

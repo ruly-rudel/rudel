@@ -161,12 +161,12 @@ static value_t read_form(scan_t* st)
 			else if(INTOF(tcar) == '\'')
 			{
 				scan_next(st);
-				return cons(str_to_sym("quote"), cons(read_form(st), NIL));
+				return cons(g_quote, cons(read_form(st), NIL));
 			}
 			else if(INTOF(tcar) == '`')
 			{
 				scan_next(st);
-				return cons(str_to_sym("quasiquote"), cons(read_form(st), NIL));
+				return cons(g_quasiquote, cons(read_form(st), NIL));
 			}
 			else if(INTOF(tcar) == ',')
 			{
@@ -185,16 +185,16 @@ static value_t read_form(scan_t* st)
 					if(INTOF(tcar) == '@')
 					{
 						scan_next(st);
-						return cons(str_to_sym("splice-unquote"), cons(read_form(st), NIL));
+						return cons(g_splice_unquote, cons(read_form(st), NIL));
 					}
 					else
 					{
-						return cons(str_to_sym("unquote"), cons(read_form(st), NIL));
+						return cons(g_unquote, cons(read_form(st), NIL));
 					}
 				}
 				else
 				{
-					return cons(str_to_sym("unquote"), cons(read_form(st), NIL));
+					return cons(g_unquote, cons(read_form(st), NIL));
 				}
 
 			}

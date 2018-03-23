@@ -12,7 +12,6 @@
 
 value_t	create_env	(value_t key, value_t val, value_t outer)
 {
-	value_t amp = str_to_sym("&");
 	value_t alist = NIL;
 	value_t* cur  = &alist;
 
@@ -24,7 +23,7 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 		value_t key_car = car(key);
 		value_t val_car = car(val);
 
-		if(equal(key_car, amp))	// rest parameter
+		if(equal(key_car, g_amp))	// rest parameter
 		{
 			key_car = car(cdr(key));
 			//alist = acons(key_car, val, alist);

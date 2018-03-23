@@ -6,24 +6,6 @@
 #include "reader.h"
 
 /////////////////////////////////////////////////////////////////////
-// private: well-known symbols
-
-static value_t s_env;
-static value_t s_unquote;
-static value_t s_splice_unquote;
-static value_t s_setq;
-static value_t s_let;
-static value_t s_progn;
-static value_t s_if;
-static value_t s_lambda;
-static value_t s_quote;
-static value_t s_quasiquote;
-static value_t s_macro;
-static value_t s_macroexpand;
-static value_t s_trace;
-static value_t s_debug;
-
-/////////////////////////////////////////////////////////////////////
 // private: eval functions
 
 
@@ -38,7 +20,7 @@ static value_t eval_ast	(value_t ast, value_t env)
 		return get_env_value_ref(ast, env);
 
 	    case SYM_T:
-		return eq(ast, s_env) ? env : get_env_value(ast, env);
+		return eq(ast, g_env) ? env : get_env_value(ast, env);
 
 	    case CONS_T:
 		if(is_str(ast)) return ast;
@@ -172,13 +154,13 @@ static value_t eval_quasiquote	(value_t vcdr, value_t env)
 	}
 
 	value_t arg1 = car(vcdr);
-	if(eq(arg1, s_unquote))			// (unquote x)
+	if(eq(arg1, g_unquote))			// (unquote x)
 	{
 		value_t arg2 = car(cdr(vcdr));
 		return eval(arg2, env);				    // -> return evalueated x
 	}
 	else if(consp(arg1) &&
-		eq(car(arg1), s_splice_unquote))	// ((splice-unquote x) ...)
+		eq(car(arg1), g_splice_unquote))	// ((splice-unquote x) ...)
 	{
 		return concat(2,
 		              eval(car(cdr(arg1)), env),
@@ -243,7 +225,7 @@ static void debug_repl(value_t env)
 static bool is_break(value_t v, value_t env)
 {
 	// debug hook
-	value_t debug_cmd = get_env_value(s_debug, env);
+	value_t debug_cmd = get_env_value(g_debug, env);
 	if(!nilp(debug_cmd))	// debug on
 	{
 		value_t debug_step = find(str_to_sym("#step#"), debug_cmd, equal);
@@ -251,7 +233,7 @@ static bool is_break(value_t v, value_t env)
 		if(!nilp(debug_step) || !nilp(is_brk))	// debug REPL
 		{
 			print(str_to_sym("DEBUG break:"), stderr);
-			//eval(list(2, str_to_sym("ppln"), list(2, s_quote, v)), env);
+			//eval(list(2, str_to_sym("ppln"), list(2, g_quote, v)), env);
 			print(v, stderr);
 
 			return true;
@@ -281,39 +263,39 @@ static value_t eval_apply(value_t v, value_t env)
 	value_t vcar = car(v);
 	value_t vcdr = cdr(v);
 
-	if(eq(vcar, s_setq))		// setq
+	if(eq(vcar, g_setq))		// setq
 	{
 		return eval_setq(vcdr, env);
 	}
-	else if(eq(vcar, s_let))	// let*
+	else if(eq(vcar, g_let))	// let*
 	{
 		return eval_let(vcdr, env);
 	}
-	else if(eq(vcar, s_progn))	// progn
+	else if(eq(vcar, g_progn))	// progn
 	{
 		return eval_progn(vcdr, env);
 	}
-	else if(eq(vcar, s_if))		// if
+	else if(eq(vcar, g_if))		// if
 	{
 		return eval_if(vcdr, env);
 	}
-	else if(eq(vcar, s_lambda))	// lambda
+	else if(eq(vcar, g_lambda))	// lambda
 	{
 		return cloj(vcdr, env);
 	}
-	else if(eq(vcar, s_quote))	// quote
+	else if(eq(vcar, g_quote))	// quote
 	{
 		return car(vcdr);
 	}
-	else if(eq(vcar, s_quasiquote))	// quasiquote
+	else if(eq(vcar, g_quasiquote))	// quasiquote
 	{
 		return car(eval_quasiquote(vcdr, env));
 	}
-	else if(eq(vcar, s_macro))	// macro
+	else if(eq(vcar, g_macro))	// macro
 	{
 		return macro(vcdr, env);
 	}
-	else if(eq(vcar, s_macroexpand))	// macroexpand
+	else if(eq(vcar, g_macroexpand))	// macroexpand
 	{
 		return macroexpand(car(vcdr), env);
 	}
@@ -330,7 +312,7 @@ static value_t eval_apply(value_t v, value_t env)
 
 #ifdef DEBUG_CMD
 			// trace enter
-			value_t trace_fn = get_env_value(s_trace, env);
+			value_t trace_fn = get_env_value(g_trace, env);
 			value_t trace_on = nilp(trace_fn) ? NIL : find(car(v), trace_fn, eq);
 			if(!nilp(trace_on))
 			{
@@ -453,24 +435,6 @@ value_t eval(value_t v, value_t env)
 	{
 		return eval_ast(v, env);
 	}
-}
-
-void init_eval(void)
-{
-	s_env		= str_to_sym("env");
-	s_unquote	= str_to_sym("unquote");
-	s_splice_unquote= str_to_sym("splice-unquote");
-	s_setq		= str_to_sym("setq");
-	s_let		= str_to_sym("let*");
-	s_progn		= str_to_sym("progn");
-	s_if		= str_to_sym("if");
-	s_lambda	= str_to_sym("lambda");
-	s_quote		= str_to_sym("quote");
-	s_quasiquote	= str_to_sym("quasiquote");
-	s_macro		= str_to_sym("macro");
-	s_macroexpand	= str_to_sym("macroexpand");
-	s_trace		= str_to_sym("*trace*");
-	s_debug		= str_to_sym("*debug*");
 }
 
 // End of File

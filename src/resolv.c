@@ -5,24 +5,6 @@
 #include "resolv.h"
 
 /////////////////////////////////////////////////////////////////////
-// private: well-known symbols
-
-static value_t s_env;
-static value_t s_unquote;
-static value_t s_splice_unquote;
-static value_t s_setq;
-static value_t s_let;
-static value_t s_progn;
-static value_t s_if;
-static value_t s_lambda;
-static value_t s_quote;
-static value_t s_quasiquote;
-static value_t s_macro;
-static value_t s_macroexpand;
-static value_t s_trace;
-static value_t s_debug;
-
-/////////////////////////////////////////////////////////////////////
 // private: resolv functions
 
 static value_t resolv_lambda(value_t vcdr, value_t env);
@@ -35,7 +17,7 @@ static value_t resolv_ast	(value_t ast, value_t env)
 	switch(rtypeof(ast))
 	{
 	    case SYM_T:
-		return eq(ast, s_env) ? s_env : get_env_ref(ast, env);
+		return eq(ast, g_env) ? g_env : get_env_ref(ast, env);
 
 	    case CLOJ_T:
 	    case MACRO_T:
@@ -187,10 +169,10 @@ static value_t resolv_apply(value_t v, value_t env)
 	value_t vcdr = cdr(v);
 
 	value_t rv;
-	if(eq(vcar, s_setq)       ||	// setq
-	   eq(vcar, s_progn)      ||	// progn
-	   eq(vcar, s_if)         ||	// if
-	   eq(vcar, s_macroexpand))	// macroexpand
+	if(eq(vcar, g_setq)       ||	// setq
+	   eq(vcar, g_progn)      ||	// progn
+	   eq(vcar, g_if)         ||	// if
+	   eq(vcar, g_macroexpand))	// macroexpand
 	{
 		rv = resolv_ast(vcdr, env);
 		if(!errp(rv))
@@ -199,12 +181,12 @@ static value_t resolv_apply(value_t v, value_t env)
 		}
 	}
 	else if(
-	   eq(vcar, s_quote)      ||	// quote
-	   eq(vcar, s_quasiquote)) 	// quasiquote
+	   eq(vcar, g_quote)      ||	// quote
+	   eq(vcar, g_quasiquote)) 	// quasiquote
 	{
 		return v;	// ***** ad-hock
 	}
-	else if(eq(vcar, s_let))	// let*
+	else if(eq(vcar, g_let))	// let*
 	{
 		rv = resolv_let(vcdr, env);
 		if(!errp(rv))
@@ -212,8 +194,8 @@ static value_t resolv_apply(value_t v, value_t env)
 			rv = cons(vcar, rv);
 		}
 	}
-	else if(eq(vcar, s_lambda) ||	// lambda
-		eq(vcar, s_macro))	// macro
+	else if(eq(vcar, g_lambda) ||	// lambda
+		eq(vcar, g_macro))	// macro
 	{
 		rv = resolv_lambda(vcdr, env);
 		if(!errp(rv))
@@ -265,24 +247,6 @@ value_t resolv_bind(value_t v, value_t env)
 	{
 		return resolv_ast(v, env);
 	}
-}
-
-void init_resolv(void)
-{
-	s_env		= str_to_sym("env");
-	s_unquote	= str_to_sym("unquote");
-	s_splice_unquote= str_to_sym("splice-unquote");
-	s_setq		= str_to_sym("setq");
-	s_let		= str_to_sym("let*");
-	s_progn		= str_to_sym("progn");
-	s_if		= str_to_sym("if");
-	s_lambda	= str_to_sym("lambda");
-	s_quote		= str_to_sym("quote");
-	s_quasiquote	= str_to_sym("quasiquote");
-	s_macro		= str_to_sym("macro");
-	s_macroexpand	= str_to_sym("macroexpand");
-	s_trace		= str_to_sym("*trace*");
-	s_debug		= str_to_sym("*debug*");
 }
 
 // End of File
