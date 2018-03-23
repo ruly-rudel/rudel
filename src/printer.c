@@ -11,7 +11,8 @@ static value_t pr_str_int(int x)
 
 	if(x < 0)
 	{
-		r = nconc(cons(RCHAR('-'), NIL), pr_str_int(-x));
+		//r = nconc(cons(RCHAR('-'), NIL), pr_str_int(-x));
+		r = cons(RCHAR('-'), pr_str_int(-x));
 	}
 	else if(x == 0)
 	{
@@ -384,6 +385,22 @@ static value_t pr_str_char(value_t s)
 	cur = cons_and_cdr(RCHAR('\''), cur);
 	return r;
 }
+
+static value_t pr_ref(value_t s)
+{
+	assert(rtypeof(s) == REF_T);
+
+	value_t r    = str_to_rstr("#REF:");
+	value_t* cur = &(last(r).cons->cdr);
+
+	cur = nconc_and_last(pr_str_int(REF_D(s)), cur);
+	cur = cons_and_cdr(RCHAR(','), cur);
+	cur = nconc_and_last(pr_str_int(REF_W(s)), cur);
+	cur = cons_and_cdr(RCHAR('#'), cur);
+
+	return r;
+}
+
 /////////////////////////////////////////////////////////////////////
 // public: Rudel-specific functions
 
@@ -431,6 +448,9 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 
 	    case ERR_T:
 		return pr_err(s);
+
+	    case REF_T:
+		return pr_ref(s);
 
 	    default:
 		return s;

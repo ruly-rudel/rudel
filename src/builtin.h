@@ -21,7 +21,8 @@ typedef enum _rtype_t {
 
 	// sub types (content is value)
 	INT_T,
-	CHAR_T
+	CHAR_T,
+	REF_T,
 } rtype_t;
 
 #if __WORDSIZE == 32
@@ -31,6 +32,14 @@ typedef struct
 	uint32_t	sub:    5;
 	int32_t		val:   24;
 } type_t;
+
+typedef struct
+{
+	uint32_t	main:   3;
+	uint32_t	sub:    5;
+	uint32_t	depth: 12;
+	uint32_t	width: 12;
+} ref_t;
 #else
 typedef struct
 {
@@ -38,6 +47,14 @@ typedef struct
 	uint64_t	sub:    5;
 	int64_t		val:   56;
 } type_t;
+
+typedef struct
+{
+	uint64_t	main:   3;
+	uint64_t	sub:    5;
+	uint64_t	depth: 28;
+	uint64_t	width: 28;
+} ref_t;
 #endif
 
 union _value_t;
@@ -48,6 +65,7 @@ typedef union _value_t
 {
 	type_t		type;
 	struct _cons_t*	cons;
+	ref_t		ref;
 	rfn_t		rfn;
 	void*		ptr;
 #if __WORDSIZE == 32
@@ -65,17 +83,18 @@ typedef struct _cons_t
 } cons_t;
 
 
-#define NIL       ((value_t){ .type.main   = CONS_T, .type.sub = 0,      .type.val = 0   })
+#define NIL        ((value_t){ .type.main   = CONS_T, .type.sub = 0,      .type.val = 0   })
 
-#define RCHAR(X)  ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T, .type.val = (X) })
-#define RINT(X)   ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,  .type.val = (X) })
-//#define RCHAR(X)  ((value_t){ .raw = OTH_T | (CHAR_T << 3) | ((X) << 8) })
-//#define RINT(X)   ((value_t){ .raw = OTH_T | (INT_T << 3)  | ((X) << 8) })
-#define RFN(X)    ((value_t){ .rfn = (X) })
-#define INTOF(X)  ((X).raw >> 8)
+#define RCHAR(X)   ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T, .type.val  = (X) })
+#define RINT(X)    ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,  .type.val  = (X) })
+#define RREF(X, Y) ((value_t){ .ref.main    = OTH_T,  .ref.sub  = REF_T,  .ref.depth = (X), .ref.width = (Y) })
+#define RFN(X)     ((value_t){ .rfn = (X) })
+#define INTOF(X)   ((X).raw >> 8)
+#define REF_D(X)   ((X).ref.depth)
+#define REF_W(X)   ((X).ref.width)
 
 #ifdef DEBUG
-	#define RERR(X, Y)   (abort(), rerr(RINT(X), (Y)) })
+	#define RERR(X, Y)   (abort(), rerr(RINT(X), (Y)))
 #else
 	#define RERR(X, Y)   (rerr(RINT(X), (Y)))
 #endif
@@ -87,16 +106,16 @@ typedef struct _cons_t
 #define SYM_FALSE  NIL
 #define EMPTY_LIST NIL
 
-#define ERR_TYPE	1
-#define ERR_EOF		2
-#define ERR_PARSE	3
-#define ERR_NOTFOUND	4
-#define ERR_ARG		5
-#define ERR_NOTFN	6
-#define ERR_NOTSYM	7
+#define ERR_TYPE		1
+#define ERR_EOF			2
+#define ERR_PARSE		3
+#define ERR_NOTFOUND		4
+#define ERR_ARG			5
+#define ERR_NOTFN		6
+#define ERR_NOTSYM		7
 #define ERR_FILENOTFOUND	8
-#define ERR_RANGE	9
-#define ERR_NOTIMPL	10
+#define ERR_RANGE		9
+#define ERR_NOTIMPL		10
 
 rtype_t rtypeof	(value_t v);
 

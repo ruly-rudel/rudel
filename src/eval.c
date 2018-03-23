@@ -34,6 +34,9 @@ static value_t eval_ast	(value_t ast, value_t env)
 
 	switch(rtypeof(ast))
 	{
+	    case REF_T:
+		return get_env_value_ref(ast, env);
+
 	    case SYM_T:
 		return eq(ast, s_env) ? env : get_env_value(ast, env);
 

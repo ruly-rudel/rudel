@@ -7,6 +7,7 @@
 #include "printer.h"
 #include "env.h"
 #include "eval.h"
+#include "resolv.h"
 #include "core.h"
 
 void repl(value_t env)
@@ -54,6 +55,7 @@ void rep_file(char* fn, value_t env)
 int main(int argc, char* argv[])
 {
 	init_eval();
+	init_resolv();
 
 	value_t env = create_env(NIL, NIL, NIL);
 	print(init(env), stdout);
