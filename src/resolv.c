@@ -38,10 +38,23 @@ static value_t resolv_ast	(value_t ast, value_t env)
 		return eq(ast, s_env) ? s_env : get_env_ref(ast, env);
 
 	    case CLOJ_T:
-		return cloj(resolv_lambda(car(ast), cdr(ast)), cdr(ast));
-
 	    case MACRO_T:
-		return macro(resolv_lambda(car(ast), cdr(ast)), cdr(ast));
+		new_ast = resolv_lambda(car(ast), cdr(ast));
+		if(errp(new_ast))
+		{
+			return rerr_add_pos(ast, new_ast);
+		}
+		else
+		{
+			if(rtypeof(ast) == MACRO_T)
+			{
+				return macro(new_ast, cdr(ast));
+			}
+			else
+			{
+				return cloj(new_ast, cdr(ast));
+			}
+		}
 
 	    case CONS_T:
 		if(is_str(ast)) return ast;
@@ -98,6 +111,9 @@ static value_t resolv_let(value_t vcdr, value_t env)
 			return RERR(ERR_ARG, bind);
 		}
 
+		// add placeholder to let_env for self-recursive function
+		set_env(sym, NIL, let_env);
+
 		// body
 		value_t body = resolv_bind(car(cdr(bind)), let_env);
 		if(errp(body))
@@ -107,10 +123,19 @@ static value_t resolv_let(value_t vcdr, value_t env)
 		else
 		{
 			cur = cons_and_cdr(list(2, sym, body), cur);
+			set_env(sym, body, let_env);
 		}
 	}
 
-	return cons(new_def, resolv_bind(car(cdr(vcdr)), let_env));
+	value_t rv = resolv_bind(car(cdr(vcdr)), let_env);
+	if(errp(rv))
+	{
+		return rerr_add_pos(cdr(vcdr), rv);
+	}
+	else
+	{
+		return list(2, new_def, rv);
+	}
 }
 
 static value_t resolv_lambda(value_t vcdr, value_t env)
@@ -130,7 +155,16 @@ static value_t resolv_lambda(value_t vcdr, value_t env)
 	// allocate new environment
 	value_t lambda_env = create_env(def, NIL, env);
 
-	return list(2, def, resolv_bind(car(cdr(vcdr)), lambda_env));
+	//return list(2, def, resolv_bind(car(cdr(vcdr)), lambda_env));
+	value_t rv = resolv_bind(car(cdr(vcdr)), lambda_env);
+	if(errp(rv))
+	{
+		return rerr_add_pos(cdr(vcdr), rv);
+	}
+	else
+	{
+		return list(2, def, rv);
+	}
 }
 
 static value_t resolv_apply(value_t v, value_t env)
@@ -152,53 +186,53 @@ static value_t resolv_apply(value_t v, value_t env)
 	value_t vcar = car(v);
 	value_t vcdr = cdr(v);
 
-	if(eq(vcar, s_setq))		// setq
+	value_t rv;
+	if(eq(vcar, s_setq)       ||	// setq
+	   eq(vcar, s_progn)      ||	// progn
+	   eq(vcar, s_if)         ||	// if
+	   eq(vcar, s_macroexpand))	// macroexpand
 	{
-		return cons(vcar, resolv_ast(vcdr, env));
+		rv = resolv_ast(vcdr, env);
+		if(!errp(rv))
+		{
+			rv = cons(vcar, rv);
+		}
+	}
+	else if(
+	   eq(vcar, s_quote)      ||	// quote
+	   eq(vcar, s_quasiquote)) 	// quasiquote
+	{
+		return v;	// ***** ad-hock
 	}
 	else if(eq(vcar, s_let))	// let*
 	{
-		return resolv_let(vcdr, env);
+		rv = resolv_let(vcdr, env);
+		if(!errp(rv))
+		{
+			rv = cons(vcar, rv);
+		}
 	}
-	else if(eq(vcar, s_progn))	// progn
+	else if(eq(vcar, s_lambda) ||	// lambda
+		eq(vcar, s_macro))	// macro
 	{
-		return cons(vcar, resolv_ast(vcdr, env));
-	}
-	else if(eq(vcar, s_if))		// if
-	{
-		return cons(vcar, resolv_ast(vcdr, env));
-	}
-	else if(eq(vcar, s_lambda))	// lambda
-	{
-		return cons(vcar, resolv_lambda(vcdr, env));
-	}
-	else if(eq(vcar, s_quote))	// quote
-	{
-		return cons(vcar, resolv_ast(vcdr, env));
-	}
-	else if(eq(vcar, s_quasiquote))	// quasiquote
-	{
-		return cons(vcar, resolv_ast(vcdr, env));
-	}
-	else if(eq(vcar, s_macro))	// macro
-	{
-		return cons(vcar, resolv_lambda(vcdr, env));
-	}
-	else if(eq(vcar, s_macroexpand))	// macroexpand
-	{
-		return cons(vcar, resolv_ast(vcdr, env));
+		rv = resolv_lambda(vcdr, env);
+		if(!errp(rv))
+		{
+			rv = cons(vcar, rv);
+		}
 	}
 	else						// apply function
 	{
-		value_t rv = resolv_ast(v, env);
-		if(errp(rv))
-		{
-			return rerr_add_pos(v, rv);
-		}
-		else
-		{
-			return rv;
-		}
+		rv = resolv_ast(v, env);
+	}
+
+	if(errp(rv))
+	{
+		return rerr_add_pos(v, rv);
+	}
+	else
+	{
+		return rv;
 	}
 }
 

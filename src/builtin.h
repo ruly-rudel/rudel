@@ -93,11 +93,7 @@ typedef struct _cons_t
 #define REF_D(X)   ((X).ref.depth)
 #define REF_W(X)   ((X).ref.width)
 
-#ifdef DEBUG
-	#define RERR(X, Y)   (abort(), rerr(RINT(X), (Y)))
-#else
-	#define RERR(X, Y)   (rerr(RINT(X), (Y)))
-#endif
+#define RERR(X, Y)   rerr(RINT(X), (Y))
 
 #define RERR_CAUSE(X)	car(X)
 #define RERR_POS(X)	cdr(X)

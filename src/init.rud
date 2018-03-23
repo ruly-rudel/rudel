@@ -185,6 +185,9 @@
 (defun ppln (tree)
 	(println (pp tree 0)))
 
+(defmacro resolv (x)
+  `(setq ,x (resolv-bind ,x)))
+
 ;; debug functions
 (defun trace (x)
 	(setq *trace* (if x (cons x *trace*))))

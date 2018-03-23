@@ -14,6 +14,7 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 {
 	value_t amp = str_to_sym("&");
 	value_t alist = NIL;
+	value_t* cur  = &alist;
 
 	while(!nilp(key))
 	{
@@ -26,12 +27,14 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 		if(equal(key_car, amp))	// rest parameter
 		{
 			key_car = car(cdr(key));
-			alist = acons(key_car, val, alist);
+			//alist = acons(key_car, val, alist);
+			cur = cons_and_cdr(cons(key_car, val), cur);		// for resolv order.
 			break;
 		}
 		else
 		{
-			alist = acons(key_car, val_car, alist);
+			//alist = acons(key_car, val_car, alist);
+			cur = cons_and_cdr(cons(key_car, val_car), cur);	// for resolv order.
 		}
 		key = cdr(key);
 		val = cdr(val);
@@ -87,20 +90,41 @@ value_t	find_env	(value_t key, value_t env)
 // search whole environment
 value_t	find_env_all	(value_t key, value_t env)
 {
-	assert(rtypeof(key) == SYM_T);
+	assert(rtypeof(env) == CONS_T);
+	assert(rtypeof(key) == SYM_T || rtypeof(key) == REF_T);
 
-	while(!nilp(env))
+	if(rtypeof(key) == SYM_T)
 	{
-		assert(rtypeof(env) == CONS_T);
-		value_t s = assoceq(key, car(env));
-		if(!nilp(s))
+		while(!nilp(env))
 		{
-			return s;
+			assert(rtypeof(env) == CONS_T);
+			value_t s = assoceq(key, car(env));
+			if(!nilp(s))
+			{
+				return s;
+			}
+			env = cdr(env);
 		}
-		env = cdr(env);
-	}
 
-	return NIL;
+		return NIL;
+	}
+	else	// REF_T
+	{
+		int d = REF_D(key);
+		while(d--)
+		{
+			env = cdr(env);
+		}
+		env = car(env);
+
+		int w = REF_W(key);
+		while(w--)
+		{
+			env = cdr(env);
+		}
+
+		return car(env);
+	}
 }
 
 // search whole environment
@@ -119,7 +143,11 @@ value_t	get_env_value	(value_t key, value_t env)
 		env = cdr(env);
 	}
 
-	return RERR(ERR_NOTFOUND, NIL);
+	value_t r = str_to_rstr("variable ");
+	r = nconc(r, copy_list(key));
+	r = nconc(r, str_to_rstr(" is not found."));
+
+	return rerr(r, NIL);
 }
 
 // search whole environment
@@ -147,7 +175,11 @@ value_t	get_env_ref	(value_t key, value_t env)
 		depth++;
 	}
 
-	return RERR(ERR_NOTFOUND, NIL);
+	value_t r = str_to_rstr("variable ");
+	r = nconc(r, copy_list(key));
+	r = nconc(r, str_to_rstr(" is not found."));
+
+	return rerr(r, NIL);
 }
 
 value_t	get_env_value_ref(value_t ref, value_t env)

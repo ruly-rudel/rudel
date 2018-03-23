@@ -111,6 +111,9 @@ value_t rerr(value_t cause, value_t pos)
 
 	value_t r = cons(cause, pos);
 	r.type.main = ERR_T;
+#ifdef DEBUG
+	abort();
+#endif
 
 	return r;
 }
@@ -119,6 +122,9 @@ value_t rerr_add_pos(value_t pos, value_t e)
 {
 	value_t r = cons(car(e), cons(pos, cdr(e)));
 	r.type.main = ERR_T;
+#ifdef DEBUG
+	abort();
+#endif
 
 	return r;
 }
