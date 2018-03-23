@@ -239,6 +239,7 @@ static void debug_repl(value_t env)
 	}
 }
 
+#ifdef DEBUG_CMD
 static bool is_break(value_t v, value_t env)
 {
 	// debug hook
@@ -259,6 +260,7 @@ static bool is_break(value_t v, value_t env)
 
 	return false;
 }
+#endif // DEBUG_CMD
 
 static value_t eval_apply(value_t v, value_t env)
 {
@@ -326,6 +328,7 @@ static value_t eval_apply(value_t v, value_t env)
 		{
 			value_t fn = car(ev);
 
+#ifdef DEBUG_CMD
 			// trace enter
 			value_t trace_fn = get_env_value(s_trace, env);
 			value_t trace_on = nilp(trace_fn) ? NIL : find(car(v), trace_fn, eq);
@@ -336,12 +339,18 @@ static value_t eval_apply(value_t v, value_t env)
 
 			// debug hook
 			bool debug_mode = is_break(cons(car(v), cdr(ev)), env);
+#else
+			bool debug_mode = false;
+#endif // DEBUG_CMD
+
 
 			// apply
 			value_t ret;
 			if(rtypeof(fn) == CFN_T)		// compiled function
 			{
+#ifdef DEBUG_CMD
 				if(debug_mode) debug_repl(env);
+#endif // DEBUG_CMD
 
 				fn.type.main = CONS_T;
 				// apply
@@ -356,11 +365,13 @@ static value_t eval_apply(value_t v, value_t env)
 				ret = RERR(ERR_NOTFN, ev);
 			}
 
+#ifdef DEBUG_CMD
 			// trace exit
 			if(!nilp(trace_on))
 			{
 				print(list(4, str_to_sym("TRACE exit:"), car(v), str_to_sym("with"), ret), stderr);
 			}
+#endif // DEBUG_CMD
 
 			return ret;
 		}
