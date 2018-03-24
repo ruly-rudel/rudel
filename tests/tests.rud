@@ -1,17 +1,17 @@
 ;; Testing gensym
 *gensym-counter*
-;=>0
-(gensym)
-;=>#:G0
-(gensym)
-;=>#:G1
-*gensym-counter*
 ;=>2
-(setq x (gensym))
+(gensym)
 ;=>#:G2
-(eq x '#:G2)
+(gensym)
+;=>#:G3
+*gensym-counter*
+;=>4
+(setq x (gensym))
+;=>#:G4
+(eq x '#:G4)
 ;=>nil
-(= x '#:G2)	;; must be nil, but now t. fix it later.
+(= x '#:G4)	;; must be nil, but now t. fix it later.
 ;=>t
 
 ;; Testing evaluation of arithmetic operations

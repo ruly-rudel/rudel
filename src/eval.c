@@ -186,6 +186,15 @@ static value_t is_macro_call(value_t ast, value_t env)
 				return ast_1st_eval;
 			}
 		}
+		else if(rtypeof(ast_1st) == REF_T)
+		{
+			value_t ast_1st_eval = get_env_value_ref(ast_1st, env);
+			if(rtypeof(ast_1st_eval) == MACRO_T)
+			{
+				return ast_1st_eval;
+			}
+
+		}
 	}
 
 	return NIL;

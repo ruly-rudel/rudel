@@ -7,6 +7,13 @@
 	   (macro (name arg body)
 		`(setq ,name (macro ,arg ,body))))
 
+(defmacro resolv (x)
+  `(setq ,x (resolv-bind ,x)))
+
+(resolv resolv)
+(resolv defun)
+(resolv defmacro)
+
 ;; conditions
 (defun not (a)
 	(if a nil t))
@@ -185,9 +192,6 @@
 (defun ppln (tree)
 	(println (pp tree 0)))
 
-(defmacro resolv (x)
-  `(setq ,x (resolv-bind ,x)))
-
 ;; debug functions
 (defun trace (x)
 	(setq *trace* (if x (cons x *trace*))))
@@ -206,4 +210,28 @@
 
 (defun clear-all ()
 	(setq *debug* nil))
+
+;; resolv bindings
+(resolv not)
+(resolv and)
+(resolv or)
+(resolv cond)
+(resolv cadr)
+(resolv cddr)
+(resolv caddr)
+(resolv nthcdr)
+(resolv count)
+(resolv last)
+(resolv list)
+(resolv copy-list)
+(resolv remove)
+(resolv concat)
+(resolv reduce)
+(resolv mapcar)
+(resolv repeat)
+(resolv load-file)
+(resolv insert-space)
+(resolv pp-n)
+(resolv pp)
+(resolv ppln)
 

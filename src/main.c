@@ -47,8 +47,30 @@ void repl(value_t env)
 
 void rep_file(char* fn, value_t env)
 {
-	value_t c = concat(3, str_to_rstr("(progn "), slurp(fn), str_to_rstr(")"));
-	print(eval(read_str(c), env), stdout);
+	value_t fstr = slurp(fn);
+	if(errp(fstr))
+	{
+		print(fstr, stderr);
+	}
+	else
+	{
+		value_t c = concat(3, str_to_rstr("(progn "), fstr, str_to_rstr(")"));
+		print(eval(read_str(c), env), stdout);
+	}
+
+	return ;
+}
+
+value_t parse_arg(int argc, char* argv[])
+{
+	value_t  r   = NIL;
+	value_t* cur = &r;
+	for(int i = 0; i < argc; i++)
+	{
+		cur = cons_and_cdr(read_str(str_to_rstr(argv[i])), cur);
+	}
+
+	return r;
 }
 
 int main(int argc, char* argv[])
@@ -64,6 +86,7 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
+		set_env(str_to_sym("*ARGV*"), cdr(parse_arg(argc, argv)), env);
 		rep_file(argv[1], env);
 	}
 
