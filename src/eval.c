@@ -178,7 +178,17 @@ static value_t is_macro_call(value_t ast, value_t env)
 	if(rtypeof(ast) == CONS_T)
 	{
 		value_t ast_1st = car(ast);
-		if(rtypeof(ast_1st) == SYM_T)
+		if(rtypeof(ast_1st) == SYM_T && !(
+			eq(ast_1st, g_setq)       ||
+			eq(ast_1st, g_let)        ||
+			eq(ast_1st, g_progn)      ||
+			eq(ast_1st, g_if)         ||
+			eq(ast_1st, g_lambda)     ||
+			eq(ast_1st, g_quote)      ||
+			eq(ast_1st, g_quasiquote) ||
+			eq(ast_1st, g_macro)      ||
+			eq(ast_1st, g_macroexpand)
+					))
 		{
 			value_t ast_1st_eval = cdr(find_env_all(ast_1st, env));
 			if(rtypeof(ast_1st_eval) == MACRO_T)
@@ -306,7 +316,7 @@ static value_t eval_apply(value_t v, value_t env)
 	}
 	else if(eq(vcar, g_macroexpand))	// macroexpand
 	{
-		return macroexpand(car(vcdr), env);
+		return macroexpand_all(car(vcdr), env);
 	}
 	else						// apply function
 	{
@@ -382,6 +392,47 @@ value_t macroexpand(value_t ast, value_t env)
 	}
 
 	return ast;
+}
+
+value_t macroexpand_all(value_t ast, value_t env)
+{
+	if(errp(ast))
+	{
+		return ast;
+	}
+	else if(is_str(ast))
+	{
+		return ast;
+	}
+	else
+	{
+		value_t m = macroexpand(ast, env);
+		if(rtypeof(m) == CONS_T && !is_str(m))
+		{
+			value_t r    = NIL;
+			value_t* cur = &r;
+			while(!nilp(m))
+			{
+				assert(rtypeof(m) == CONS_T);
+				value_t mex = macroexpand_all(car(m), env);
+				if(errp(mex))
+				{
+					return mex;
+				}
+				else
+				{
+					cur = cons_and_cdr(mex, cur);
+					m = cdr(m);
+				}
+			}
+
+			return r;
+		}
+		else
+		{
+			return m;
+		}
+	}
 }
 
 value_t apply(value_t fn, value_t args, bool blk)
