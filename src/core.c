@@ -34,6 +34,21 @@ static value_t NAME(value_t body, value_t env) \
 	return BODY; \
 }
 
+#define DEF_FN_1INT(NAME, BODY) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1v = car(body); \
+	if(rtypeof(arg1v) == INT_T) \
+	{ \
+		int arg1 = INTOF(arg1v); \
+		return BODY; \
+	} \
+	else \
+	{ \
+		return RERR(ERR_TYPE, body); \
+	} \
+}
+
 #define DEF_FN_2INT(NAME, BODY) \
 static value_t NAME(value_t body, value_t env) \
 { \
@@ -63,6 +78,18 @@ static value_t NAME(value_t body, value_t env) \
 { \
 	value_t arg1 = car(body);
 
+#define DEF_FN_2_BEGIN(NAME) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1 = car(body); \
+	value_t arg2 = car(cdr(body));
+
+#define DEF_FN_3_BEGIN(NAME) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1 = car(body); \
+	value_t arg2 = car(cdr(body)); \
+	value_t arg3 = car(cdr(cdr(body)));
 
 #define DEF_FN_END \
 }
@@ -129,6 +156,33 @@ DEF_FN_END
 
 DEF_FN_VARG(b_init,  init(env))
 
+DEF_FN_1INT(b_make_vector, make_vector(arg1))
+
+DEF_FN_2_BEGIN(b_vref)
+	if(rtypeof(arg1) != VEC_T)
+	{
+		return RERR(ERR_TYPE, body);
+	}
+	else if(rtypeof(arg2) != INT_T)
+	{
+		return RERR(ERR_TYPE, cdr(body));
+	}
+
+	return vref(arg1, INTOF(arg2));
+DEF_FN_END
+
+DEF_FN_3_BEGIN(b_rplacv)
+	if(rtypeof(arg1) != VEC_T)
+	{
+		return RERR(ERR_TYPE, body);
+	}
+	else if(rtypeof(arg2) != INT_T)
+	{
+		return RERR(ERR_TYPE, cdr(body));
+	}
+
+	return rplacv(arg1, INTOF(arg2), arg3);
+DEF_FN_END
 
 ////////// MATH functions
 
@@ -171,7 +225,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(36,
+	value_t key = list(39,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -201,6 +255,9 @@ value_t	create_root_env	(void)
 	                      str_to_sym("rplacd"),
 	                      str_to_sym("gensym"),
 	                      str_to_sym("resolv-bind"),
+	                      str_to_sym("make-vector"),
+	                      str_to_sym("vref"),
+	                      str_to_sym("rplacv"),
 	                      str_to_sym("<"),
 	                      str_to_sym("<="),
 	                      str_to_sym(">"),
@@ -210,7 +267,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("*trace*")
 	                  );
 
-	value_t val = list(36,
+	value_t val = list(39,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -240,6 +297,9 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_rplacd), NIL),
 	                      cfn(RFN(b_gensym), NIL),
 	                      cfn(RFN(b_resolv), NIL),
+	                      cfn(RFN(b_make_vector), NIL),
+	                      cfn(RFN(b_vref), NIL),
+	                      cfn(RFN(b_rplacv), NIL),
 	                      cfn(RFN(b_lt), NIL),
 	                      cfn(RFN(b_elt), NIL),
 	                      cfn(RFN(b_mt), NIL),

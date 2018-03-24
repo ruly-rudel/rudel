@@ -420,6 +420,12 @@ static value_t pr_special(value_t s)
 	}
 }
 
+static value_t pr_vec(value_t s)
+{
+	assert(rtypeof(s) == VEC_T);
+	return str_to_rstr("#<VECTOR>");
+}
+
 /////////////////////////////////////////////////////////////////////
 // public: Rudel-specific functions
 
@@ -446,6 +452,9 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 	{
 	    case CONS_T:
 		return is_str(s) ? pr_str_str(s, print_readably) : pr_str_cons(s, annotate, print_readably);
+
+	    case VEC_T:
+		return pr_vec(s);
 
 	    case SYM_T:
 		return pr_sym(s);

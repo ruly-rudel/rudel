@@ -24,6 +24,15 @@ static inline cons_t* aligned_addr(value_t v)
 #endif
 }
 
+static inline vector_t* aligned_vaddr(value_t v)
+{
+#if __WORDSIZE == 32
+	return (vector_t*) (((uint32_t)v.vector) & 0xfffffff8);
+#else
+	return (vector_t*) (((uint64_t)v.vector) & 0xfffffffffffffff8);
+#endif
+}
+
 static inline cons_t* alloc_cons(void)
 {
 	cons_t* c = (cons_t*)malloc(sizeof(cons_t));
@@ -36,6 +45,13 @@ static inline cons_t* alloc_cons(void)
 #endif
 
 	return c;
+}
+
+static inline vector_t* alloc_vector(int size)
+{
+	vector_t* v = (vector_t*)malloc(sizeof(value_t) * size + 1);
+	v->size = RINT(size);
+	return v;
 }
 
 static inline bool is_cons_pair(value_t x)
@@ -96,54 +112,6 @@ value_t	cons(value_t car, value_t cdr)
 	r.cons		= alloc_cons();
 	r.cons->car	= car;
 	r.cons->cdr	= cdr;
-
-	return r;
-}
-
-value_t rerr(value_t cause, value_t pos)
-{
-	assert(rtypeof(cause) == CONS_T || rtypeof(cause) == INT_T);
-
-	value_t r = cons(cause, pos);
-	r.type.main = ERR_T;
-#ifdef DEBUG
-	abort();
-#endif
-
-	return r;
-}
-
-value_t rerr_add_pos(value_t pos, value_t e)
-{
-	value_t r = cons(car(e), cons(pos, cdr(e)));
-	r.type.main = ERR_T;
-#ifdef DEBUG
-	abort();
-#endif
-
-	return r;
-}
-
-value_t	cfn(value_t car, value_t cdr)
-{
-	value_t	r	= cons(car, cdr);
-	r.type.main	= CFN_T;
-
-	return r;
-}
-
-value_t	cloj(value_t car, value_t cdr)
-{
-	value_t	r	= cons(car, cdr);
-	r.type.main	= CLOJ_T;
-
-	return r;
-}
-
-value_t	macro(value_t car, value_t cdr)
-{
-	value_t	r	= cons(car, cdr);
-	r.type.main	= MACRO_T;
 
 	return r;
 }
@@ -440,6 +408,81 @@ value_t find(value_t key, value_t list, bool (*test)(value_t, value_t))
 	}
 }
 
+value_t reduce(value_t (*fn)(value_t, value_t), value_t args)
+{
+	value_t arg1 = car(args);
+	value_t arg2 = car(cdr(args));
+	args = cdr(args);
+
+	do {
+		args = cdr(args);
+		arg1 = fn(arg1, arg2);
+		arg2 = car(args);
+	} while(!nilp(args));
+
+	return arg1;
+}
+
+value_t symbol_string(value_t sym)
+{
+	value_t r = copy_list(sym);
+	r.type.main = CONS_T;
+
+	return r;
+}
+
+
+/////////////////////////////////////////////////////////////////////
+// public: rudel-specific functions
+
+value_t rerr(value_t cause, value_t pos)
+{
+	assert(rtypeof(cause) == CONS_T || rtypeof(cause) == INT_T);
+
+	value_t r = cons(cause, pos);
+	r.type.main = ERR_T;
+#ifdef DEBUG
+	abort();
+#endif
+
+	return r;
+}
+
+value_t rerr_add_pos(value_t pos, value_t e)
+{
+	value_t r = cons(car(e), cons(pos, cdr(e)));
+	r.type.main = ERR_T;
+#ifdef DEBUG
+	abort();
+#endif
+
+	return r;
+}
+
+value_t	cfn(value_t car, value_t cdr)
+{
+	value_t	r	= cons(car, cdr);
+	r.type.main	= CFN_T;
+
+	return r;
+}
+
+value_t	cloj(value_t car, value_t cdr)
+{
+	value_t	r	= cons(car, cdr);
+	r.type.main	= CLOJ_T;
+
+	return r;
+}
+
+value_t	macro(value_t car, value_t cdr)
+{
+	value_t	r	= cons(car, cdr);
+	r.type.main	= MACRO_T;
+
+	return r;
+}
+
 value_t slurp(char* fn)
 {
 	FILE* fp = fopen(fn, "r");
@@ -474,27 +517,51 @@ value_t init(value_t env)
 	return eval(read_str(c), env);
 }
 
-value_t reduce(value_t (*fn)(value_t, value_t), value_t args)
+/////////////////////////////////////////////////////////////////////
+// public: vector support
+
+value_t make_vector(unsigned n)
 {
-	value_t arg1 = car(args);
-	value_t arg2 = car(cdr(args));
-	args = cdr(args);
+	value_t v   = { 0 };
+	v.vector    = alloc_vector(n);
+	for(int i = 0; i < n; i++)
+	{
+		v.vector->data[i] = NIL;
+	}
+	v.type.main = VEC_T;
 
-	do {
-		args = cdr(args);
-		arg1 = fn(arg1, arg2);
-		arg2 = car(args);
-	} while(!nilp(args));
-
-	return arg1;
+	return v;
 }
 
-value_t symbol_string(value_t sym)
+value_t vref(value_t v, unsigned pos)
 {
-	value_t r = copy_list(sym);
-	r.type.main = CONS_T;
+	assert(rtypeof(v) == VEC_T);
+	v.vector = aligned_vaddr(v);
 
-	return r;
+	if(pos < INTOF(v.vector->size))
+	{
+		return v.vector->data[pos];
+	}
+	else
+	{
+		return RERR(ERR_RANGE, NIL);
+	}
+}
+
+value_t rplacv(value_t v, unsigned pos, value_t data)
+{
+	assert(rtypeof(v) == VEC_T);
+	v.vector = aligned_vaddr(v);
+
+	if(pos < INTOF(v.vector->size))
+	{
+		v.vector->data[pos] = data;
+		return data;
+	}
+	else
+	{
+		return RERR(ERR_RANGE, NIL);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////

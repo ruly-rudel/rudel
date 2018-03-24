@@ -76,17 +76,19 @@ union _value_t;
 typedef union _value_t (*rfn_t)(union _value_t, union _value_t);
 
 struct _cons_t;
+struct _vector_t;
 typedef union _value_t
 {
-	type_t		type;
-	struct _cons_t*	cons;
-	ref_t		ref;
-	rfn_t		rfn;
-	void*		ptr;
+	type_t			type;
+	struct _cons_t*		cons;
+	struct _vector_t*	vector;
+	ref_t			ref;
+	rfn_t			rfn;
+	void*			ptr;
 #if __WORDSIZE == 32
-	int32_t		raw;
+	int32_t			raw;
 #else
-	int64_t		raw;
+	int64_t			raw;
 #endif
 } value_t;
 
@@ -97,6 +99,11 @@ typedef struct _cons_t
 	value_t		cdr;
 } cons_t;
 
+typedef struct _vector_t
+{
+	value_t		size;
+	value_t		data[1];
+} vector_t;
 
 #define NIL         ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   = 0   })
 
@@ -157,8 +164,6 @@ inline bool errp(value_t x)
 value_t car		(value_t x);
 value_t cdr		(value_t x);
 value_t	cons		(value_t car, value_t cdr);
-value_t rerr		(value_t cause, value_t pos);
-value_t rerr_add_pos	(value_t pos, value_t e);
 bool    seqp		(value_t x);
 bool	atom		(value_t x);
 bool	eq		(value_t x, value_t y);
@@ -169,21 +174,26 @@ value_t last		(value_t x);
 value_t nth		(int n, value_t x);
 value_t nconc		(value_t a, value_t b);
 value_t list		(int n, ...);
-value_t	cfn		(value_t fn, value_t env);
-value_t	cloj		(value_t fn, value_t env);
-value_t	macro		(value_t fn, value_t env);
 value_t copy_list	(value_t list);
 value_t	assoc		(value_t key, value_t list, bool (*test)(value_t, value_t));
 value_t assoceq		(value_t key, value_t list);
 value_t acons		(value_t key, value_t val, value_t list);
 value_t pairlis		(value_t key, value_t val);
-
 value_t concat		(int n, ...);
 value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
-value_t slurp		(char* fn);
-value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);
 value_t symbol_string	(value_t sym);
+value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);
+
+value_t rerr		(value_t cause, value_t pos);
+value_t rerr_add_pos	(value_t pos, value_t e);
+value_t	cfn		(value_t fn, value_t env);
+value_t	cloj		(value_t fn, value_t env);
+value_t	macro		(value_t fn, value_t env);
+value_t slurp		(char* fn);
 value_t init		(value_t env);
+value_t make_vector	(unsigned n);
+value_t vref		(value_t v, unsigned pos);
+value_t rplacv		(value_t v, unsigned pos, value_t data);
 
 value_t str_to_cons	(const char* s);
 value_t str_to_rstr	(const char* s);
