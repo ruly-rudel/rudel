@@ -9,6 +9,7 @@
 
 void init_global(void)
 {
+	g_t		= str_to_sym("t");
 	g_env		= str_to_sym("env");
 	g_unquote	= str_to_sym("unquote");
 	g_splice_unquote= str_to_sym("splice-unquote");

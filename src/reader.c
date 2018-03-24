@@ -75,6 +75,28 @@ static value_t read_atom(scan_t* st)
 		else
 		{
 			token = register_sym(token);
+			value_t tbl[] = {
+				g_setq,           RSPECIAL(SP_SETQ),
+				g_let,            RSPECIAL(SP_LET),
+				g_progn,          RSPECIAL(SP_PROGN),
+				g_if,             RSPECIAL(SP_IF),
+				g_lambda,         RSPECIAL(SP_LAMBDA),
+				g_quote,          RSPECIAL(SP_QUOTE),
+				g_quasiquote,     RSPECIAL(SP_QUASIQUOTE),
+				g_macro,          RSPECIAL(SP_MACRO),
+				g_macroexpand,    RSPECIAL(SP_MACROEXPAND),
+				g_unquote,        RSPECIAL(SP_UNQUOTE),
+				g_splice_unquote, RSPECIAL(SP_SPLICE_UNQUOTE),
+				g_amp,            RSPECIAL(SP_AMP),
+			};
+			for(int i = 0; i < sizeof(tbl) / sizeof(tbl[0]); i += 2)
+			{
+				if(eq(tbl[i], token))
+				{
+					token = tbl[i+1];
+					break;
+				}
+			}
 		}
 	}
 
@@ -161,12 +183,12 @@ static value_t read_form(scan_t* st)
 			else if(INTOF(tcar) == '\'')
 			{
 				scan_next(st);
-				return cons(g_quote, cons(read_form(st), NIL));
+				return cons(RSPECIAL(SP_QUOTE), cons(read_form(st), NIL));
 			}
 			else if(INTOF(tcar) == '`')
 			{
 				scan_next(st);
-				return cons(g_quasiquote, cons(read_form(st), NIL));
+				return cons(RSPECIAL(SP_QUASIQUOTE), cons(read_form(st), NIL));
 			}
 			else if(INTOF(tcar) == ',')
 			{
@@ -185,16 +207,16 @@ static value_t read_form(scan_t* st)
 					if(INTOF(tcar) == '@')
 					{
 						scan_next(st);
-						return cons(g_splice_unquote, cons(read_form(st), NIL));
+						return cons(RSPECIAL(SP_SPLICE_UNQUOTE), cons(read_form(st), NIL));
 					}
 					else
 					{
-						return cons(g_unquote, cons(read_form(st), NIL));
+						return cons(RSPECIAL(SP_UNQUOTE), cons(read_form(st), NIL));
 					}
 				}
 				else
 				{
-					return cons(g_unquote, cons(read_form(st), NIL));
+					return cons(RSPECIAL(SP_UNQUOTE), cons(read_form(st), NIL));
 				}
 
 			}

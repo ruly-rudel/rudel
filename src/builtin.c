@@ -434,7 +434,7 @@ bool seqp(value_t list)
 value_t concat(int n, ...)
 {
 	va_list	 arg;
-	value_t r = EMPTY_LIST;
+	value_t r = NIL;
 
 	va_start(arg, n);
 	for(int i = 0; i < n; i++)
@@ -518,6 +518,14 @@ value_t reduce(value_t (*fn)(value_t, value_t), value_t args)
 	} while(!nilp(args));
 
 	return arg1;
+}
+
+value_t symbol_string(value_t sym)
+{
+	value_t r = copy_list(sym);
+	r.type.main = CONS_T;
+
+	return r;
 }
 
 /////////////////////////////////////////////////////////////////////

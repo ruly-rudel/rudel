@@ -22,7 +22,23 @@ typedef enum _rtype_t {
 	INT_T,
 	CHAR_T,
 	REF_T,
+	SPECIAL_T,
 } rtype_t;
+
+typedef enum {
+	SP_SETQ = 0,
+	SP_LET,
+	SP_PROGN,
+	SP_IF,
+	SP_LAMBDA,
+	SP_QUOTE,
+	SP_QUASIQUOTE,
+	SP_MACRO,
+	SP_MACROEXPAND,
+	SP_UNQUOTE,
+	SP_SPLICE_UNQUOTE,
+	SP_AMP,
+} special_t;
 
 #if __WORDSIZE == 32
 typedef struct
@@ -82,24 +98,22 @@ typedef struct _cons_t
 } cons_t;
 
 
-#define NIL        ((value_t){ .type.main   = CONS_T, .type.sub = 0,      .type.val = 0   })
+#define NIL         ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   = 0   })
 
-#define RCHAR(X)   ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T, .type.val  = (X) })
-#define RINT(X)    ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,  .type.val  = (X) })
-#define RREF(X, Y) ((value_t){ .ref.main    = OTH_T,  .ref.sub  = REF_T,  .ref.depth = (X), .ref.width = (Y) })
-#define RFN(X)     ((value_t){ .rfn = (X) })
-#define INTOF(X)   ((X).raw >> 8)
-#define REF_D(X)   ((X).ref.depth)
-#define REF_W(X)   ((X).ref.width)
-
+#define RCHAR(X)    ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T,    .type.val   = (X) })
+#define RINT(X)     ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,     .type.val   = (X) })
+#define RSPECIAL(X) ((value_t){ .type.main   = OTH_T,  .type.sub = SPECIAL_T, .type.val   = (X) })
+#define RREF(X, Y)  ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width = (Y) })
+#define RFN(X)      ((value_t){ .rfn = (X) })
 #define RERR(X, Y)   rerr(RINT(X), (Y))
+
+#define INTOF(X)        ((X).raw >> 8)
+#define REF_D(X)        ((X).ref.depth)
+#define REF_W(X)        ((X).ref.width)
+#define SPECIAL(X)      ((X).type.val)
 
 #define RERR_CAUSE(X)	car(X)
 #define RERR_POS(X)	cdr(X)
-
-#define SYM_TRUE   str_to_sym("t")
-#define SYM_FALSE  NIL
-#define EMPTY_LIST NIL
 
 #define ERR_TYPE		1
 #define ERR_EOF			2
@@ -147,6 +161,7 @@ value_t concat		(int n, ...);
 value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
 value_t slurp		(char* fn);
 value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);
+value_t symbol_string	(value_t sym);
 value_t init		(value_t env);
 
 value_t str_to_cons	(const char* s);

@@ -169,39 +169,40 @@ static value_t resolv_apply(value_t v, value_t env)
 	value_t vcdr = cdr(v);
 
 	value_t rv;
-	if(eq(vcar, g_setq)       ||	// setq
-	   eq(vcar, g_progn)      ||	// progn
-	   eq(vcar, g_if)         ||	// if
-	   eq(vcar, g_macroexpand))	// macroexpand
+	if(rtypeof(vcar) == SPECIAL_T)
 	{
-		rv = resolv_ast(vcdr, env);
+		switch(SPECIAL(vcar))
+		{
+			case SP_SETQ:
+			case SP_PROGN:
+			case SP_IF:
+			case SP_MACROEXPAND:
+				rv = resolv_ast(vcdr, env);
+				break;
+
+			case SP_QUOTE:
+			case SP_QUASIQUOTE:
+				return v;	// ***** ad-hock
+
+			case SP_LET:
+				rv = resolv_let(vcdr, env);
+				break;
+
+			case SP_LAMBDA:
+			case SP_MACRO:
+				rv = resolv_lambda(vcdr, env);
+				break;
+
+			default:
+				return RERR(ERR_NOTFN, v);
+
+		}
+
 		if(!errp(rv))
 		{
 			rv = cons(vcar, rv);
 		}
-	}
-	else if(
-	   eq(vcar, g_quote)      ||	// quote
-	   eq(vcar, g_quasiquote)) 	// quasiquote
-	{
-		return v;	// ***** ad-hock
-	}
-	else if(eq(vcar, g_let))	// let*
-	{
-		rv = resolv_let(vcdr, env);
-		if(!errp(rv))
-		{
-			rv = cons(vcar, rv);
-		}
-	}
-	else if(eq(vcar, g_lambda) ||	// lambda
-		eq(vcar, g_macro))	// macro
-	{
-		rv = resolv_lambda(vcdr, env);
-		if(!errp(rv))
-		{
-			rv = cons(vcar, rv);
-		}
+
 	}
 	else						// apply function
 	{

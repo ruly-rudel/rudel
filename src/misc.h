@@ -9,6 +9,7 @@
 
 #include "builtin.h"
 
+EXTERN value_t g_t;
 EXTERN value_t g_env;
 EXTERN value_t g_unquote;
 EXTERN value_t g_splice_unquote;

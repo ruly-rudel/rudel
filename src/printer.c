@@ -30,7 +30,6 @@ static value_t pr_str_int(int x)
 	return r;
 }
 
-
 static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
@@ -112,7 +111,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 						if(!nilp(cdr(nex)))
 						{
 							cur = cons_and_cdr(RCHAR('#'), cur);
-							cur = nconc_and_last(pr_str_int(cdr(nex).rint.val), cur);
+							cur = nconc_and_last(pr_str_int(cdr(nex).type.val), cur);
 							cur = cons_and_cdr(RCHAR('='), cur);
 						}
 
@@ -127,7 +126,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 							n = car(cyclic);
 							assert(intp(n));
 							rplacd(ex, n);
-							rplaca(cyclic, RINT(n.rint.val + 1));
+							rplaca(cyclic, RINT(n.type.val + 1));
 						}
 
 						if(!nilp(find(x, cyc, eq)))	// self-cyclic
@@ -137,7 +136,7 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 						}
 
 						cur = cons_and_cdr(RCHAR('#'), cur);
-						cur = nconc_and_last(pr_str_int(n.rint.val), cur);
+						cur = nconc_and_last(pr_str_int(n.type.val), cur);
 						cur = cons_and_cdr(RCHAR('#'), cur);
 					}
 				}
@@ -179,7 +178,6 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 		cur = nconc_and_last(r, cur);
 		r = new_r;
 	}
-	r.type.main = STR_T;
 
 	return r;
 }
@@ -401,6 +399,27 @@ static value_t pr_ref(value_t s)
 	return r;
 }
 
+static value_t pr_special(value_t s)
+{
+	assert(rtypeof(s) == SPECIAL_T);
+	switch(SPECIAL(s))
+	{
+		case SP_SETQ:		return symbol_string(g_setq);
+		case SP_LET:		return symbol_string(g_let);
+		case SP_PROGN:		return symbol_string(g_progn);
+		case SP_IF:		return symbol_string(g_if);
+		case SP_LAMBDA:		return symbol_string(g_lambda);
+		case SP_QUOTE:		return symbol_string(g_quote);
+		case SP_QUASIQUOTE:	return symbol_string(g_quasiquote);
+		case SP_MACRO:		return symbol_string(g_macro);
+		case SP_MACROEXPAND:	return symbol_string(g_macroexpand);
+		case SP_UNQUOTE:	return symbol_string(g_unquote);
+		case SP_SPLICE_UNQUOTE:	return symbol_string(g_splice_unquote);
+		case SP_AMP:		return symbol_string(g_amp);
+		default:		return RERR(ERR_NOTIMPL, NIL);
+	}
+}
+
 /////////////////////////////////////////////////////////////////////
 // public: Rudel-specific functions
 
@@ -430,6 +449,9 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 
 	    case SYM_T:
 		return pr_sym(s);
+
+	    case SPECIAL_T:
+		return pr_special(s);
 
 	    case INT_T:
 		return pr_str_int(INTOF(s));

@@ -92,16 +92,16 @@ static value_t NAME(value_t body, value_t env) \
 
 ////////// basic functions
 
-DEF_FN_1(b_atom,    atom   (arg1)       ? SYM_TRUE : SYM_FALSE)
-DEF_FN_1(b_consp,   consp  (arg1)       ? SYM_TRUE : SYM_FALSE)
-DEF_FN_1(b_seqp,    seqp   (arg1)       ? SYM_TRUE : SYM_FALSE)
-DEF_FN_1(b_strp,    is_str (arg1)       ? SYM_TRUE : SYM_FALSE)
+DEF_FN_1(b_atom,    atom   (arg1)       ? g_t : NIL)
+DEF_FN_1(b_consp,   consp  (arg1)       ? g_t : NIL)
+DEF_FN_1(b_seqp,    seqp   (arg1)       ? g_t : NIL)
+DEF_FN_1(b_strp,    is_str (arg1)       ? g_t : NIL)
 DEF_FN_1(b_car,     car    (arg1))
 DEF_FN_1(b_cdr,     cdr    (arg1))
 DEF_FN_2(b_cons,    cons   (arg1, arg2))
 DEF_FN_1(b_err,     rerr   (arg1, body))
-DEF_FN_2(b_eq,      eq     (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
-DEF_FN_2(b_equal,   equal  (arg1, arg2) ? SYM_TRUE : SYM_FALSE)
+DEF_FN_2(b_eq,      eq     (arg1, arg2) ? g_t : NIL)
+DEF_FN_2(b_equal,   equal  (arg1, arg2) ? g_t : NIL)
 DEF_FN_1(b_eval,    eval   (arg1, last(env)))
 DEF_FN_2(b_rplaca,  rplaca (arg1, arg2))
 DEF_FN_2(b_rplacd,  rplacd (arg1, arg2))
@@ -132,10 +132,10 @@ DEF_FN_VARG(b_init,  init(env))
 
 ////////// MATH functions
 
-DEF_FN_2INT(b_lt,  arg1 <  arg2 ? SYM_TRUE : SYM_FALSE)
-DEF_FN_2INT(b_elt, arg1 <= arg2 ? SYM_TRUE : SYM_FALSE)
-DEF_FN_2INT(b_mt,  arg1 >  arg2 ? SYM_TRUE : SYM_FALSE)
-DEF_FN_2INT(b_emt, arg1 >= arg2 ? SYM_TRUE : SYM_FALSE)
+DEF_FN_2INT(b_lt,  arg1 <  arg2 ? g_t : NIL)
+DEF_FN_2INT(b_elt, arg1 <= arg2 ? g_t : NIL)
+DEF_FN_2INT(b_mt,  arg1 >  arg2 ? g_t : NIL)
+DEF_FN_2INT(b_emt, arg1 >= arg2 ? g_t : NIL)
 
 DEF_FN_R(b_add, RINT(0),             arg1,                 RINT(INTOF(arg1) + INTOF(arg2)))
 DEF_FN_R(b_sub, RINT(0),             RINT(-INTOF(arg1)),   RINT(INTOF(arg1) - INTOF(arg2)))

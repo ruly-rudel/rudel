@@ -85,7 +85,15 @@ static value_t eval_setq(value_t vcdr, value_t env)
 
 static value_t eval_progn(value_t vcdr, value_t env)
 {
-	return car(last(eval_ast(vcdr, env)));
+	value_t r = eval_ast(vcdr, env);
+	if(errp(r))
+	{
+		return r;
+	}
+	else
+	{
+		return car(last(r));
+	}
 }
 
 static value_t eval_if(value_t vcdr, value_t env)
@@ -154,13 +162,13 @@ static value_t eval_quasiquote	(value_t vcdr, value_t env)
 	}
 
 	value_t arg1 = car(vcdr);
-	if(eq(arg1, g_unquote))			// (unquote x)
+	if(eq(arg1, RSPECIAL(SP_UNQUOTE)))			// (unquote x)
 	{
 		value_t arg2 = car(cdr(vcdr));
 		return eval(arg2, env);				    // -> return evalueated x
 	}
 	else if(consp(arg1) &&
-		eq(car(arg1), g_splice_unquote))	// ((splice-unquote x) ...)
+		eq(car(arg1), RSPECIAL(SP_SPLICE_UNQUOTE)))	// ((splice-unquote x) ...)
 	{
 		return concat(2,
 		              eval(car(cdr(arg1)), env),
@@ -178,17 +186,7 @@ static value_t is_macro_call(value_t ast, value_t env)
 	if(rtypeof(ast) == CONS_T)
 	{
 		value_t ast_1st = car(ast);
-		if(rtypeof(ast_1st) == SYM_T && !(
-			eq(ast_1st, g_setq)       ||
-			eq(ast_1st, g_let)        ||
-			eq(ast_1st, g_progn)      ||
-			eq(ast_1st, g_if)         ||
-			eq(ast_1st, g_lambda)     ||
-			eq(ast_1st, g_quote)      ||
-			eq(ast_1st, g_quasiquote) ||
-			eq(ast_1st, g_macro)      ||
-			eq(ast_1st, g_macroexpand)
-					))
+		if(rtypeof(ast_1st) == SYM_T)
 		{
 			value_t ast_1st_eval = cdr(find_env_all(ast_1st, env));
 			if(rtypeof(ast_1st_eval) == MACRO_T)
@@ -282,43 +280,26 @@ static value_t eval_apply(value_t v, value_t env)
 	value_t vcar = car(v);
 	value_t vcdr = cdr(v);
 
-	if(eq(vcar, g_setq))		// setq
+	if(rtypeof(vcar) == SPECIAL_T)
 	{
-		return eval_setq(vcdr, env);
+		switch(SPECIAL(vcar))
+		{
+			case SP_SETQ:		return eval_setq	(vcdr, env);
+			case SP_LET:		return eval_let		(vcdr, env);
+			case SP_PROGN:		return eval_progn	(vcdr, env);
+			case SP_IF:		return eval_if		(vcdr, env);
+			case SP_LAMBDA:		return cloj		(vcdr, env);
+			case SP_QUOTE:		return car		(vcdr);
+			case SP_QUASIQUOTE:	return car(eval_quasiquote(vcdr, env));
+			case SP_MACRO:		return macro		(vcdr, env);
+			case SP_MACROEXPAND:	return macroexpand_all	(car(vcdr), env);
+			default:		return RERR(ERR_NOTFN, v);
+			//case SP_UNQUOTE:
+			//case SP_SPLICE_UNQUOTE:
+			//case SP_AMP:
+		}
 	}
-	else if(eq(vcar, g_let))	// let*
-	{
-		return eval_let(vcdr, env);
-	}
-	else if(eq(vcar, g_progn))	// progn
-	{
-		return eval_progn(vcdr, env);
-	}
-	else if(eq(vcar, g_if))		// if
-	{
-		return eval_if(vcdr, env);
-	}
-	else if(eq(vcar, g_lambda))	// lambda
-	{
-		return cloj(vcdr, env);
-	}
-	else if(eq(vcar, g_quote))	// quote
-	{
-		return car(vcdr);
-	}
-	else if(eq(vcar, g_quasiquote))	// quasiquote
-	{
-		return car(eval_quasiquote(vcdr, env));
-	}
-	else if(eq(vcar, g_macro))	// macro
-	{
-		return macro(vcdr, env);
-	}
-	else if(eq(vcar, g_macroexpand))	// macroexpand
-	{
-		return macroexpand_all(car(vcdr), env);
-	}
-	else						// apply function
+	else
 	{
 		value_t ev = eval_ast(v, env);
 		if(errp(ev))
