@@ -115,6 +115,8 @@ typedef struct _cons_t
 #define RERR_CAUSE(X)	car(X)
 #define RERR_POS(X)	cdr(X)
 
+#define EQ(X, Y)	((X).raw == (Y).raw)
+
 #define ERR_TYPE		1
 #define ERR_EOF			2
 #define ERR_PARSE		3
@@ -126,25 +128,46 @@ typedef struct _cons_t
 #define ERR_RANGE		9
 #define ERR_NOTIMPL		10
 
-rtype_t rtypeof	(value_t v);
+inline rtype_t rtypeof(value_t v)
+{
+	return v.type.main == OTH_T ? v.type.sub : v.type.main;
+}
+
+inline bool nilp(value_t x)
+{
+	return x.type.main == CONS_T && x.type.sub == 0 && x.type.val == 0;
+}
+
+inline bool intp(value_t x)
+{
+	return x.type.main == OTH_T && x.type.sub == INT_T;
+}
+
+inline bool consp(value_t x)
+{
+	return x.type.main == CONS_T && !nilp(x);
+}
+
+inline bool errp(value_t x)
+{
+	return x.type.main == ERR_T;
+}
+
 
 value_t car		(value_t x);
 value_t cdr		(value_t x);
 value_t	cons		(value_t car, value_t cdr);
 value_t rerr		(value_t cause, value_t pos);
 value_t rerr_add_pos	(value_t pos, value_t e);
-bool    errp		(value_t x);
-bool	cnilp		(value_t x);
-bool    nilp		(value_t x);
-bool    intp		(value_t x);
+bool    seqp		(value_t x);
+bool	atom		(value_t x);
+bool	eq		(value_t x, value_t y);
+bool	equal		(value_t x, value_t y);
 value_t rplaca		(value_t x, value_t v);
 value_t rplacd		(value_t x, value_t v);
 value_t last		(value_t x);
 value_t nth		(int n, value_t x);
 value_t nconc		(value_t a, value_t b);
-bool	eq		(value_t x, value_t y);
-bool	equal		(value_t x, value_t y);
-bool	atom		(value_t x);
 value_t list		(int n, ...);
 value_t	cfn		(value_t fn, value_t env);
 value_t	cloj		(value_t fn, value_t env);
@@ -155,8 +178,6 @@ value_t assoceq		(value_t key, value_t list);
 value_t acons		(value_t key, value_t val, value_t list);
 value_t pairlis		(value_t key, value_t val);
 
-bool    consp		(value_t list);
-bool    seqp		(value_t list);
 value_t concat		(int n, ...);
 value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
 value_t slurp		(char* fn);

@@ -23,7 +23,7 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 		value_t key_car = car(key);
 		value_t val_car = car(val);
 
-		if(eq(key_car, RSPECIAL(SP_AMP)))	// rest parameter
+		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
 		{
 			key_car = car(cdr(key));
 			//alist = acons(key_car, val, alist);

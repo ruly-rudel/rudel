@@ -17,7 +17,7 @@ static value_t resolv_ast	(value_t ast, value_t env)
 	switch(rtypeof(ast))
 	{
 	    case SYM_T:
-		return eq(ast, g_env) ? g_env : get_env_ref(ast, env);
+		return EQ(ast, g_env) ? g_env : get_env_ref(ast, env);
 
 	    case CLOJ_T:
 	    case MACRO_T:

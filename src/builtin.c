@@ -62,11 +62,6 @@ static inline bool is_seq_or_nil(value_t x)
 /////////////////////////////////////////////////////////////////////
 // public: typical lisp functions
 
-rtype_t rtypeof(value_t v)
-{
-	return v.type.main == OTH_T ? v.type.sub : v.type.main;
-}
-
 value_t car(value_t x)
 {
 	if(is_cons_pair_or_nil(x))
@@ -153,25 +148,52 @@ value_t	macro(value_t car, value_t cdr)
 	return r;
 }
 
-bool errp(value_t x)
+bool seqp(value_t x)
 {
-	return x.type.main == ERR_T;
+	return is_seq(x);
 }
 
-// only for reader and core
-bool cnilp(value_t x)
+bool atom(value_t x)
 {
-	return x.type.main == CONS_T && x.type.sub == 0 && x.type.val == 0;
+	return !is_seq_or_nil(x) || nilp(x);
 }
 
-bool nilp(value_t x)
+bool eq(value_t x, value_t y)
 {
-	return is_seq_or_nil(x) && x.type.sub == 0 && x.type.val == 0;
+	return EQ(x, y);
 }
 
-bool intp(value_t x)
+bool equal(value_t x, value_t y)
 {
-	return x.type.main == OTH_T && x.type.sub == INT_T;
+	if(EQ(x, y))
+	{
+		return true;
+	}
+	else if(rtypeof(x) != rtypeof(y))
+	{
+		return false;
+	}
+	else if(is_cons_pair_or_nil(x))
+	{
+		x.cons = aligned_addr(x);
+		y.cons = aligned_addr(y);
+		if(nilp(x))
+		{
+			return nilp(y);
+		}
+		else if(nilp(y))
+		{
+			return false;
+		}
+		else
+		{
+			return equal(car(x), car(y)) && equal(cdr(x), cdr(y));
+		}
+	}
+	else
+	{
+		return false;
+	}
 }
 
 value_t rplaca(value_t x, value_t v)
@@ -293,49 +315,6 @@ value_t list(int n, ...)
 	return r;
 }
 
-bool eq(value_t x, value_t y)
-{
-	return x.raw == y.raw;
-}
-
-bool equal(value_t x, value_t y)
-{
-	if(eq(x, y))
-	{
-		return true;
-	}
-	else if(rtypeof(x) != rtypeof(y))
-	{
-		return false;
-	}
-	else if(is_cons_pair_or_nil(x))
-	{
-		x.cons = aligned_addr(x);
-		y.cons = aligned_addr(y);
-		if(nilp(x))
-		{
-			return nilp(y);
-		}
-		else if(nilp(y))
-		{
-			return false;
-		}
-		else
-		{
-			return equal(car(x), car(y)) && equal(cdr(x), cdr(y));
-		}
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool atom(value_t x)
-{
-	return rtypeof(x) != CONS_T || nilp(x);
-}
-
 value_t copy_list(value_t list)
 {
 	assert(is_cons_pair_or_nil(list));
@@ -419,16 +398,6 @@ value_t pairlis		(value_t key, value_t val)
 		val = cdr(val);
 	}
 	return r;
-}
-
-bool consp(value_t list)
-{
-	return rtypeof(list) == CONS_T && !nilp(list);
-}
-
-bool seqp(value_t list)
-{
-	return is_seq(list);
 }
 
 value_t concat(int n, ...)

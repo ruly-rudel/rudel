@@ -20,7 +20,7 @@ static value_t eval_ast	(value_t ast, value_t env)
 		return get_env_value_ref(ast, env);
 
 	    case SYM_T:
-		return eq(ast, g_env) ? env : get_env_value(ast, env);
+		return EQ(ast, g_env) ? env : get_env_value(ast, env);
 
 	    case CONS_T:
 		if(is_str(ast)) return ast;
@@ -162,13 +162,13 @@ static value_t eval_quasiquote	(value_t vcdr, value_t env)
 	}
 
 	value_t arg1 = car(vcdr);
-	if(eq(arg1, RSPECIAL(SP_UNQUOTE)))			// (unquote x)
+	if(EQ(arg1, RSPECIAL(SP_UNQUOTE)))			// (unquote x)
 	{
 		value_t arg2 = car(cdr(vcdr));
 		return eval(arg2, env);				    // -> return evalueated x
 	}
 	else if(consp(arg1) &&
-		eq(car(arg1), RSPECIAL(SP_SPLICE_UNQUOTE)))	// ((splice-unquote x) ...)
+		EQ(car(arg1), RSPECIAL(SP_SPLICE_UNQUOTE)))	// ((splice-unquote x) ...)
 	{
 		return concat(2,
 		              eval(car(cdr(arg1)), env),

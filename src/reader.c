@@ -28,7 +28,7 @@ static value_t read_int(value_t token)
 		token = cdr(token);
 		assert(rtypeof(token) == CONS_T);
 
-		if(cnilp(token))	// not int
+		if(nilp(token))	// not int
 		{
 			return NIL;
 		}
@@ -39,7 +39,7 @@ static value_t read_int(value_t token)
 
 	// value
 	int val = 0;
-	while(!cnilp(token))
+	while(!nilp(token))
 	{
 		tcar = car(token);
 		assert(rtypeof(tcar) == CHAR_T);
@@ -91,7 +91,7 @@ static value_t read_atom(scan_t* st)
 			};
 			for(int i = 0; i < sizeof(tbl) / sizeof(tbl[0]); i += 2)
 			{
-				if(eq(tbl[i], token))
+				if(EQ(tbl[i], token))
 				{
 					token = tbl[i+1];
 					break;
@@ -116,7 +116,7 @@ static value_t read_list(scan_t* st)
 	value_t token;
 
 	scan_next(st);	// omit '('
-	while(!cnilp(token = scan_peek(st)))
+	while(!nilp(token = scan_peek(st)))
 	{
 		assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T || errp(token));
 
@@ -133,7 +133,7 @@ static value_t read_list(scan_t* st)
 			assert(rtypeof(c) == CHAR_T);
 			if(INTOF(c) == ')')
 			{
-				if(cnilp(r))
+				if(nilp(r))
 				{
 					r = NIL;		// () is nil
 				}
@@ -159,7 +159,7 @@ static value_t read_form(scan_t* st)
 	assert(st != NULL);
 
 	value_t token = scan_peek(st);
-	if(cnilp(token))	// no token
+	if(nilp(token))	// no token
 	{
 		return NIL;
 	}
@@ -241,7 +241,7 @@ static value_t read_line(FILE* fp)
 	for(;;)
 	{
 		int c = fgetc(fp);
-		if(c == EOF && cnilp(r))	// EOF
+		if(c == EOF && nilp(r))	// EOF
 		{
 			return RERR(ERR_EOF);
 		}

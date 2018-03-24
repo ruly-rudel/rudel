@@ -76,11 +76,11 @@ static value_t NAME ## _reduce(value_t arg1, value_t arg2) \
 static value_t NAME(value_t body, value_t env) \
 { \
 	value_t arg1 = car(body); \
-	if(cnilp(body)) \
+	if(nilp(body)) \
 	{ \
 		return ZERO; \
 	} \
-	else if(cnilp(cdr(body))) \
+	else if(nilp(cdr(body))) \
 	{ \
 		return ONE; \
 	} \
@@ -100,7 +100,7 @@ DEF_FN_1(b_car,     car    (arg1))
 DEF_FN_1(b_cdr,     cdr    (arg1))
 DEF_FN_2(b_cons,    cons   (arg1, arg2))
 DEF_FN_1(b_err,     rerr   (arg1, body))
-DEF_FN_2(b_eq,      eq     (arg1, arg2) ? g_t : NIL)
+DEF_FN_2(b_eq,      EQ     (arg1, arg2) ? g_t : NIL)
 DEF_FN_2(b_equal,   equal  (arg1, arg2) ? g_t : NIL)
 DEF_FN_1(b_eval,    eval   (arg1, last(env)))
 DEF_FN_2(b_rplaca,  rplaca (arg1, arg2))
