@@ -38,7 +38,6 @@ value_t exec_vm(code_t* code, value_t e)
 	value_t r0;
 	value_t r1;
 
-	unsigned int i;
 	unsigned int pc = 0;
 
 	while(true)
@@ -80,7 +79,7 @@ value_t exec_vm(code_t* code, value_t e)
 				pc = INTOF(GETR());
 				POPR();
 				break;
-				
+
 			case B:
 				pc = INTOF(code[pc].operand) - 1;	// +a after
 				break;
@@ -102,15 +101,15 @@ value_t exec_vm(code_t* code, value_t e)
 			case ADD:
 				OP_2P1P(RINT(INTOF(r0) + INTOF(r1)));
 				break;
-				
+
 			case SUB:
 				OP_2P1P(RINT(INTOF(r0) - INTOF(r1)));
 				break;
-				
+
 			case MUL:
 				OP_2P1P(RINT(INTOF(r0) * INTOF(r1)));
 				break;
-				
+
 			case DIV:
 				OP_2P1P(RINT(INTOF(r0) / INTOF(r1)));
 				break;

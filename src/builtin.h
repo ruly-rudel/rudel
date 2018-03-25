@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include "misc.h"
 
 typedef enum _rtype_t {
 	// main 8types (content is address)
@@ -135,31 +136,19 @@ typedef struct _vector_t
 #define ERR_RANGE		9
 #define ERR_NOTIMPL		10
 
-inline rtype_t rtypeof(value_t v)
-{
-	return v.type.main == OTH_T ? v.type.sub : v.type.main;
-}
+#define UNSAFE_CAR(X)	(X).cons->car
+#define UNSAFE_CDR(X)	(X).cons->cdr
 
-inline bool nilp(value_t x)
-{
-	return x.type.main == CONS_T && x.type.sub == 0 && x.type.val == 0;
-}
-
-inline bool intp(value_t x)
-{
-	return x.type.main == OTH_T && x.type.sub == INT_T;
-}
-
-inline bool consp(value_t x)
-{
-	return x.type.main == CONS_T && !nilp(x);
-}
-
-inline bool errp(value_t x)
-{
-	return x.type.main == ERR_T;
-}
-
+INLINE(rtype_t rtypeof(value_t v),  v.type.main == OTH_T ? v.type.sub : v.type.main)
+INLINE(bool    nilp(value_t x),     x.type.main == CONS_T &&  x.type.sub == 0 && x.type.val == 0)
+INLINE(bool    intp(value_t x),     x.type.main == OTH_T  &&  x.type.sub == INT_T)
+INLINE(bool    charp(value_t x),    x.type.main == OTH_T  &&  x.type.sub == CHAR_T)
+INLINE(bool    consp(value_t x),    x.type.main == CONS_T && (x.type.sub != 0 || x.type.val != 0))
+INLINE(bool    vectorp(value_t x),  x.type.main == VEC_T  && (x.type.sub != 0 || x.type.val != 0))
+INLINE(bool    symbolp(value_t x),  x.type.main == SYM_T  && (x.type.sub != 0 || x.type.val != 0))
+INLINE(bool    errp(value_t x),     x.type.main == ERR_T)
+INLINE(bool    refp(value_t x),     x.type.main == OTH_T  &&  x.type.sub == REF_T)
+INLINE(bool    specialp(value_t x), x.type.main == OTH_T  &&  x.type.sub == SPECIAL_T)
 
 value_t car		(value_t x);
 value_t cdr		(value_t x);
@@ -181,8 +170,9 @@ value_t acons		(value_t key, value_t val, value_t list);
 value_t pairlis		(value_t key, value_t val);
 value_t concat		(int n, ...);
 value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
-value_t symbol_string	(value_t sym);
 value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);
+int	count		(value_t x);
+value_t symbol_string	(value_t sym);
 
 value_t rerr		(value_t cause, value_t pos);
 value_t rerr_add_pos	(value_t pos, value_t e);
@@ -194,6 +184,7 @@ value_t init		(value_t env);
 value_t make_vector	(unsigned n);
 value_t vref		(value_t v, unsigned pos);
 value_t rplacv		(value_t v, unsigned pos, value_t data);
+value_t size		(value_t v);
 
 value_t str_to_cons	(const char* s);
 value_t str_to_rstr	(const char* s);
@@ -206,5 +197,22 @@ value_t gensym		(value_t env);
 value_t* cons_and_cdr	(value_t v, value_t* c);
 value_t* nconc_and_last	(value_t v, value_t* c);
 bool	is_str		(value_t v);
+
+EXTERN value_t g_t;
+EXTERN value_t g_env;
+EXTERN value_t g_unquote;
+EXTERN value_t g_splice_unquote;
+EXTERN value_t g_setq;
+EXTERN value_t g_let;
+EXTERN value_t g_progn;
+EXTERN value_t g_if;
+EXTERN value_t g_lambda;
+EXTERN value_t g_quote;
+EXTERN value_t g_quasiquote;
+EXTERN value_t g_macro;
+EXTERN value_t g_macroexpand;
+EXTERN value_t g_trace;
+EXTERN value_t g_debug;
+EXTERN value_t g_amp;
 
 #endif // _builtin_h_

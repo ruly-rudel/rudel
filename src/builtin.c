@@ -49,7 +49,7 @@ static inline cons_t* alloc_cons(void)
 
 static inline vector_t* alloc_vector(int size)
 {
-	vector_t* v = (vector_t*)malloc(sizeof(value_t) * size + 1);
+	vector_t* v = (vector_t*)malloc(sizeof(value_t) * 256 + 1);	//****** ad-hock
 	v->size = RINT(size);
 	return v;
 }
@@ -423,6 +423,26 @@ value_t reduce(value_t (*fn)(value_t, value_t), value_t args)
 	return arg1;
 }
 
+int	count(value_t x)
+{
+	if(rtypeof(x) == CONS_T)
+	{
+		int i;
+		for(i = 0; !nilp(x); x = cdr(x), i++)
+			assert(consp(x));
+
+		return i;
+	}
+	else if(rtypeof(x) == VEC_T)
+	{
+		return INTOF(size(x));
+	}
+	else
+	{
+		return 1;
+	}
+}
+
 value_t symbol_string(value_t sym)
 {
 	value_t r = copy_list(sym);
@@ -553,15 +573,19 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 	assert(rtypeof(v) == VEC_T);
 	v.vector = aligned_vaddr(v);
 
-	if(pos < INTOF(v.vector->size))
+	v.vector->data[pos] = data;
+	if(pos >= INTOF(v.vector->size))
 	{
-		v.vector->data[pos] = data;
-		return data;
+		v.vector->size = RINT(pos + 1);
 	}
-	else
-	{
-		return RERR(ERR_RANGE, NIL);
-	}
+	return data;
+}
+
+value_t size(value_t v)
+{
+	assert(rtypeof(v) == VEC_T);
+	v.vector = aligned_vaddr(v);
+	return v.vector->size;
 }
 
 /////////////////////////////////////////////////////////////////////

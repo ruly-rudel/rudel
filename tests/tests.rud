@@ -1017,3 +1017,24 @@ x
 ;=>nil
 (strp 1)
 ;=>nil
+
+(setq x (make-vector 1))
+;=>#<VECTOR>
+(vref x 0)
+;=>nil
+(vref x 1)
+;=>range exceeded.
+(rplacv x 0 'car)
+;=>car
+(vref x 0)
+;=>car
+((eval (vref x 0)) (cons 1 2))
+;=>1
+(rplacv x 1 'cons)
+;=>cons
+(vref x 0)
+;=>car
+(vref x 1)
+;=>cons
+(vref x 2)
+;=>range exceeded.
