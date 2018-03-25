@@ -191,10 +191,10 @@ DEF_FN_2INT(b_elt, arg1 <= arg2 ? g_t : NIL)
 DEF_FN_2INT(b_mt,  arg1 >  arg2 ? g_t : NIL)
 DEF_FN_2INT(b_emt, arg1 >= arg2 ? g_t : NIL)
 
-DEF_FN_R(b_add, RINT(0),             arg1,                 RINT(INTOF(arg1) + INTOF(arg2)))
-DEF_FN_R(b_sub, RINT(0),             RINT(-INTOF(arg1)),   RINT(INTOF(arg1) - INTOF(arg2)))
-DEF_FN_R(b_mul, RINT(1),             arg1,                 RINT(INTOF(arg1) * INTOF(arg2)))
-DEF_FN_R(b_div, RERR(ERR_ARG, body), arg1,                 RINT(INTOF(arg1) / INTOF(arg2)))
+DEF_FN_2INT(b_add, RINT(arg1 + arg2))
+DEF_FN_2INT(b_sub, RINT(arg1 - arg2))
+DEF_FN_2INT(b_mul, RINT(arg1 * arg2))
+DEF_FN_2INT(b_div, RINT(arg1 / arg2))
 
 ////////// string and print functions
 DEF_FN_R(b_str,
