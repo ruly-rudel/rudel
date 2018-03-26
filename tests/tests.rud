@@ -1038,3 +1038,70 @@ x
 ;=>cons
 (vref x 2)
 ;=>range exceeded.
+
+(setq y (copy-vector x))
+;=>#<VECTOR>
+(eq x y)
+;=>nil
+(veq x y)
+;=>t
+(vref y 0)
+;=>car
+(vref y 1)
+;=>cons
+(vref y 2)
+;=>range exceeded.
+(setq z (vconc x y))
+;=>#<VECTOR>
+(vref x 0)
+;=>car
+(vref x 1)
+;=>cons
+(vref x 2)
+;=>range exceeded.
+(veq x y)
+;=>t
+(vref z 0)
+;=>car
+(vref z 1)
+;=>cons
+(vref z 2)
+;=>car
+(vref z 3)
+;=>cons
+(vref z 4)
+;=>range exceeded.
+(veq z x)
+;=>nil
+(vpop z)
+;=>cons
+(vpop z)
+;=>car
+(veq z x)
+;=>t
+(setq x (vector 1 2 3))
+;=>#<VECTOR>
+(setq y (vector 4 5 6))
+;=>#<VECTOR>
+(setq z (vnconc x y))
+;=>#<VECTOR>
+(eq x z)
+;=>t
+(vref z 5)
+;=>6
+(vref z 6)
+;=>range exceeded.
+(setq x (make-vector-from-list "hoge"))
+;=>#<VECTOR>
+(vref x 0)
+;=>'h'
+(vref x 1)
+;=>'o'
+(vref x 2)
+;=>'g'
+(vref x 3)
+;=>'e'
+(vref x 4)
+;=>range exceeded.
+(make-list-from-vector x)
+;=>"hoge"

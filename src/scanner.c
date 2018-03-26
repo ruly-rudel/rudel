@@ -9,11 +9,10 @@
 static void scan_to_lf(value_t *s)
 {
 	assert(s != NULL);
-	assert(rtypeof(*s) == CONS_T);
 
-	while(!nilp(*s))
+	for(; !nilp(*s); *s = cdr(*s))
 	{
-		assert(rtypeof(*s) == CONS_T);
+		assert(consp(*s));
 
 		value_t c = car(*s);	// current char
 		assert(rtypeof(c) == CHAR_T);
@@ -23,8 +22,6 @@ static void scan_to_lf(value_t *s)
 			*s = cdr(*s);
 			return ;
 		}
-
-		*s = cdr(*s);
 	}
 
 	return ;
@@ -33,18 +30,17 @@ static void scan_to_lf(value_t *s)
 static value_t scan_to_whitespace(value_t *s)
 {
 	assert(s != NULL);
-	assert(rtypeof(*s) == CONS_T);
 
 	value_t r = NIL;
 	value_t *cur = &r;
 
-	while(!nilp(*s))
+	for(; !nilp(*s); *s = cdr(*s))
 	{
-		assert(rtypeof(*s) == CONS_T);
+		assert(consp(*s));
 
 		value_t c = car(*s);	// current char
 
-		assert(rtypeof(c) == CHAR_T);
+		assert(charp(c));
 
 		if( INTOF(c) == ' '  ||
 		    INTOF(c) == '\t' ||
@@ -60,9 +56,6 @@ static value_t scan_to_whitespace(value_t *s)
 		else
 		{
 			cur = cons_and_cdr(c, cur);
-
-			// next
-			*s = cdr(*s);
 		}
 	}
 
@@ -74,19 +67,18 @@ static value_t scan_to_whitespace(value_t *s)
 static value_t scan_to_doublequote(value_t *s)
 {
 	assert(s != NULL);
-	assert(rtypeof(*s) == CONS_T);
 
 	value_t r = NIL;
 	value_t *cur = &r;
 
 	int st = 0;
-	while(!nilp(*s))
+	for(; !nilp(*s); *s = cdr(*s))
 	{
-		assert(rtypeof(*s) == CONS_T);
+		assert(consp(*s));
 
 		value_t c = car(*s);	// current char
 
-		assert(rtypeof(c) == CHAR_T);
+		assert(charp(c));
 
 		switch(st)
 		{
@@ -122,69 +114,64 @@ static value_t scan_to_doublequote(value_t *s)
 			st = 0;
 			break;
 		}
-
-		// next
-		*s = cdr(*s);
 	}
 
 	return RERR(ERR_PARSE, NIL);	// error: end of source string before doublequote
 }
 
+static inline bool is_ws(value_t c)
+{
+	assert(charp(c));
+	int cc = INTOF(c);
+
+	return cc == ' ' || cc == '\t' || cc == '\n';
+}
+
 static value_t scan1(value_t *s)
 {
 	assert(s != NULL);
-	assert(rtypeof(*s) == CONS_T);
 
-	while(!nilp(*s))
+	// skip space
+	for(; !nilp(*s) && is_ws(car(*s)); *s = cdr(*s))
+		assert(consp(*s));
+
+	if(nilp(*s))
 	{
-		assert(rtypeof(*s) == CONS_T);
-
-		value_t c = car(*s);	// current char
-		assert(rtypeof(c) == CHAR_T);
-
-		// skip white space
-		if( INTOF(c) == ' '  ||
-		    INTOF(c) == '\t' ||
-		    INTOF(c) == '\n'
-		  )
+		return NIL;
+	}
+	else
+	{
+		value_t c = car(*s);
+		switch(INTOF(c))
 		{
-			*s = cdr(*s);
-		}
-		else
-		{
-			switch(INTOF(c))
-			{
-			    // special character
-			    case ',':
-			    case '(':
-			    case ')':
-			    case '\'':
-			    case '`':
-			    case '@':
-				*s           = cdr (*s);
-				value_t sr   = cons(c, NIL);
-				sr.type.main = SYM_T;
-				return sr;
+		    // special character
+		    case ',':
+		    case '(':
+		    case ')':
+		    case '\'':
+		    case '`':
+		    case '@':
+			*s           = cdr (*s);
+			value_t sr   = cons(c, NIL);
+			sr.type.main = SYM_T;
+			return sr;
 
-			    // comment
-			    case ';':
-				*s           = cdr (*s);
-				scan_to_lf(s);
-			        break;	// return to skip-white-space
+		    // comment
+		    case ';':
+			*s           = cdr (*s);
+			scan_to_lf(s);
+			return scan1(s);
 
-			    // string
-			    case '"':
-				*s           = cdr (*s);
-				return scan_to_doublequote(s);
+		    // string
+		    case '"':
+			*s           = cdr (*s);
+			return scan_to_doublequote(s);
 
-			    // atom
-			    default:
-				return scan_to_whitespace(s);
-			}
+		    // atom
+		    default:
+			return scan_to_whitespace(s);
 		}
 	}
-
-	return NIL;	// no form or atom
 }
 
 

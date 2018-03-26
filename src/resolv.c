@@ -41,9 +41,9 @@ static value_t resolv_ast	(value_t ast, value_t env)
 	    case CONS_T:
 		if(is_str(ast)) return ast;
 
-		while(!nilp(ast))
+		for(; !nilp(ast); ast = cdr(ast))
 		{
-			assert(rtypeof(ast) == CONS_T);
+			assert(consp(ast));
 
 			value_t ast_car = resolv_bind(car(ast), env);
 #ifndef DONT_ABORT_EVAL_ON_ERROR
@@ -53,7 +53,6 @@ static value_t resolv_ast	(value_t ast, value_t env)
 			}
 #endif
 			cur = cons_and_cdr(ast_car, cur);
-			ast = cdr(ast);
 		}
 		return new_ast;
 
@@ -64,7 +63,7 @@ static value_t resolv_ast	(value_t ast, value_t env)
 
 static value_t resolv_let(value_t vcdr, value_t env)
 {
-	if(rtypeof(vcdr) != CONS_T)
+	if(!consp(vcdr))
 	{
 		return RERR(ERR_ARG, vcdr);
 	}
@@ -81,14 +80,14 @@ static value_t resolv_let(value_t vcdr, value_t env)
 
 	value_t new_def = NIL;
 	value_t* cur    = &new_def;
-	while(!nilp(def))
+	for(; !nilp(def); def = cdr(def))
 	{
+		assert(consp(def));
 		value_t bind = car(def);
-		def = cdr(def);
 
 		// symbol
 		value_t sym = car(bind);
-		if(rtypeof(sym) != SYM_T)
+		if(!symbolp(sym))
 		{
 			return RERR(ERR_ARG, bind);
 		}
@@ -122,7 +121,7 @@ static value_t resolv_let(value_t vcdr, value_t env)
 
 static value_t resolv_lambda(value_t vcdr, value_t env)
 {
-	if(rtypeof(vcdr) != CONS_T)
+	if(!consp(vcdr))
 	{
 		return RERR(ERR_ARG, vcdr);
 	}
@@ -151,7 +150,7 @@ static value_t resolv_lambda(value_t vcdr, value_t env)
 
 static value_t resolv_apply(value_t v, value_t env)
 {
-	assert(rtypeof(v) == CONS_T);
+	assert(consp(v));
 
 	// expand macro
 	v = macroexpand(v, env);
@@ -169,7 +168,7 @@ static value_t resolv_apply(value_t v, value_t env)
 	value_t vcdr = cdr(v);
 
 	value_t rv;
-	if(rtypeof(vcar) == SPECIAL_T)
+	if(specialp(vcar))
 	{
 		switch(SPECIAL(vcar))
 		{

@@ -194,10 +194,12 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		cur = cons_and_cdr(RCHAR('"'), cur);
 	}
 
-	while(!nilp(s))
+	for(; !nilp(s); s = cdr(s))
 	{
+		assert(consp(s));
+
 		value_t tcar = car(s);
-		assert(rtypeof(tcar) == CHAR_T);
+		assert(charp(tcar));
 
 		if(print_readably)	// escape
 		{
@@ -236,9 +238,6 @@ static value_t pr_str_str(value_t s, bool print_readably)
 				cur = cons_and_cdr(tcar, cur);
 			}
 		}
-
-		s = cdr(s);
-		assert(rtypeof(s) == CONS_T);
 	}
 
 	if(print_readably)
@@ -251,10 +250,9 @@ static value_t pr_str_str(value_t s, bool print_readably)
 
 static value_t pr_str_cfn(value_t s, value_t annotate)
 {
-	assert(rtypeof(s) == CFN_T);
+	assert(cfnp(s));
 
 #ifdef PRINT_CLOS_ENV
-	s.type.main = CONS_T;
 	value_t r = str_to_rstr("(#<COMPILED-FUNCTION> . ");
 	nconc(r, pr_str(cdr(s), annotate));
 	nconc(r, str_to_rstr(")"));
@@ -267,10 +265,9 @@ static value_t pr_str_cfn(value_t s, value_t annotate)
 
 static value_t pr_str_cloj(value_t s, value_t annotate)
 {
-	assert(rtypeof(s) == CLOJ_T);
+	assert(clojurep(s));
 
 #ifdef PRINT_CLOS_ENV
-	s.type.main = CONS_T;
 	value_t r = str_to_rstr("(#<CLOJURE> . ");
 	nconc(r, pr_str(cdr(s), annotate));
 	nconc(r, str_to_rstr(")"));
@@ -283,10 +280,9 @@ static value_t pr_str_cloj(value_t s, value_t annotate)
 
 static value_t pr_str_macro(value_t s, value_t annotate)
 {
-	assert(rtypeof(s) == MACRO_T);
+	assert(macrop(s));
 
 #ifdef PRINT_CLOS_ENV
-	s.type.main = CONS_T;
 	value_t r = str_to_rstr("(#<MACRO> . ");
 	nconc(r, pr_str(cdr(s), annotate));
 	nconc(r, str_to_rstr(")"));
@@ -300,11 +296,11 @@ static value_t pr_str_macro(value_t s, value_t annotate)
 static value_t pr_err_cause(value_t e)
 {
 	value_t cause = RERR_CAUSE(e);
-	if(rtypeof(cause) == CONS_T)
+	if(consp(cause))
 	{
 		return copy_list(cause);
 	}
-	else if(rtypeof(cause) == INT_T)
+	else if(intp(cause))
 	{
 		switch(INTOF(cause))
 		{
@@ -347,11 +343,10 @@ static value_t pr_err_pos(value_t e)
 	value_t r    = NIL;
 	value_t* cur = &r;
 
-	while(!nilp(pos))
+	for(; !nilp(pos); pos = cdr(pos))
 	{
 		cur = nconc_and_last(str_to_rstr("\nat "), cur);
 		cur = nconc_and_last(pr_str(car(pos), NIL, true), cur);
-		pos = cdr(pos);
 	}
 
 	return r;
@@ -359,7 +354,7 @@ static value_t pr_err_pos(value_t e)
 
 static value_t pr_err(value_t s)
 {
-	assert(rtypeof(s) == ERR_T);
+	assert(errp(s));
 
 	value_t r = pr_err_cause(s);
 	return nconc(r, pr_err_pos(s));
@@ -374,7 +369,7 @@ static value_t pr_sym(value_t s)
 
 static value_t pr_str_char(value_t s)
 {
-	assert(rtypeof(s) == CHAR_T);
+	assert(charp(s));
 	value_t r    = NIL;
 	value_t* cur = &r;
 
@@ -386,7 +381,7 @@ static value_t pr_str_char(value_t s)
 
 static value_t pr_ref(value_t s)
 {
-	assert(rtypeof(s) == REF_T);
+	assert(refp(s));
 
 	value_t r    = str_to_rstr("#REF:");
 	value_t* cur = &(last(r).cons->cdr);
@@ -401,7 +396,7 @@ static value_t pr_ref(value_t s)
 
 static value_t pr_special(value_t s)
 {
-	assert(rtypeof(s) == SPECIAL_T);
+	assert(specialp(s));
 	switch(SPECIAL(s))
 	{
 		case SP_SETQ:		return symbol_string(g_setq);
@@ -422,7 +417,7 @@ static value_t pr_special(value_t s)
 
 static value_t pr_vec(value_t s)
 {
-	assert(rtypeof(s) == VEC_T);
+	assert(vectorp(s));
 	return str_to_rstr("#<VECTOR>");
 }
 
@@ -431,13 +426,13 @@ static value_t pr_vec(value_t s)
 
 void printline(value_t s, FILE* fp)
 {
-	assert(rtypeof(s) == CONS_T);
-	s.type.main = CONS_T;
 
-	while(!nilp(s) && INTOF(car(s)) != '\0')
+	for(; !nilp(s) && INTOF(car(s)) != '\0'; s = cdr(s))
 	{
+		assert(consp(s));
+		assert(charp(car(s)));
+
 		fputc(INTOF(car(s)), fp);
-		s = cdr(s);
 	}
 
 	fputc('\n', fp);

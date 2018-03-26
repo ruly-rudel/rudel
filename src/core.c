@@ -73,6 +73,28 @@ static value_t NAME(value_t body, value_t env) \
 	} \
 }
 
+#define DEF_FN_2VEC(NAME, BODY) \
+static value_t NAME(value_t body, value_t env) \
+{ \
+	value_t arg1 = car(body); \
+	value_t arg2 = car(cdr(body)); \
+	if(vectorp(arg1) && vectorp(arg2)) \
+	{ \
+		return BODY; \
+	} \
+	else \
+	{ \
+		if(!vectorp(arg1)) \
+		{ \
+			return RERR(ERR_TYPE, body); \
+		} \
+		else \
+		{ \
+			return RERR(ERR_TYPE, cdr(body)); \
+		} \
+	} \
+}
+
 #define DEF_FN_1_BEGIN(NAME) \
 static value_t NAME(value_t body, value_t env) \
 { \
@@ -129,14 +151,14 @@ DEF_FN_2(b_cons,    cons   (arg1, arg2))
 DEF_FN_1(b_err,     rerr   (arg1, body))
 DEF_FN_2(b_eq,      EQ     (arg1, arg2) ? g_t : NIL)
 DEF_FN_2(b_equal,   equal  (arg1, arg2) ? g_t : NIL)
+DEF_FN_2(b_veq,     veq    (arg1, arg2) ? g_t : NIL)
 DEF_FN_1(b_eval,    eval   (arg1, last(env)))
-DEF_FN_2(b_rplaca,  rplaca (arg1, arg2))
-DEF_FN_2(b_rplacd,  rplacd (arg1, arg2))
-DEF_FN_2(b_nth,     rtypeof(arg2) != INT_T ? RERR(ERR_TYPE, body) : nth(INTOF(arg2), arg1))
+DEF_FN_2(b_rplaca,  !consp(arg1) ? RERR(ERR_TYPE, body) : rplaca (arg1, arg2))
+DEF_FN_2(b_rplacd,  !consp(arg1) ? RERR(ERR_TYPE, body) : rplacd (arg1, arg2))
+DEF_FN_2(b_nth,     !intp(arg2)  ? RERR(ERR_TYPE, body) : nth(INTOF(arg2), arg1))
 
 DEF_FN_VARG(b_gensym, gensym(last(env)))
 
-DEF_FN_1(b_resolv,  resolv_bind(arg1, env))
 
 ////////// special functions for rudel (manipulate environment etc...)
 
@@ -156,6 +178,10 @@ DEF_FN_END
 
 DEF_FN_VARG(b_init,  init(env))
 
+DEF_FN_1(b_resolv,  resolv_bind(arg1, env))
+
+
+////////// vector support
 DEF_FN_1INT(b_make_vector, make_vector(arg1))
 
 DEF_FN_2_BEGIN(b_vref)
@@ -183,6 +209,14 @@ DEF_FN_3_BEGIN(b_rplacv)
 
 	return rplacv(arg1, INTOF(arg2), arg3);
 DEF_FN_END
+
+DEF_FN_2(b_vpush, !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpush(arg1, arg2))
+DEF_FN_1(b_vpop,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpop (arg1))
+DEF_FN_1(b_copy_vector,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : copy_vector (arg1))
+DEF_FN_2VEC(b_vconc, vconc (arg1, arg2))
+DEF_FN_2VEC(b_vnconc, vnconc (arg1, arg2))
+DEF_FN_1(b_make_vector_from_list,  !consp(arg1) && !nilp(arg1) ? RERR(ERR_TYPE, body) : make_vector_from_list (arg1))
+DEF_FN_1(b_make_list_from_vector,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : make_list_from_vector (arg1))
 
 ////////// MATH functions
 
@@ -225,7 +259,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(39,
+	value_t key = list(39 + 8,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -249,6 +283,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("cdr"),
 	                      str_to_sym("="),
 	                      str_to_sym("eq"),
+	                      str_to_sym("veq"),
 	                      str_to_sym("atom"),
 	                      str_to_sym("init"),
 	                      str_to_sym("rplaca"),
@@ -258,6 +293,13 @@ value_t	create_root_env	(void)
 	                      str_to_sym("make-vector"),
 	                      str_to_sym("vref"),
 	                      str_to_sym("rplacv"),
+	                      str_to_sym("vpush"),
+	                      str_to_sym("vpop"),
+	                      str_to_sym("copy-vector"),
+	                      str_to_sym("vconc"),
+	                      str_to_sym("vnconc"),
+	                      str_to_sym("make-vector-from-list"),
+	                      str_to_sym("make-list-from-vector"),
 	                      str_to_sym("<"),
 	                      str_to_sym("<="),
 	                      str_to_sym(">"),
@@ -267,7 +309,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("*trace*")
 	                  );
 
-	value_t val = list(39,
+	value_t val = list(39 + 8,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -291,6 +333,7 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_cdr), NIL),
 	                      cfn(RFN(b_equal), NIL),
 	                      cfn(RFN(b_eq), NIL),
+	                      cfn(RFN(b_veq), NIL),
 	                      cfn(RFN(b_atom), NIL),
 	                      cfn(RFN(b_init), NIL),
 	                      cfn(RFN(b_rplaca), NIL),
@@ -300,6 +343,13 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_make_vector), NIL),
 	                      cfn(RFN(b_vref), NIL),
 	                      cfn(RFN(b_rplacv), NIL),
+	                      cfn(RFN(b_vpush), NIL),
+	                      cfn(RFN(b_vpop), NIL),
+	                      cfn(RFN(b_copy_vector), NIL),
+	                      cfn(RFN(b_vconc), NIL),
+	                      cfn(RFN(b_vnconc), NIL),
+	                      cfn(RFN(b_make_vector_from_list), NIL),
+	                      cfn(RFN(b_make_list_from_vector), NIL),
 	                      cfn(RFN(b_lt), NIL),
 	                      cfn(RFN(b_elt), NIL),
 	                      cfn(RFN(b_mt), NIL),

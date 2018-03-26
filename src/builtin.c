@@ -158,6 +158,10 @@ bool equal(value_t x, value_t y)
 			return equal(car(x), car(y)) && equal(cdr(x), cdr(y));
 		}
 	}
+	else if(vectorp(x))
+	{
+		return veq(x, y);
+	}
 	else
 	{
 		return false;
@@ -291,11 +295,8 @@ value_t copy_list(value_t list)
 	value_t    r = NIL;
 	value_t* cur = &r;
 
-	while(!nilp(list))
-	{
+	for(; !nilp(list); list = cdr(list))
 		cur = cons_and_cdr(car(list), cur);
-		list = cdr(list);
-	}
 
 	r.type.main = type;
 	return r;
@@ -356,14 +357,12 @@ value_t acons(value_t key, value_t val, value_t list)
 value_t pairlis		(value_t key, value_t val)
 {
 	value_t r = NIL;
-	while(!nilp(key))
+	for(; !nilp(key); key = cdr(key), val = cdr(val))
 	{
 		assert(rtypeof(key) == CONS_T);
 		assert(rtypeof(val) == CONS_T);
 
 		r = cons(cons(car(key), car(val)), r);
-		key = cdr(key);
-		val = cdr(val);
 	}
 	return r;
 }
@@ -555,7 +554,7 @@ value_t make_vector(unsigned n)
 
 value_t vref(value_t v, unsigned pos)
 {
-	assert(rtypeof(v) == VEC_T);
+	assert(vectorp(v));
 	v.vector = aligned_vaddr(v);
 
 	if(pos < INTOF(v.vector->size))
@@ -570,7 +569,7 @@ value_t vref(value_t v, unsigned pos)
 
 value_t rplacv(value_t v, unsigned pos, value_t data)
 {
-	assert(rtypeof(v) == VEC_T);
+	assert(vectorp(v));
 	v.vector = aligned_vaddr(v);
 
 	v.vector->data[pos] = data;
@@ -583,10 +582,164 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 
 value_t size(value_t v)
 {
-	assert(rtypeof(v) == VEC_T);
+	assert(vectorp(v));
 	v.vector = aligned_vaddr(v);
 	return v.vector->size;
 }
+
+value_t resize(value_t v, int n)
+{
+	assert(vectorp(v));
+	vector_t* va = aligned_vaddr(v);
+	if(n < 0)
+	{
+		return RERR(ERR_RANGE, NIL);
+	}
+	else
+	{
+		int cur_size = INTOF(va->size);
+		va->size = RINT(n);
+		for(int i = cur_size; i < n; i++)
+		{
+			va->data[i] = NIL;
+		}
+	}
+
+	return v;
+}
+
+bool veq(value_t x, value_t y)
+{
+	assert(vectorp(x));
+	assert(vectorp(y));
+
+	if(!EQ(size(x), size(y)))
+	{
+		return false;
+	}
+	else
+	{
+		for(int i = 0; i < INTOF(size(x)); i++)
+		{
+			if(!EQ(vref(x, i), vref(y, i)))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+value_t vpush(value_t v, value_t x)
+{
+	assert(vectorp(v));
+
+	return rplacv(v, INTOF(size(v)), x);
+}
+
+value_t vpop(value_t v)
+{
+	assert(vectorp(v));
+	int s = INTOF(size(v));
+
+	if(s <= 0)
+	{
+		return RERR(ERR_RANGE, NIL);
+	}
+	else
+	{
+		value_t r = vref(v, s - 1);
+		resize(v, s - 1);
+		//v.vector = aligned_vaddr(v);
+		//v.vector->size = RINT(s - 1);
+
+		return r;
+	}
+}
+
+value_t copy_vector(value_t src)
+{
+	assert(vectorp(src));
+	value_t r = make_vector(INTOF(size(src)));
+
+	for(int i = 0; i < INTOF(size(src)); i++)
+	{
+		rplacv(r, i, vref(src, i));
+	}
+
+	return r;
+}
+
+value_t vconc(value_t x, value_t y)
+{
+	assert(vectorp(x));
+	assert(vectorp(y));
+
+	int sx = INTOF(size(x));
+	int sy = INTOF(size(y));
+
+	value_t r = make_vector(sx + sy);
+
+	// copy x
+	for(int i = 0; i < sx; i++)
+	{
+		rplacv(r, i, vref(x, i));
+	}
+
+	// copy y
+	for(int i = 0; i < sy; i++)
+	{
+		rplacv(r, sx + i, vref(y, i));
+	}
+
+	return r;
+
+}
+
+value_t vnconc(value_t x, value_t y)
+{
+	assert(vectorp(x));
+	assert(vectorp(y));
+
+	// copy y
+	int sy = INTOF(size(y));
+	for(int i = 0; i < sy; i++)
+	{
+		vpush(x, vref(y, i));
+	}
+
+	return x;
+}
+
+value_t make_vector_from_list(value_t x)
+{
+	assert(is_cons_pair_or_nil(x));
+
+	value_t r = make_vector(0);
+	for(; !nilp(x); x = cdr(x))
+	{
+		vpush(r, car(x));
+	}
+
+	return r;
+}
+
+value_t make_list_from_vector(value_t x)
+{
+	assert(vectorp(x));
+
+	value_t r    = NIL;
+	value_t* cur = &r;
+
+	for(int i = 0; i < INTOF(size(x)); i++)
+	{
+		cur = cons_and_cdr(vref(x, i), cur);
+	}
+
+	return r;
+}
+
 
 /////////////////////////////////////////////////////////////////////
 // public: bridge functions from C to LISP
@@ -601,6 +754,25 @@ value_t str_to_cons	(const char* s)
 	while((c = *s++) != '\0')
 	{
 		cur = cons_and_cdr(RINT(c), cur);
+	}
+
+	return r;
+}
+
+value_t str_to_vec	(const char* s)
+{
+	assert(s != NULL);
+	value_t    r = make_vector(0);
+
+	int c;
+	while((c = *s++) != '\0')
+	{
+		vpush(r, RCHAR(c));
+	}
+
+	if(INTOF(size(r)) == 0)
+	{
+		vpush(r, RCHAR('\0'));
 	}
 
 	return r;
@@ -644,11 +816,10 @@ char*   rstr_to_str	(value_t s)
 	if(buf)
 	{
 		char *p = buf;
-		while(!nilp(s))
+		for(; !nilp(s); s = cdr(s))
 		{
-			assert(rtypeof(car(s)) == CHAR_T);
+			assert(charp(car(s)));
 			*p++ = INTOF(car(s));
-			s = cdr(s);
 		}
 		*p = '\0';
 	}
@@ -704,24 +875,23 @@ value_t* nconc_and_last(value_t v, value_t* c)
 bool is_str(value_t v)
 {
 #ifdef STR_EASY_CHECK
-	return rtypeof(v) == CONS_T && rtypeof(car(v)) == CHAR_T;
+	return consp(v) && charp(car(v));
 #else  // STR_EASY_CHECK
 	if(nilp(v)) return false;	// nil is not strgin
 
-	while(!nilp(v))
+	for(; !nilp(v); v = cdr(v))
 	{
-		if(rtypeof(v) != CONS_T)
+		if(!is_cons_pair_or_nil(v))
 		{
 			return false;
 		}
 		else
 		{
-			if(rtypeof(car(v)) != CHAR_T)
+			if(charp(car(v)))
 			{
 				return false;
 			}
 		}
-		v = cdr(v);
 	}
 	return true;
 #endif // STR_EASY_CHECK

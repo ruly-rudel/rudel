@@ -146,6 +146,9 @@ INLINE(bool    charp(value_t x),    x.type.main == OTH_T  &&  x.type.sub == CHAR
 INLINE(bool    consp(value_t x),    x.type.main == CONS_T && (x.type.sub != 0 || x.type.val != 0))
 INLINE(bool    vectorp(value_t x),  x.type.main == VEC_T  && (x.type.sub != 0 || x.type.val != 0))
 INLINE(bool    symbolp(value_t x),  x.type.main == SYM_T  && (x.type.sub != 0 || x.type.val != 0))
+INLINE(bool    cfnp(value_t x),     x.type.main == CFN_T  && (x.type.sub != 0 || x.type.val != 0))
+INLINE(bool    clojurep(value_t x), x.type.main == CLOJ_T && (x.type.sub != 0 || x.type.val != 0))
+INLINE(bool    macrop(value_t x),   x.type.main == MACRO_T&& (x.type.sub != 0 || x.type.val != 0))
 INLINE(bool    errp(value_t x),     x.type.main == ERR_T)
 INLINE(bool    refp(value_t x),     x.type.main == OTH_T  &&  x.type.sub == REF_T)
 INLINE(bool    specialp(value_t x), x.type.main == OTH_T  &&  x.type.sub == SPECIAL_T)
@@ -181,12 +184,23 @@ value_t	cloj		(value_t fn, value_t env);
 value_t	macro		(value_t fn, value_t env);
 value_t slurp		(char* fn);
 value_t init		(value_t env);
+
 value_t make_vector	(unsigned n);
 value_t vref		(value_t v, unsigned pos);
 value_t rplacv		(value_t v, unsigned pos, value_t data);
 value_t size		(value_t v);
+value_t resize		(value_t v, int n);
+bool	veq		(value_t x, value_t y);
+value_t vpush		(value_t v, value_t x);
+value_t vpop		(value_t v);
+value_t copy_vector	(value_t src);
+value_t vconc		(value_t x, value_t y);
+value_t vnconc		(value_t x, value_t y);
+value_t make_vector_from_list	(value_t x);
+value_t make_list_from_vector	(value_t x);
 
 value_t str_to_cons	(const char* s);
+value_t str_to_vec	(const char* s);
 value_t str_to_rstr	(const char* s);
 value_t str_to_sym	(const char* s);
 char*   rstr_to_str	(value_t s);

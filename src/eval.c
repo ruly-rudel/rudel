@@ -25,9 +25,9 @@ static value_t eval_ast	(value_t ast, value_t env)
 	    case CONS_T:
 		if(is_str(ast)) return ast;
 
-		while(!nilp(ast))
+		for(; !nilp(ast); ast = cdr(ast))
 		{
-			assert(rtypeof(ast) == CONS_T);
+			assert(consp(ast));
 
 			value_t ast_car = eval(car(ast), env);
 #ifndef DONT_ABORT_EVAL_ON_ERROR
@@ -37,7 +37,6 @@ static value_t eval_ast	(value_t ast, value_t env)
 			}
 #endif
 			cur = cons_and_cdr(ast_car, cur);
-			ast = cdr(ast);
 		}
 		return new_ast;
 
@@ -50,7 +49,7 @@ static value_t eval_setq(value_t vcdr, value_t env)
 {
 	// key
 	value_t key = car(vcdr);
-	if(rtypeof(key) != SYM_T)
+	if(!symbolp(key))
 	{
 		return RERR(ERR_NOTSYM, vcdr);
 	}
@@ -112,7 +111,7 @@ static value_t eval_if(value_t vcdr, value_t env)
 
 static value_t eval_let(value_t vcdr, value_t env)
 {
-	if(rtypeof(vcdr) != CONS_T)
+	if(!consp(vcdr))
 	{
 		return RERR(ERR_ARG, vcdr);
 	}
@@ -127,14 +126,13 @@ static value_t eval_let(value_t vcdr, value_t env)
 		return RERR(ERR_ARG, vcdr);
 	}
 
-	while(!nilp(def))
+	for(; !nilp(def); def = cdr(def))
 	{
 		value_t bind = car(def);
-		def = cdr(def);
 
 		// symbol
 		value_t sym = car(bind);
-		if(rtypeof(sym) != SYM_T)
+		if(!symbolp(sym))
 		{
 			return RERR(ERR_ARG, bind);
 		}
@@ -183,21 +181,21 @@ static value_t eval_quasiquote	(value_t vcdr, value_t env)
 
 static value_t is_macro_call(value_t ast, value_t env)
 {
-	if(rtypeof(ast) == CONS_T)
+	if(consp(ast))
 	{
 		value_t ast_1st = car(ast);
-		if(rtypeof(ast_1st) == SYM_T)
+		if(symbolp(ast_1st))
 		{
 			value_t ast_1st_eval = cdr(find_env_all(ast_1st, env));
-			if(rtypeof(ast_1st_eval) == MACRO_T)
+			if(macrop(ast_1st_eval))
 			{
 				return ast_1st_eval;
 			}
 		}
-		else if(rtypeof(ast_1st) == REF_T)
+		else if(refp(ast_1st))
 		{
 			value_t ast_1st_eval = get_env_value_ref(ast_1st, env);
-			if(rtypeof(ast_1st_eval) == MACRO_T)
+			if(macrop(ast_1st_eval))
 			{
 				return ast_1st_eval;
 			}
@@ -214,7 +212,7 @@ static void debug_repl(value_t env)
 		value_t r = READ("debug# ", stdin);
 		if(errp(r))
 		{
-			if(rtypeof(car(r)) == INT_T && INTOF(car(r)) == ERR_EOF)
+			if(intp(car(r)) && INTOF(car(r)) == ERR_EOF)
 			{
 				break;
 			}
@@ -263,7 +261,7 @@ static bool is_break(value_t v, value_t env)
 
 static value_t eval_apply(value_t v, value_t env)
 {
-	assert(rtypeof(v) == CONS_T);
+	assert(consp(v));
 
 	// expand macro
 	v = macroexpand(v, env);
@@ -280,7 +278,7 @@ static value_t eval_apply(value_t v, value_t env)
 	value_t vcar = car(v);
 	value_t vcdr = cdr(v);
 
-	if(rtypeof(vcar) == SPECIAL_T)
+	if(specialp(vcar))
 	{
 		switch(SPECIAL(vcar))
 		{
@@ -328,7 +326,7 @@ static value_t eval_apply(value_t v, value_t env)
 
 			// apply
 			value_t ret;
-			if(rtypeof(fn) == CFN_T)		// compiled function
+			if(cfnp(fn))			// compiled function
 			{
 #ifdef DEBUG_CMD
 				if(debug_mode) debug_repl(env);
@@ -338,7 +336,7 @@ static value_t eval_apply(value_t v, value_t env)
 				// apply
 				ret = car(fn).rfn(cdr(ev), env);
 			}
-			else if(rtypeof(fn) == CLOJ_T)		// (ast . env)
+			else if(clojurep(fn))		// (ast . env)
 			{
 				ret = apply(fn, cdr(ev), debug_mode);
 			}
@@ -388,13 +386,14 @@ value_t macroexpand_all(value_t ast, value_t env)
 	else
 	{
 		value_t m = macroexpand(ast, env);
-		if(rtypeof(m) == CONS_T && !is_str(m))
+		if(consp(m) && !is_str(m))
 		{
 			value_t r    = NIL;
 			value_t* cur = &r;
-			while(!nilp(m))
+
+			for(; !nilp(m); m = cdr(m))
 			{
-				assert(rtypeof(m) == CONS_T);
+				assert(consp(m));
 				value_t mex = macroexpand_all(car(m), env);
 				if(errp(mex))
 				{
@@ -403,7 +402,6 @@ value_t macroexpand_all(value_t ast, value_t env)
 				else
 				{
 					cur = cons_and_cdr(mex, cur);
-					m = cdr(m);
 				}
 			}
 
@@ -418,10 +416,8 @@ value_t macroexpand_all(value_t ast, value_t env)
 
 value_t apply(value_t fn, value_t args, bool blk)
 {
-	fn.type.main = CONS_T;
-
 	value_t fn_ast = car(fn);
-	if(rtypeof(fn_ast) != CONS_T)
+	if(!consp(fn_ast))
 	{
 		return RERR(ERR_ARG, fn);
 	}

@@ -192,6 +192,9 @@
 (defun ppln (tree)
 	(println (pp tree 0)))
 
+(defun vector (& lst)
+  (make-vector-from-list lst))
+
 ;; debug functions
 (defun trace (x)
 	(setq *trace* (if x (cons x *trace*))))

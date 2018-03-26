@@ -39,18 +39,17 @@ static value_t read_int(value_t token)
 
 	// value
 	int val = 0;
-	while(!nilp(token))
+	for(; !nilp(token); token = cdr(token))
 	{
+		assert(consp(token));
 		tcar = car(token);
-		assert(rtypeof(tcar) == CHAR_T);
+		assert(charp(tcar));
 
 		int cv = INTOF(tcar) - '0';
 		if(cv >= 0 && cv <= 9)
 		{
 			val *= 10;
 			val += cv;
-			token = cdr(token);
-			assert(rtypeof(token) == CONS_T);
 		}
 		else
 		{
@@ -65,7 +64,7 @@ static value_t read_atom(scan_t* st)
 {
 	value_t token = scan_peek(st);
 
-	if(rtypeof(token) == SYM_T)
+	if(symbolp(token))
 	{
 		value_t rint = read_int(token);
 		if(!nilp(rint))
@@ -124,7 +123,7 @@ static value_t read_list(scan_t* st)
 		{
 			return token;	// scan error
 		}
-		else if(rtypeof(token) == SYM_T)
+		else if(symbolp(token))
 		{
 			token.type.main = CONS_T;
 
@@ -169,8 +168,8 @@ static value_t read_form(scan_t* st)
 	}
 	else
 	{
-		assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T);
-		if(rtypeof(token) == SYM_T)
+		assert(consp(token) || symbolp(token));
+		if(symbolp(token))
 		{
 			value_t tcons = token;
 			value_t tcar  = car(tcons);
@@ -198,12 +197,12 @@ static value_t read_form(scan_t* st)
 					return token;
 				}
 
-				assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T);
+				assert(consp(token) || symbolp(token));
 				if(rtypeof(token) == SYM_T)
 				{
 					value_t tcons = token;
 					value_t tcar  = car(tcons);
-					assert(rtypeof(tcar) == CHAR_T);
+					assert(charp(tcar));
 					if(INTOF(tcar) == '@')
 					{
 						scan_next(st);

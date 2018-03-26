@@ -15,7 +15,7 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 	value_t alist = make_vector(0);
 	int i = 0;
 
-	while(!nilp(key))
+	for(; !nilp(key); key = UNSAFE_CDR(key), val = cdr(val))
 	{
 		assert(consp(key));
 		assert(rtypeof(val) == CONS_T);	// nil is acceptable
@@ -34,8 +34,6 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 			assert(symbolp(key_car));
 			rplacv(alist, i++, cons(key_car, val_car));		// for resolv order.
 		}
-		key = UNSAFE_CDR(key);
-		val = cdr(val);
 	}
 
 	return cons(alist, outer);
@@ -113,7 +111,7 @@ value_t	find_env_all	(value_t key, value_t env)
 
 	if(rtypeof(key) == SYM_T)
 	{
-		while(!nilp(env))
+		for(; !nilp(env); env = UNSAFE_CDR(env))
 		{
 			assert(rtypeof(env) == CONS_T);
 			value_t s = vassoceq(key, UNSAFE_CAR(env));
@@ -121,18 +119,14 @@ value_t	find_env_all	(value_t key, value_t env)
 			{
 				return s;
 			}
-			env = UNSAFE_CDR(env);
 		}
 
 		return NIL;
 	}
 	else	// REF_T
 	{
-		int d = REF_D(key);
-		while(d--)
-		{
-			env = UNSAFE_CDR(env);
-		}
+		for(int d = REF_D(key); d > 0; d--, env = UNSAFE_CDR(env))
+			assert(consp(env));
 
 		env = UNSAFE_CAR(env);
 
@@ -146,7 +140,7 @@ value_t	get_env_value	(value_t key, value_t env)
 	assert(consp(env));
 	assert(symbolp(key));
 
-	while(!nilp(env))
+	for(; !nilp(env); env = UNSAFE_CDR(env))
 	{
 		assert(consp(env));
 		value_t s = vassoceq(key, UNSAFE_CAR(env));
@@ -154,7 +148,6 @@ value_t	get_env_value	(value_t key, value_t env)
 		{
 			return UNSAFE_CDR(s);
 		}
-		env = UNSAFE_CDR(env);
 	}
 
 	value_t r = str_to_rstr("variable ");
@@ -170,14 +163,13 @@ value_t	get_env_ref	(value_t key, value_t env)
 	assert(consp(env));
 	assert(symbolp(key));
 
-	int depth = 0;
-	while(!nilp(env))
+	for(int depth = 0; !nilp(env); depth++, env = UNSAFE_CDR(env))
 	{
 		assert(consp(env));
 		value_t alist = car(env);
 		assert(vectorp(alist));
-		int width = 0;
-		while(width < INTOF(size(alist)))
+
+		for(int width = 0; width < INTOF(size(alist)); width++)
 		{
 			value_t pair = vref(alist, width);
 			assert(consp(pair));
@@ -186,10 +178,7 @@ value_t	get_env_ref	(value_t key, value_t env)
 			{
 				return RREF(depth, width);
 			}
-			width++;
 		}
-		env = UNSAFE_CDR(env);
-		depth++;
 	}
 
 	value_t r = str_to_rstr("variable ");
@@ -204,12 +193,8 @@ value_t	get_env_value_ref(value_t ref, value_t env)
 	assert(consp(env));
 	assert(rtypeof(ref) == REF_T);
 
-	int d = REF_D(ref);
-	while(d--)
-	{
+	for(int d = REF_D(ref); d > 0; d--, env = UNSAFE_CDR(env))
 		assert(consp(env));
-		env = UNSAFE_CDR(env);
-	}
 
 	assert(consp(env));
 	env = UNSAFE_CAR(env);
