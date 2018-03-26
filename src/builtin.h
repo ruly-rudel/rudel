@@ -104,7 +104,7 @@ typedef struct _vector_t
 {
 	value_t		size;
 	value_t		alloc;
-	value_t		type;
+	value_t		rptr;
 	value_t*	data;
 } vector_t;
 
@@ -138,6 +138,7 @@ typedef struct _vector_t
 #define ERR_RANGE		9
 #define ERR_NOTIMPL		10
 #define ERR_ALLOC		11
+#define ERR_EOS			12
 
 #define UNSAFE_CAR(X)	(X).cons->car
 #define UNSAFE_CDR(X)	(X).cons->cdr
@@ -191,11 +192,13 @@ value_t init		(value_t env);
 value_t make_vector	(unsigned n);
 value_t vref		(value_t v, unsigned pos);
 value_t rplacv		(value_t v, unsigned pos, value_t data);
-value_t size		(value_t v);
-value_t resize		(value_t v, int n);
+value_t vsize		(value_t v);
+value_t vresize		(value_t v, int n);
 bool	veq		(value_t x, value_t y);
 value_t vpush		(value_t v, value_t x);
 value_t vpop		(value_t v);
+value_t vpeek_front	(value_t v);
+value_t vpop_front	(value_t v);
 value_t copy_vector	(value_t src);
 value_t vconc		(value_t x, value_t y);
 value_t vnconc		(value_t x, value_t y);

@@ -328,6 +328,15 @@ static value_t pr_err_cause(value_t e)
 		    case ERR_RANGE:
 			return str_to_rstr("range exceeded.");
 
+		    case ERR_NOTIMPL:
+			return str_to_rstr("internal error: that special form is not implemented.");
+
+		    case ERR_ALLOC:
+			return str_to_rstr("memory allocation fails.");
+
+		    case ERR_EOS:
+			return str_to_rstr("end of sequence.");
+
 		    default:
 			return str_to_rstr("unknown error.");
 		}

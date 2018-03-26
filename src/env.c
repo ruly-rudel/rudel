@@ -59,7 +59,7 @@ value_t	set_env		(value_t key, value_t val, value_t env)
 		{
 			value_t alist = UNSAFE_CAR(env);
 			assert(vectorp(alist));
-			rplacv(alist, INTOF(size(alist)), r);
+			rplacv(alist, INTOF(vsize(alist)), r);
 		}
 	}
 	else
@@ -75,7 +75,7 @@ static value_t vassoceq(value_t key, value_t avector)
 	assert(symbolp(key));
 	assert(vectorp(avector));
 
-	for(int i = 0; i < INTOF(size(avector)); i++)
+	for(int i = 0; i < INTOF(vsize(avector)); i++)
 	{
 		value_t pair = vref(avector, i);
 		assert(rtypeof(pair) == CONS_T);
@@ -169,7 +169,7 @@ value_t	get_env_ref	(value_t key, value_t env)
 		value_t alist = car(env);
 		assert(vectorp(alist));
 
-		for(int width = 0; width < INTOF(size(alist)); width++)
+		for(int width = 0; width < INTOF(vsize(alist)); width++)
 		{
 			value_t pair = vref(alist, width);
 			assert(consp(pair));

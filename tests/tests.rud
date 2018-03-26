@@ -1093,15 +1093,17 @@ x
 ;=>range exceeded.
 (setq x (make-vector-from-list "hoge"))
 ;=>#<VECTOR>
-(vref x 0)
+(vpop-front x)
 ;=>'h'
-(vref x 1)
+(vpop-front x)
 ;=>'o'
-(vref x 2)
+(vpeek-front x)
 ;=>'g'
-(vref x 3)
+(vpop-front x)
+;=>'g'
+(vpop-front x)
 ;=>'e'
-(vref x 4)
-;=>range exceeded.
+(vpop-front x)
+;=>end of sequence.
 (make-list-from-vector x)
 ;=>"hoge"

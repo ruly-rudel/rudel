@@ -446,7 +446,7 @@ int	count(value_t x)
 	}
 	else if(rtypeof(x) == VEC_T)
 	{
-		return INTOF(size(x));
+		return INTOF(vsize(x));
 	}
 	else
 	{
@@ -558,10 +558,10 @@ value_t make_vector(unsigned n)
 
 	v.vector->size  = RINT(0);
 	v.vector->alloc = RINT(0);
-	v.vector->type  = NIL;
+	v.vector->rptr  = RINT(0);
 	v.vector->data  = 0;
 	v.type.main     = VEC_T;
-	resize(v, n);
+	vresize(v, n);
 	return v;
 }
 
@@ -584,9 +584,9 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 {
 	assert(vectorp(v));
 
-	if(pos >= INTOF(size(v)))
+	if(pos >= INTOF(vsize(v)))
 	{
-		resize(v, pos + 1);
+		vresize(v, pos + 1);
 	}
 
 	v.vector = aligned_vaddr(v);
@@ -595,14 +595,30 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 	return data;
 }
 
-value_t size(value_t v)
+value_t vsize(value_t v)
 {
 	assert(vectorp(v));
 	v.vector = aligned_vaddr(v);
 	return v.vector->size;
 }
 
-value_t resize(value_t v, int n)
+value_t vrptr(value_t v)
+{
+	assert(vectorp(v));
+	v.vector = aligned_vaddr(v);
+	return v.vector->rptr;
+}
+
+value_t vset_rptr(value_t v, value_t n)
+{
+	assert(vectorp(v));
+	assert(intp(n));
+
+	v.vector = aligned_vaddr(v);
+	return v.vector->rptr = n;
+}
+
+value_t vresize(value_t v, int n)
 {
 	assert(vectorp(v));
 	vector_t* va = aligned_vaddr(v);
@@ -645,13 +661,13 @@ bool veq(value_t x, value_t y)
 	assert(vectorp(x));
 	assert(vectorp(y));
 
-	if(!EQ(size(x), size(y)))
+	if(!EQ(vsize(x), vsize(y)))
 	{
 		return false;
 	}
 	else
 	{
-		for(int i = 0; i < INTOF(size(x)); i++)
+		for(int i = 0; i < INTOF(vsize(x)); i++)
 		{
 			if(!EQ(vref(x, i), vref(y, i)))
 			{
@@ -667,13 +683,13 @@ value_t vpush(value_t v, value_t x)
 {
 	assert(vectorp(v));
 
-	return rplacv(v, INTOF(size(v)), x);
+	return rplacv(v, INTOF(vsize(v)), x);
 }
 
 value_t vpop(value_t v)
 {
 	assert(vectorp(v));
-	int s = INTOF(size(v));
+	int s = INTOF(vsize(v));
 
 	if(s <= 0)
 	{
@@ -682,20 +698,45 @@ value_t vpop(value_t v)
 	else
 	{
 		value_t r = vref(v, s - 1);
-		resize(v, s - 1);
-		//v.vector = aligned_vaddr(v);
-		//v.vector->size = RINT(s - 1);
+		vresize(v, s - 1);
 
 		return r;
 	}
 }
 
+value_t vpeek_front(value_t v)
+{
+	assert(vectorp(v));
+	int s = INTOF(vsize(v));
+	int r = INTOF(vrptr(v));
+	if(s <= r)
+	{
+		return RERR(ERR_EOS, NIL);
+	}
+	else
+	{
+		return vref(v, r);
+	}
+}
+
+value_t vpop_front(value_t v)
+{
+	assert(vectorp(v));
+	value_t r = vpeek_front(v);
+	if(!errp(r))
+	{
+		vset_rptr(v, RINT(INTOF(vrptr(v)) + 1));
+	}
+
+	return r;
+}
+
 value_t copy_vector(value_t src)
 {
 	assert(vectorp(src));
-	value_t r = make_vector(INTOF(size(src)));
+	value_t r = make_vector(INTOF(vsize(src)));
 
-	for(int i = 0; i < INTOF(size(src)); i++)
+	for(int i = 0; i < INTOF(vsize(src)); i++)
 	{
 		rplacv(r, i, vref(src, i));
 	}
@@ -708,8 +749,8 @@ value_t vconc(value_t x, value_t y)
 	assert(vectorp(x));
 	assert(vectorp(y));
 
-	int sx = INTOF(size(x));
-	int sy = INTOF(size(y));
+	int sx = INTOF(vsize(x));
+	int sy = INTOF(vsize(y));
 
 	value_t r = make_vector(sx + sy);
 
@@ -735,7 +776,7 @@ value_t vnconc(value_t x, value_t y)
 	assert(vectorp(y));
 
 	// copy y
-	int sy = INTOF(size(y));
+	int sy = INTOF(vsize(y));
 	for(int i = 0; i < sy; i++)
 	{
 		vpush(x, vref(y, i));
@@ -764,7 +805,7 @@ value_t make_list_from_vector(value_t x)
 	value_t r    = NIL;
 	value_t* cur = &r;
 
-	for(int i = 0; i < INTOF(size(x)); i++)
+	for(int i = 0; i < INTOF(vsize(x)); i++)
 	{
 		cur = cons_and_cdr(vref(x, i), cur);
 	}
@@ -802,7 +843,7 @@ value_t str_to_vec	(const char* s)
 		vpush(r, RCHAR(c));
 	}
 
-	if(INTOF(size(r)) == 0)
+	if(INTOF(vsize(r)) == 0)
 	{
 		vpush(r, RCHAR('\0'));
 	}
