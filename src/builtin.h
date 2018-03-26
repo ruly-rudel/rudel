@@ -103,7 +103,9 @@ typedef struct _cons_t
 typedef struct _vector_t
 {
 	value_t		size;
-	value_t		data[1];
+	value_t		alloc;
+	value_t		type;
+	value_t*	data;
 } vector_t;
 
 #define NIL         ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   = 0   })
@@ -135,6 +137,7 @@ typedef struct _vector_t
 #define ERR_FILENOTFOUND	8
 #define ERR_RANGE		9
 #define ERR_NOTIMPL		10
+#define ERR_ALLOC		11
 
 #define UNSAFE_CAR(X)	(X).cons->car
 #define UNSAFE_CDR(X)	(X).cons->cdr

@@ -47,10 +47,16 @@ static inline cons_t* alloc_cons(void)
 	return c;
 }
 
-static inline vector_t* alloc_vector(int size)
+static inline vector_t* alloc_vector()
 {
-	vector_t* v = (vector_t*)malloc(sizeof(value_t) * 256 + 1);	//****** ad-hock
-	v->size = RINT(size);
+	vector_t* v = (vector_t*)malloc(sizeof(vector_t));
+#if 0
+#if __WORDSIZE == 32
+	fprintf(stderr, "vector: %08x, size %d\n", (int)v, sizeof(vector_t));
+#else
+	fprintf(stderr, "vector: %016lx, size %ld\n", (int64_t)v, sizeof(vector_t));
+#endif
+#endif
 	return v;
 }
 
@@ -110,10 +116,16 @@ value_t	cons(value_t car, value_t cdr)
 	// r.type.main is always 0 (=CONS_T) because malloc returns ptr aligned to 8byte.
 	// r.type.main	= CONS_T;
 	r.cons		= alloc_cons();
-	r.cons->car	= car;
-	r.cons->cdr	= cdr;
-
-	return r;
+	if(r.cons)
+	{
+		r.cons->car	= car;
+		r.cons->cdr	= cdr;
+		return r;
+	}
+	else
+	{
+		return RERR(ERR_ALLOC, NIL);
+	}
 }
 
 bool seqp(value_t x)
@@ -541,14 +553,15 @@ value_t init(value_t env)
 
 value_t make_vector(unsigned n)
 {
-	value_t v   = { 0 };
-	v.vector    = alloc_vector(n);
-	for(int i = 0; i < n; i++)
-	{
-		v.vector->data[i] = NIL;
-	}
-	v.type.main = VEC_T;
+	value_t v = { 0 };
+	v.vector  = alloc_vector();
 
+	v.vector->size  = RINT(0);
+	v.vector->alloc = RINT(0);
+	v.vector->type  = NIL;
+	v.vector->data  = 0;
+	v.type.main     = VEC_T;
+	resize(v, n);
 	return v;
 }
 
@@ -570,13 +583,15 @@ value_t vref(value_t v, unsigned pos)
 value_t rplacv(value_t v, unsigned pos, value_t data)
 {
 	assert(vectorp(v));
-	v.vector = aligned_vaddr(v);
 
-	v.vector->data[pos] = data;
-	if(pos >= INTOF(v.vector->size))
+	if(pos >= INTOF(size(v)))
 	{
-		v.vector->size = RINT(pos + 1);
+		resize(v, pos + 1);
 	}
+
+	v.vector = aligned_vaddr(v);
+	v.vector->data[pos] = data;
+
 	return data;
 }
 
@@ -597,6 +612,23 @@ value_t resize(value_t v, int n)
 	}
 	else
 	{
+
+		// resize allocated area
+		if(INTOF(va->alloc) < n)
+		{
+			for(va->alloc = RINT(1); INTOF(va->alloc) < n; va->alloc = RINT(INTOF(va->alloc) << 1));
+			value_t* np = (value_t*)realloc(va->data, INTOF(va->alloc) * sizeof(value_t));
+			if(np)
+			{
+				va->data = np;
+			}
+			else
+			{
+				return RERR(ERR_ALLOC, NIL);
+			}
+		}
+
+		// change size and NILify new area
 		int cur_size = INTOF(va->size);
 		va->size = RINT(n);
 		for(int i = cur_size; i < n; i++)
