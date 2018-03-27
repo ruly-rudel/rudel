@@ -63,7 +63,7 @@
 
 (defun last (x)
 	(if x
-	  (if (seqp x)
+	  (if (consp x)
 	    (if (cdr x)
 	      (last (cdr x))
 	      x))
@@ -75,7 +75,7 @@
 
 (defun count (x)
 	(if x
-	  (if (seqp x) (+ 1 (count (cdr x)))
+	  (if (consp x) (+ 1 (count (cdr x)))
 	    0)
 	  0))
 
@@ -87,7 +87,7 @@
 (defun copy-list (x n)
 	(if (and n (= n 0)) nil
 	   (if x
-	     (if (seqp x)
+	     (if (consp x)
 	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
 	       x))))
 
@@ -133,10 +133,8 @@
 
 
 ;; rudel-specific functions
-;(defun load-file (f)
-;	(eval (read-string (str "(progn " (slurp f) ")"))))
 (defun load-file (f)
-	 (str "(progn " (slurp f) ")"))
+	(eval (read-string (str "(progn " (slurp f) ")"))))
 
 ;(if (cond)
 ;    (true)

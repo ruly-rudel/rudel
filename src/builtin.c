@@ -62,22 +62,22 @@ static inline vector_t* alloc_vector()
 
 static inline bool is_cons_pair(value_t x)
 {
-	return rtypeof(x) < OTH_T && (x.type.sub != 0 || x.type.val != 0);
+	return rtypeof(x) <= MACRO_T && (x.type.sub != 0 || x.type.val != 0);
 }
 
 static inline bool is_cons_pair_or_nil(value_t x)
 {
-	return rtypeof(x) < OTH_T;
+	return rtypeof(x) <= MACRO_T;
 }
 
 static inline bool is_seq(value_t x)
 {
-	return rtypeof(x) <= VEC_T && (x.type.sub != 0 || x.type.val != 0);
+	return rtypeof(x) == CONS_T && (x.type.sub != 0 || x.type.val != 0);
 }
 
 static inline bool is_seq_or_nil(value_t x)
 {
-	return rtypeof(x) <= VEC_T;
+	return rtypeof(x) == CONS_T;
 }
 
 
@@ -128,14 +128,9 @@ value_t	cons(value_t car, value_t cdr)
 	}
 }
 
-bool seqp(value_t x)
-{
-	return is_seq(x);
-}
-
 bool atom(value_t x)
 {
-	return !is_seq_or_nil(x) || nilp(x);
+	return rtypeof(x) != CONS_T || nilp(x);
 }
 
 bool eq(value_t x, value_t y)
@@ -559,7 +554,7 @@ value_t make_vector(unsigned n)
 
 	v.vector->size  = RINT(0);
 	v.vector->alloc = RINT(0);
-	v.vector->rptr  = RINT(0);
+	v.vector->type  = NIL;
 	v.vector->data  = 0;
 	v.type.main     = VEC_T;
 	vresize(v, n);
@@ -601,22 +596,6 @@ value_t vsize(value_t v)
 	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
 	return v.vector->size;
-}
-
-value_t vrptr(value_t v)
-{
-	assert(vectorp(v) || symbolp(v));
-	v.vector = aligned_vaddr(v);
-	return v.vector->rptr;
-}
-
-value_t vset_rptr(value_t v, value_t n)
-{
-	assert(vectorp(v) || symbolp(v));
-	assert(intp(n));
-
-	v.vector = aligned_vaddr(v);
-	return v.vector->rptr = n;
 }
 
 value_t vresize(value_t v, int n)
@@ -705,34 +684,6 @@ value_t vpop(value_t v)
 
 		return r;
 	}
-}
-
-value_t vpeek_front(value_t v)
-{
-	assert(vectorp(v) || symbolp(v));
-
-	int s = INTOF(vsize(v));
-	int r = INTOF(vrptr(v));
-	if(s <= r)
-	{
-		return RERR(ERR_EOS, NIL);
-	}
-	else
-	{
-		return vref(v, r);
-	}
-}
-
-value_t vpop_front(value_t v)
-{
-	assert(vectorp(v) || symbolp(v));
-	value_t r = vpeek_front(v);
-	if(!errp(r))
-	{
-		vset_rptr(v, RINT(INTOF(vrptr(v)) + 1));
-	}
-
-	return r;
 }
 
 value_t vpush_front(value_t v, value_t x)
@@ -892,8 +843,9 @@ char*   rstr_to_str	(value_t s)
 	if(buf)
 	{
 		char *p = buf;
-		for(value_t c = vpop_front(s); !errp(c); c = vpop_front(s))
+		for(int i = 0; i < INTOF(vsize(s)); i++)
 		{
+			value_t c = vref(s, i);
 			assert(charp(c));
 			*p++ = INTOF(c);
 		}

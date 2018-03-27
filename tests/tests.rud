@@ -916,7 +916,7 @@ x
 (atom 0)
 ;=>t
 (atom "string")
-;=>nil
+;=>t
 (atom cons)
 ;=>t
 (atom or)
@@ -1092,18 +1092,16 @@ x
 (vref z 6)
 ;=>range exceeded.
 (setq x "hoge")
-;=>#<VECTOR>
-(vpop-front x)
-;=>'h'
-(vpop-front x)
-;=>'o'
-(vpeek-front x)
-;=>'g'
-(vpop-front x)
-;=>'g'
-(vpop-front x)
-;=>'e'
-(vpop-front x)
-;=>end of sequence.
-(make-list-from-vector x)
 ;=>"hoge"
+(vref x 0)
+;=>'h'
+(vref x 1)
+;=>'o'
+(vref x 2)
+;=>'g'
+(vref x 3)
+;=>'e'
+(vref x 4)
+;=>range exceeded.
+(make-list-from-vector x)
+;=>('h' 'o' 'g' 'e')

@@ -6,7 +6,8 @@
 
 typedef struct
 {
-	value_t		cur;
+	value_t		buf;
+	unsigned	rptr;
 	value_t		token;
 } scan_t;
 

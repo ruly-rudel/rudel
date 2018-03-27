@@ -200,8 +200,9 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		vpush(r, RCHAR('"'));
 	}
 
-	for(value_t c = vpeek_front(s); !errp(c); c = (vpop_front(s), vpeek_front(s)))
+	for(int i = 0; i < INTOF(vsize(s)); i++)
 	{
+		value_t c = vref(s, i);
 		assert(charp(c));
 
 		if(print_readably)	// escape
@@ -441,10 +442,11 @@ static value_t pr_vec(value_t s)
 void printline(value_t s, FILE* fp)
 {
 	assert(vectorp(s));
-	for(value_t c = vpop_front(s); !errp(c) && !EQ(c, RCHAR('\0')); c = vpop_front(s))
+	for(int i = 0; i < INTOF(vsize(s)); i++)
 	{
+		value_t c = vref(s, i);
 		assert(charp(c));
-
+		if(INTOF(c) == '\0') break;
 		fputc(INTOF(c), fp);
 	}
 

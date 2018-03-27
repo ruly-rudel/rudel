@@ -14,19 +14,22 @@ static value_t read_int(value_t token)
 	token.type.main = VEC_T;
 
 	// sign (if exists)
-	value_t c = vpeek_front(token);
+	int idx  = 0;
+	value_t c = vref(token, idx);
 	assert(charp(c));
+
 	int sign = 1;
 	if(INTOF(c) == '-' || INTOF(c) == '+')
 	{
+		idx++;
+
 		if(INTOF(c) == '-')
 		{
 			sign = -1;
 		}
 
 		// next character
-		vpop_front(token);
-		c = vpeek_front(token);
+		c = vref(token, idx);
 
 		if(errp(c))	// not int
 		{
@@ -38,8 +41,9 @@ static value_t read_int(value_t token)
 
 	// value
 	int val = 0;
-	for(value_t c = vpeek_front(token); !errp(c); c = (vpop_front(token), vpeek_front(token)))
+	for(; idx < INTOF(vsize(token)); idx++)
 	{
+		c = vref(token, idx);
 		assert(charp(c));
 
 		int cv = INTOF(c) - '0';
@@ -70,7 +74,6 @@ static value_t read_atom(scan_t* st)
 		}
 		else
 		{
-			vset_rptr(token, RINT(0));
 			token = register_sym(token);
 			value_t tbl[] = {
 				g_setq,           RSPECIAL(SP_SETQ),
@@ -95,6 +98,10 @@ static value_t read_atom(scan_t* st)
 				}
 			}
 		}
+	}
+	else if(vectorp(token))	// string
+	{
+		token = copy_vector(token);
 	}
 
 	scan_next(st);
@@ -123,7 +130,7 @@ static value_t read_list(scan_t* st)
 		}
 		else if(symbolp(token))
 		{
-			value_t c = vpeek_front(token);	// first char of token
+			value_t c = vref(token, 0);	// first char of token
 
 			assert(charp(c));
 			if(INTOF(c) == ')')
@@ -167,7 +174,7 @@ static value_t read_form(scan_t* st)
 		assert(vectorp(token) || symbolp(token));
 		if(symbolp(token))
 		{
-			value_t c  = vpeek_front(token);
+			value_t c  = vref(token, 0);
 			assert(charp(c));
 
 			if(INTOF(c) == '(')
@@ -195,7 +202,7 @@ static value_t read_form(scan_t* st)
 				assert(vectorp(token) || symbolp(token));
 				if(symbolp(token))
 				{
-					value_t c  = vpeek_front(token);
+					value_t c  = vref(token, 0);
 					assert(charp(c));
 					if(!errp(c) && INTOF(c) == '@')
 					{
@@ -266,7 +273,6 @@ value_t read_str(value_t s)
 	scan_t st = scan_init(s);
 
 	value_t r = read_form(&st);
-	vset_rptr(s, RINT(0));
 	return r;
 }
 

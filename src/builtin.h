@@ -11,12 +11,12 @@
 typedef enum _rtype_t {
 	// main 8types (content is address)
 	CONS_T = 0,	// sequence
-	VEC_T,		// sequence
 	ERR_T,
 	SYM_T,
 	CFN_T,		// dotted
 	CLOJ_T,		// dotted
 	MACRO_T,	// dotted
+	VEC_T,		// sequence
 	OTH_T,
 
 	// sub types (content is value)
@@ -104,7 +104,7 @@ typedef struct _vector_t
 {
 	value_t		size;
 	value_t		alloc;
-	value_t		rptr;
+	value_t		type;
 	value_t*	data;
 } vector_t;
 
@@ -160,7 +160,6 @@ INLINE(bool    specialp(value_t x), x.type.main == OTH_T  &&  x.type.sub == SPEC
 value_t car		(value_t x);
 value_t cdr		(value_t x);
 value_t	cons		(value_t car, value_t cdr);
-bool    seqp		(value_t x);
 bool	atom		(value_t x);
 bool	eq		(value_t x, value_t y);
 bool	equal		(value_t x, value_t y);
@@ -193,13 +192,10 @@ value_t make_vector	(unsigned n);
 value_t vref		(value_t v, unsigned pos);
 value_t rplacv		(value_t v, unsigned pos, value_t data);
 value_t vsize		(value_t v);
-value_t vset_rptr	(value_t v, value_t n);
 value_t vresize		(value_t v, int n);
 bool	veq		(value_t x, value_t y);
 value_t vpush		(value_t v, value_t x);
 value_t vpop		(value_t v);
-value_t vpeek_front	(value_t v);
-value_t vpop_front	(value_t v);
 value_t vpush_front	(value_t v, value_t x);
 value_t copy_vector	(value_t src);
 value_t vconc		(value_t x, value_t y);

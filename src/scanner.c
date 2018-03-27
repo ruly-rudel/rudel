@@ -6,17 +6,45 @@
 /////////////////////////////////////////////////////////////////////
 // private: scanner
 
-static void scan_to_lf(value_t s)
+static int scan_pch(scan_t* s)
 {
-	assert(is_str(s));
-
-	for(value_t c = vpeek_front(s); !errp(c); c = (vpop_front(s), vpeek_front(s)))
+	assert(s);
+	if(s->rptr >= INTOF(vsize(s->buf)))
 	{
-		assert(charp(c));
+		return -1;
+	}
+	else
+	{
+		value_t r = vref(s->buf, s->rptr);
+		assert(charp(r));
+		return INTOF(r);
+	}
+}
 
-		if(INTOF(c) == '\n')
+static int scan_nch(scan_t* s)
+{
+	assert(s);
+	if(s->rptr >= INTOF(vsize(s->buf)) - 1)
+	{
+		s->rptr = INTOF(vsize(s->buf));
+		return -1;
+	}
+	else
+	{
+		s->rptr++;
+		return scan_pch(s);
+	}
+}
+
+static void scan_to_lf(scan_t* s)
+{
+	assert(s);
+
+	for(int c = scan_pch(s); c >= 0; c = scan_nch(s))
+	{
+		if(c == '\n')
 		{
-			vpop_front(s);
+			scan_nch(s);
 			return ;
 		}
 	}
@@ -24,23 +52,15 @@ static void scan_to_lf(value_t s)
 	return ;
 }
 
-static value_t scan_to_whitespace(value_t s)
+static value_t scan_to_whitespace(scan_t* s)
 {
-	assert(is_str(s));
+	assert(s);
 
 	value_t r = make_vector(0);
 
-	for(value_t c = vpeek_front(s); !errp(c); c = (vpop_front(s), vpeek_front(s)))
+	for(int c = scan_pch(s); c >= 0; c = scan_nch(s))
 	{
-		assert(charp(c));
-
-		if( INTOF(c) == ' '  ||
-		    INTOF(c) == '\t' ||
-		    INTOF(c) == '\n' ||
-		    INTOF(c) == '('  ||
-		    INTOF(c) == ')'  ||
-		    INTOF(c) == ';'
-		  )
+		if(c == ' ' || c == '\t' || c == '\n' || c == '('  || c == ')' || c == ';')
 		{
 			if(INTOF(vsize(r)) == 0)
 			{
@@ -51,7 +71,7 @@ static value_t scan_to_whitespace(value_t s)
 		}
 		else
 		{
-			vpush(r, c);
+			vpush(r, RCHAR(c));
 		}
 	}
 
@@ -60,28 +80,26 @@ static value_t scan_to_whitespace(value_t s)
 	return r;
 }
 
-static value_t scan_to_doublequote(value_t s)
+static value_t scan_to_doublequote(scan_t* s)
 {
-	assert(is_str(s));
+	assert(s);
 
 	value_t r = make_vector(0);
 
 	int st = 0;
 
-	for(value_t c = vpeek_front(s); !errp(c); c = (vpop_front(s), vpeek_front(s)))
+	for(int c = scan_pch(s); c >= 0; c = scan_nch(s))
 	{
-		assert(charp(c));
-
 		switch(st)
 		{
 		    case 0:	// not escape
-			if(INTOF(c) == '\\')
+			if(c == '\\')
 			{
 				st = 1;	// enter escape mode
 			}
-			else if(INTOF(c) == '"')
+			else if(c == '"')
 			{
-				vpop_front(s);
+				scan_nch(s);
 				if(INTOF(vsize(r)) == 0)
 				{
 					vpush(r, RCHAR('\0'));	// null string
@@ -90,18 +108,18 @@ static value_t scan_to_doublequote(value_t s)
 			}
 			else
 			{
-				vpush(r, c);
+				vpush(r, RCHAR(c));
 			}
 			break;
 
 		    case 1:	// escape
-			if(INTOF(c) == 'n')	// \n
+			if(c == 'n')	// \n
 			{
 				vpush(r, RCHAR('\n'));
 			}
 			else
 			{
-				vpush(r, c);
+				vpush(r, RCHAR(c));
 			}
 			st = 0;
 			break;
@@ -111,31 +129,27 @@ static value_t scan_to_doublequote(value_t s)
 	return RERR(ERR_PARSE, NIL);	// error: end of source string before doublequote
 }
 
-static inline bool is_ws(value_t c)
+static inline bool is_ws(int c)
 {
-	assert(charp(c));
-	int cc = INTOF(c);
-
-	return cc == ' ' || cc == '\t' || cc == '\n'
-		         || cc == '\0';	//******* ad-hock
+	return c == ' ' || c == '\t' || c == '\n'
+		         || c == '\0';	//******* ad-hock
 }
 
-static value_t scan1(value_t s)
+static value_t scan1(scan_t* s)
 {
-	assert(is_str(s));
+	assert(s);
 
 	// skip space
-	for(value_t c = vpeek_front(s); !errp(c) && is_ws(c); c = (vpop_front(s), vpeek_front(s)))
-		assert(charp(c));
+	for(int c = scan_pch(s); c >= 0 && is_ws(c); c = scan_nch(s)) ;
 
-	value_t c = vpeek_front(s);
-	if(errp(c))
+	int c = scan_pch(s);
+	if(c < 0)
 	{
 		return NIL;
 	}
 	else
 	{
-		switch(INTOF(c))
+		switch(c)
 		{
 		    // special character
 		    case ',':
@@ -144,21 +158,21 @@ static value_t scan1(value_t s)
 		    case '\'':
 		    case '`':
 		    case '@':
-			vpop_front(s);
+			scan_nch(s);
 			value_t sr   = make_vector(0);
-			vpush(sr, c);
+			vpush(sr, RCHAR(c));
 			sr.type.main = SYM_T;
 			return sr;
 
 		    // comment
 		    case ';':
-			vpop_front(s);
+			scan_nch(s);
 			scan_to_lf(s);
 			return scan1(s);
 
 		    // string
 		    case '"':
-			vpop_front(s);
+			scan_nch(s);
 			return scan_to_doublequote(s);
 
 		    // atom
@@ -175,8 +189,9 @@ static value_t scan1(value_t s)
 scan_t scan_init(value_t str)
 {
 	scan_t r = { 0 };
-	r.cur    = str;
-	r.token  = scan1(r.cur);
+	r.buf    = str;
+	r.rptr   = 0;
+	r.token  = scan1(&r);
 
 	return r;
 }
@@ -185,7 +200,7 @@ value_t scan_next(scan_t *s)
 {
 	assert(s != NULL);
 
-	s->token = scan1(s->cur);
+	s->token = scan1(s);
 	return s->token;
 }
 

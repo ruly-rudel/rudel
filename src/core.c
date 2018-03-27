@@ -143,7 +143,6 @@ static value_t NAME(value_t body, value_t env) \
 
 DEF_FN_1(b_atom,    atom   (arg1)       ? g_t : NIL)
 DEF_FN_1(b_consp,   consp  (arg1)       ? g_t : NIL)
-DEF_FN_1(b_seqp,    seqp   (arg1)       ? g_t : NIL)
 DEF_FN_1(b_strp,    is_str (arg1)       ? g_t : NIL)
 DEF_FN_1(b_car,     car    (arg1))
 DEF_FN_1(b_cdr,     cdr    (arg1))
@@ -212,8 +211,6 @@ DEF_FN_END
 
 DEF_FN_2(b_vpush, !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpush(arg1, arg2))
 DEF_FN_1(b_vpop,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpop (arg1))
-DEF_FN_1(b_vpeek_front,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpeek_front(arg1))
-DEF_FN_1(b_vpop_front,   !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpop_front(arg1))
 DEF_FN_1(b_copy_vector,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : copy_vector (arg1))
 DEF_FN_2VEC(b_vconc, vconc (arg1, arg2))
 DEF_FN_2VEC(b_vnconc, vnconc (arg1, arg2))
@@ -261,7 +258,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(39 + 10,
+	value_t key = list(38 + 8,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -273,7 +270,6 @@ value_t	create_root_env	(void)
 	                      str_to_sym("prn"),
 	                      str_to_sym("println"),
 	                      str_to_sym("consp"),
-	                      str_to_sym("seqp"),
 	                      str_to_sym("strp"),
 	                      str_to_sym("read-string"),
 	                      str_to_sym("slurp"),
@@ -297,8 +293,6 @@ value_t	create_root_env	(void)
 	                      str_to_sym("rplacv"),
 	                      str_to_sym("vpush"),
 	                      str_to_sym("vpop"),
-	                      str_to_sym("vpeek-front"),
-	                      str_to_sym("vpop-front"),
 	                      str_to_sym("copy-vector"),
 	                      str_to_sym("vconc"),
 	                      str_to_sym("vnconc"),
@@ -313,7 +307,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("*trace*")
 	                  );
 
-	value_t val = list(39 + 8,
+	value_t val = list(38 + 8,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -325,7 +319,6 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_prn), NIL),
 	                      cfn(RFN(b_println), NIL),
 	                      cfn(RFN(b_consp), NIL),
-	                      cfn(RFN(b_seqp), NIL),
 	                      cfn(RFN(b_strp), NIL),
 	                      cfn(RFN(b_read_string), NIL),
 	                      cfn(RFN(b_slurp), NIL),
@@ -349,8 +342,6 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_rplacv), NIL),
 	                      cfn(RFN(b_vpush), NIL),
 	                      cfn(RFN(b_vpop), NIL),
-	                      cfn(RFN(b_vpeek_front), NIL),
-	                      cfn(RFN(b_vpop_front), NIL),
 	                      cfn(RFN(b_copy_vector), NIL),
 	                      cfn(RFN(b_vconc), NIL),
 	                      cfn(RFN(b_vnconc), NIL),
