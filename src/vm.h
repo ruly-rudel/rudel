@@ -24,6 +24,6 @@ typedef struct
 	value_t	operand;
 } code_t;
 
-value_t exec_vm(code_t* code, value_t e);
+value_t exec_vm(value_t code, value_t e);
 
 #endif  //  _vm_h_

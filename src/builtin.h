@@ -24,6 +24,7 @@ typedef enum _rtype_t {
 	CHAR_T,
 	REF_T,
 	SPECIAL_T,
+	VMIS_T,
 } rtype_t;
 
 typedef enum {
@@ -40,6 +41,19 @@ typedef enum {
 	SP_SPLICE_UNQUOTE,
 	SP_AMP,
 } special_t;
+
+typedef enum {
+	IS_HALT = 0,
+	IS_ADD,
+	IS_SUB,
+	IS_MUL,
+	IS_DIV,
+	IS_EQ,
+	IS_EQUAL,
+	IS_CONS,
+	IS_CAR,
+	IS_CDR,
+} vmis_t;
 
 #if __WORDSIZE == 32
 typedef struct
@@ -113,6 +127,7 @@ typedef struct _vector_t
 #define RCHAR(X)    ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T,    .type.val   = (X) })
 #define RINT(X)     ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,     .type.val   = (X) })
 #define RSPECIAL(X) ((value_t){ .type.main   = OTH_T,  .type.sub = SPECIAL_T, .type.val   = (X) })
+#define RIS(X)      ((value_t){ .type.main   = OTH_T,  .type.sub = VMIS_T,    .type.val   = (X) })
 #define RREF(X, Y)  ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width = (Y) })
 #define RFN(X)      ((value_t){ .rfn = (X) })
 #define RERR(X, Y)   rerr(RINT(X), (Y))
@@ -139,6 +154,7 @@ typedef struct _vector_t
 #define ERR_NOTIMPL		10
 #define ERR_ALLOC		11
 #define ERR_EOS			12
+#define ERR_INVALID_IS		13
 
 #define UNSAFE_CAR(X)	(X).cons->car
 #define UNSAFE_CDR(X)	(X).cons->cdr

@@ -1105,3 +1105,38 @@ x
 ;=>range exceeded.
 (make-list-from-vector x)
 ;=>('h' 'o' 'g' 'e')
+
+(exec-vm (compile-vm 1))
+;=>1
+(exec-vm (compile-vm t))
+;=>t
+(exec-vm (compile-vm "hoge"))
+;=>"hoge"
+(exec-vm (compile-vm 'cons))
+;=>#<COMPILED-FUNCTION>
+(exec-vm (compile-vm 'cond))
+;=>#<MACRO>
+(exec-vm (compile-vm 'list))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(+ 1 (* (- 2 4) 3))))
+;=>-5
+(exec-vm (compile-vm '(/ 12 4)))
+;=>3
+(exec-vm (compile-vm '(car (cons 1 (cons 2 (cons 3 nil))))))
+;=>1
+(exec-vm (compile-vm '(cdr (cons 1 (cons 2 (cons 3 nil))))))
+;=>(2 3)
+(exec-vm (compile-vm '(= 1 2)))
+;=>nil
+(exec-vm (compile-vm '(= 1 1)))
+;=>t
+(exec-vm (compile-vm '(= "hoge" "hoge")))
+;=>nil
+(exec-vm (compile-vm '(equal "hoge" "hoge")))
+;=>t
+(setq x 10)
+;=>10
+(setq y 7)
+;=>7
+(exec-vm (compile-vm '(+ x y)))
+;=>17

@@ -7,6 +7,8 @@
 #include "resolv.h"
 #include "reader.h"
 #include "printer.h"
+#include "compile_vm.h"
+#include "vm.h"
 
 
 /////////////////////////////////////////////////////////////////////
@@ -161,7 +163,6 @@ DEF_FN_VARG(b_gensym, gensym(last(env)))
 
 ////////// special functions for rudel (manipulate environment etc...)
 
-DEF_FN_1(b_read_string,  read_str(arg1))
 
 DEF_FN_1_BEGIN(b_slurp)
 	if(rtypeof(arg1) != VEC_T)
@@ -175,10 +176,11 @@ DEF_FN_1_BEGIN(b_slurp)
 	return r;
 DEF_FN_END
 
-DEF_FN_VARG(b_init,  init(env))
-
-DEF_FN_1(b_resolv,  resolv_bind(arg1, env))
-
+DEF_FN_1   (b_read_string, read_str(arg1))
+DEF_FN_VARG(b_init,        init(env))
+DEF_FN_1(   b_resolv,      resolv_bind(arg1, env))
+DEF_FN_1(   b_compile_vm,  compile_vm(arg1, last(env)))
+DEF_FN_1(   b_exec_vm,     exec_vm(arg1, last(env)))
 
 ////////// vector support
 DEF_FN_1INT(b_make_vector, make_vector(arg1))
@@ -258,7 +260,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(38 + 8,
+	value_t key = list(38 + 10,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -298,6 +300,8 @@ value_t	create_root_env	(void)
 	                      str_to_sym("vnconc"),
 	                      str_to_sym("make-vector-from-list"),
 	                      str_to_sym("make-list-from-vector"),
+	                      str_to_sym("compile-vm"),
+	                      str_to_sym("exec-vm"),
 	                      str_to_sym("<"),
 	                      str_to_sym("<="),
 	                      str_to_sym(">"),
@@ -307,7 +311,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("*trace*")
 	                  );
 
-	value_t val = list(38 + 8,
+	value_t val = list(38 + 10,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -347,6 +351,8 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_vnconc), NIL),
 	                      cfn(RFN(b_make_vector_from_list), NIL),
 	                      cfn(RFN(b_make_list_from_vector), NIL),
+	                      cfn(RFN(b_compile_vm), NIL),
+	                      cfn(RFN(b_exec_vm), NIL),
 	                      cfn(RFN(b_lt), NIL),
 	                      cfn(RFN(b_elt), NIL),
 	                      cfn(RFN(b_mt), NIL),
