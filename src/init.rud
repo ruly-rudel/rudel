@@ -133,8 +133,10 @@
 
 
 ;; rudel-specific functions
+;(defun load-file (f)
+;	(eval (read-string (str "(progn " (slurp f) ")"))))
 (defun load-file (f)
-	(eval (read-string (str "(progn " (slurp f) ")"))))
+	 (str "(progn " (slurp f) ")"))
 
 ;(if (cond)
 ;    (true)

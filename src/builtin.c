@@ -456,8 +456,9 @@ int	count(value_t x)
 
 value_t symbol_string(value_t sym)
 {
-	value_t r = copy_list(sym);
-	r.type.main = CONS_T;
+	assert(symbolp(sym));
+	sym.type.main = VEC_T;
+	value_t r = copy_vector(sym);
 
 	return r;
 }
@@ -468,7 +469,7 @@ value_t symbol_string(value_t sym)
 
 value_t rerr(value_t cause, value_t pos)
 {
-	assert(rtypeof(cause) == CONS_T || rtypeof(cause) == INT_T);
+	assert(vectorp(cause) || intp(cause));
 
 	value_t r = cons(cause, pos);
 	r.type.main = ERR_T;
@@ -521,13 +522,12 @@ value_t slurp(char* fn)
 	// read all
 	if(fp)
 	{
-		value_t buf = NIL;
-		value_t* cur = &buf;
+		value_t buf = make_vector(0);
 
 		int c;
 		while((c = fgetc(fp)) != EOF)
 		{
-			cur = cons_and_cdr(RCHAR(c), cur);
+			vpush(buf, RCHAR(c));
 		}
 		fclose(fp);
 
@@ -544,8 +544,9 @@ value_t init(value_t env)
 	env = last(env);
 	rplaca(env, car(create_root_env()));
 
-	value_t c = concat(3, str_to_rstr("(progn "), slurp("init.rud"), str_to_rstr(")"));
+	value_t c = vconc(vconc(str_to_rstr("(progn "), slurp("init.rud")), str_to_rstr(")"));
 	return eval(read_str(c), env);
+	//return NIL;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -567,7 +568,7 @@ value_t make_vector(unsigned n)
 
 value_t vref(value_t v, unsigned pos)
 {
-	assert(vectorp(v));
+	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
 
 	if(pos < INTOF(v.vector->size))
@@ -597,21 +598,21 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 
 value_t vsize(value_t v)
 {
-	assert(vectorp(v));
+	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
 	return v.vector->size;
 }
 
 value_t vrptr(value_t v)
 {
-	assert(vectorp(v));
+	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
 	return v.vector->rptr;
 }
 
 value_t vset_rptr(value_t v, value_t n)
 {
-	assert(vectorp(v));
+	assert(vectorp(v) || symbolp(v));
 	assert(intp(n));
 
 	v.vector = aligned_vaddr(v);
@@ -658,8 +659,10 @@ value_t vresize(value_t v, int n)
 
 bool veq(value_t x, value_t y)
 {
-	assert(vectorp(x));
-	assert(vectorp(y));
+	assert(vectorp(x) || symbolp(x));
+	assert(vectorp(y) || symbolp(y));
+	x.type.main = VEC_T;
+	y.type.main = VEC_T;
 
 	if(!EQ(vsize(x), vsize(y)))
 	{
@@ -688,7 +691,7 @@ value_t vpush(value_t v, value_t x)
 
 value_t vpop(value_t v)
 {
-	assert(vectorp(v));
+	assert(vectorp(v) || symbolp(v));
 	int s = INTOF(vsize(v));
 
 	if(s <= 0)
@@ -706,7 +709,8 @@ value_t vpop(value_t v)
 
 value_t vpeek_front(value_t v)
 {
-	assert(vectorp(v));
+	assert(vectorp(v) || symbolp(v));
+
 	int s = INTOF(vsize(v));
 	int r = INTOF(vrptr(v));
 	if(s <= r)
@@ -721,7 +725,7 @@ value_t vpeek_front(value_t v)
 
 value_t vpop_front(value_t v)
 {
-	assert(vectorp(v));
+	assert(vectorp(v) || symbolp(v));
 	value_t r = vpeek_front(v);
 	if(!errp(r))
 	{
@@ -729,6 +733,20 @@ value_t vpop_front(value_t v)
 	}
 
 	return r;
+}
+
+value_t vpush_front(value_t v, value_t x)
+{
+	assert(vectorp(v) || symbolp(v));
+
+	vpush(v, NIL);
+	for(int i = INTOF(vsize(v)) - 2; i >= 0; i--)
+	{
+		rplacv(v, i + 1, vref(v, i));
+	}
+	rplacv(v, 0, x);
+
+	return x;
 }
 
 value_t copy_vector(value_t src)
@@ -843,6 +861,13 @@ value_t str_to_vec	(const char* s)
 		vpush(r, RCHAR(c));
 	}
 
+	return r;
+}
+
+value_t str_to_rstr	(const char* s)
+{
+	assert(s != NULL);
+	value_t r = str_to_vec(s);
 	if(INTOF(vsize(r)) == 0)
 	{
 		vpush(r, RCHAR('\0'));
@@ -859,40 +884,18 @@ value_t str_to_sym	(const char* s)
 	return register_sym(r);
 }
 
-value_t str_to_rstr	(const char* s)
-{
-	assert(s != NULL);
-	value_t    r = NIL;
-	value_t* cur = &r;
-
-	if(*s == '\0')	// null string
-	{
-		*cur = cons(RCHAR('\0'), NIL);
-	}
-	else
-	{
-		int c;
-		while((c = *s++) != '\0')
-		{
-			cur = cons_and_cdr(RCHAR(c), cur);
-		}
-	}
-
-	return r;
-}
-
 char*   rstr_to_str	(value_t s)
 {
-	assert(rtypeof(s) == CONS_T);
+	assert(vectorp(s));
 
-	char* buf = (char*)malloc(512);	// fix it
+	char* buf = (char*)malloc(INTOF(vsize(s)) + 1);
 	if(buf)
 	{
 		char *p = buf;
-		for(; !nilp(s); s = cdr(s))
+		for(value_t c = vpop_front(s); !errp(c); c = vpop_front(s))
 		{
-			assert(charp(car(s)));
-			*p++ = INTOF(car(s));
+			assert(charp(c));
+			*p++ = INTOF(c);
 		}
 		*p = '\0';
 	}
@@ -905,7 +908,7 @@ char*   rstr_to_str	(value_t s)
 
 value_t register_sym(value_t s)
 {
-	value_t sym = find(s, s_symbol_pool, equal);
+	value_t sym = find(s, s_symbol_pool, veq);
 	if(nilp(sym))
 	{
 		s_symbol_pool = cons(s, s_symbol_pool);
@@ -921,7 +924,7 @@ value_t gensym	(value_t env)
 {
 	value_t r = str_to_rstr("#:G");
 	value_t n = get_env_value(str_to_sym("*gensym-counter*"), env);
-	r         = nconc(r, pr_str(n, NIL, false));
+	r         = vnconc(r, pr_str(n, NIL, false));
 	r.type.main = SYM_T;
 
 	set_env(str_to_sym("*gensym-counter*"), RINT(INTOF(n) + 1), env);
@@ -948,24 +951,18 @@ value_t* nconc_and_last(value_t v, value_t* c)
 bool is_str(value_t v)
 {
 #ifdef STR_EASY_CHECK
-	return consp(v) && charp(car(v));
+	return vectorp(v) && INTOF(vsize(v)) > 0 && charp(vref(v, 0));
 #else  // STR_EASY_CHECK
 	if(nilp(v)) return false;	// nil is not strgin
 
-	for(; !nilp(v); v = cdr(v))
+	for(int i = 0; i < INTOF(vsize(v)); i ++)
 	{
-		if(!is_cons_pair_or_nil(v))
+		if(!charp(vref(v, i)))
 		{
 			return false;
 		}
-		else
-		{
-			if(charp(car(v)))
-			{
-				return false;
-			}
-		}
 	}
+
 	return true;
 #endif // STR_EASY_CHECK
 }

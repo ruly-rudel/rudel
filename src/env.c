@@ -151,8 +151,9 @@ value_t	get_env_value	(value_t key, value_t env)
 	}
 
 	value_t r = str_to_rstr("variable ");
-	r = nconc(r, copy_list(key));
-	r = nconc(r, str_to_rstr(" is not found."));
+	key.type.main = VEC_T;
+	r = vnconc(r, copy_vector(key));
+	r = vnconc(r, str_to_rstr(" is not found."));
 
 	return rerr(r, NIL);
 }
@@ -182,8 +183,8 @@ value_t	get_env_ref	(value_t key, value_t env)
 	}
 
 	value_t r = str_to_rstr("variable ");
-	r = nconc(r, copy_list(key));
-	r = nconc(r, str_to_rstr(" is not found."));
+	r = vnconc(r, copy_list(key));
+	r = vnconc(r, str_to_rstr(" is not found."));
 
 	return rerr(r, NIL);
 }

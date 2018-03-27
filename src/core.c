@@ -165,7 +165,7 @@ DEF_FN_VARG(b_gensym, gensym(last(env)))
 DEF_FN_1(b_read_string,  read_str(arg1))
 
 DEF_FN_1_BEGIN(b_slurp)
-	if(rtypeof(arg1) != CONS_T)
+	if(rtypeof(arg1) != VEC_T)
 	{
 		return RERR(ERR_TYPE, body);
 	}
@@ -236,19 +236,19 @@ DEF_FN_2INT(b_div, RINT(arg1 / arg2))
 DEF_FN_R(b_str,
 		str_to_rstr(""),
 		pr_str(arg1, NIL, false),
-		nconc(pr_str(arg1, NIL, false), pr_str(arg2, NIL, false)))
+		vconc(pr_str(arg1, NIL, false), pr_str(arg2, NIL, false)))
 
 DEF_FN_R(b_pr_str,
 		str_to_rstr(""),
 		pr_str(arg1, NIL, true),
-		nconc(pr_str(arg1, NIL, true),
-			nconc(str_to_rstr(" "), pr_str(arg2, NIL, true))))
+		vconc(pr_str(arg1, NIL, true),
+			vconc(str_to_rstr(" "), pr_str(arg2, NIL, true))))
 
 DEF_FN_R(b_println_str,
 		str_to_rstr(""),
 		pr_str(arg1, NIL, false),
-		nconc(pr_str(arg1, NIL, false),
-			nconc(str_to_rstr(" "), pr_str(arg2, NIL, false))))
+		vconc(pr_str(arg1, NIL, false),
+			vconc(str_to_rstr(" "), pr_str(arg2, NIL, false))))
 
 DEF_FN_VARG(b_println, (printline(b_println_str(body, env), stdout), NIL))
 

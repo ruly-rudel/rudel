@@ -10,42 +10,39 @@
 
 static value_t read_int(value_t token)
 {
-	assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T);
-	token.type.main = CONS_T;
+	assert(vectorp(token) || symbolp(token));
+	token.type.main = VEC_T;
 
 	// sign (if exists)
-	value_t tcar = car(token);
-	assert(rtypeof(tcar) == CHAR_T);
+	value_t c = vpeek_front(token);
+	assert(charp(c));
 	int sign = 1;
-	if(INTOF(tcar) == '-' || INTOF(tcar) == '+')
+	if(INTOF(c) == '-' || INTOF(c) == '+')
 	{
-		if(INTOF(tcar) == '-')
+		if(INTOF(c) == '-')
 		{
 			sign = -1;
 		}
 
 		// next character
-		token = cdr(token);
-		assert(rtypeof(token) == CONS_T);
+		vpop_front(token);
+		c = vpeek_front(token);
 
-		if(nilp(token))	// not int
+		if(errp(c))	// not int
 		{
 			return NIL;
 		}
 
-		tcar  = car(token);
-		assert(rtypeof(tcar) == CHAR_T);
+		assert(charp(c));
 	}
 
 	// value
 	int val = 0;
-	for(; !nilp(token); token = cdr(token))
+	for(value_t c = vpeek_front(token); !errp(c); c = (vpop_front(token), vpeek_front(token)))
 	{
-		assert(consp(token));
-		tcar = car(token);
-		assert(charp(tcar));
+		assert(charp(c));
 
-		int cv = INTOF(tcar) - '0';
+		int cv = INTOF(c) - '0';
 		if(cv >= 0 && cv <= 9)
 		{
 			val *= 10;
@@ -73,6 +70,7 @@ static value_t read_atom(scan_t* st)
 		}
 		else
 		{
+			vset_rptr(token, RINT(0));
 			token = register_sym(token);
 			value_t tbl[] = {
 				g_setq,           RSPECIAL(SP_SETQ),
@@ -117,7 +115,7 @@ static value_t read_list(scan_t* st)
 	scan_next(st);	// omit '('
 	while(!nilp(token = scan_peek(st)))
 	{
-		assert(rtypeof(token) == CONS_T || rtypeof(token) == SYM_T || errp(token));
+		assert(vectorp(token) || symbolp(token) || errp(token));
 
 		if(errp(token))
 		{
@@ -125,11 +123,9 @@ static value_t read_list(scan_t* st)
 		}
 		else if(symbolp(token))
 		{
-			token.type.main = CONS_T;
+			value_t c = vpeek_front(token);	// first char of token
 
-			value_t c = car(token);	// first char of token
-
-			assert(rtypeof(c) == CHAR_T);
+			assert(charp(c));
 			if(INTOF(c) == ')')
 			{
 				if(nilp(r))
@@ -168,28 +164,27 @@ static value_t read_form(scan_t* st)
 	}
 	else
 	{
-		assert(consp(token) || symbolp(token));
+		assert(vectorp(token) || symbolp(token));
 		if(symbolp(token))
 		{
-			value_t tcons = token;
-			value_t tcar  = car(tcons);
-			assert(rtypeof(tcar) == CHAR_T);
+			value_t c  = vpeek_front(token);
+			assert(charp(c));
 
-			if(INTOF(tcar) == '(')
+			if(INTOF(c) == '(')
 			{
 				return read_list(st);
 			}
-			else if(INTOF(tcar) == '\'')
+			else if(INTOF(c) == '\'')
 			{
 				scan_next(st);
 				return cons(RSPECIAL(SP_QUOTE), cons(read_form(st), NIL));
 			}
-			else if(INTOF(tcar) == '`')
+			else if(INTOF(c) == '`')
 			{
 				scan_next(st);
 				return cons(RSPECIAL(SP_QUASIQUOTE), cons(read_form(st), NIL));
 			}
-			else if(INTOF(tcar) == ',')
+			else if(INTOF(c) == ',')
 			{
 				token = scan_next(st);
 				if(errp(token))	// scan error
@@ -197,13 +192,12 @@ static value_t read_form(scan_t* st)
 					return token;
 				}
 
-				assert(consp(token) || symbolp(token));
-				if(rtypeof(token) == SYM_T)
+				assert(vectorp(token) || symbolp(token));
+				if(symbolp(token))
 				{
-					value_t tcons = token;
-					value_t tcar  = car(tcons);
-					assert(charp(tcar));
-					if(INTOF(tcar) == '@')
+					value_t c  = vpeek_front(token);
+					assert(charp(c));
+					if(!errp(c) && INTOF(c) == '@')
 					{
 						scan_next(st);
 						return cons(RSPECIAL(SP_SPLICE_UNQUOTE), cons(read_form(st), NIL));
@@ -271,7 +265,9 @@ value_t read_str(value_t s)
 {
 	scan_t st = scan_init(s);
 
-	return read_form(&st);
+	value_t r = read_form(&st);
+	vset_rptr(s, RINT(0));
+	return r;
 }
 
 value_t READ(const char* prompt, FILE* fp)

@@ -7,24 +7,31 @@
 
 static value_t pr_str_int(int x)
 {
-	value_t r = NIL;
+	value_t r = make_vector(0);
 
+	bool is_minus = false;
 	if(x < 0)
 	{
-		//r = nconc(cons(RCHAR('-'), NIL), pr_str_int(-x));
-		r = cons(RCHAR('-'), pr_str_int(-x));
+		x = -x;
+		is_minus = true;
 	}
-	else if(x == 0)
+
+	if(x == 0)
 	{
-		r = str_to_rstr("0");
+		vpush(r, RCHAR('0'));
 	}
 	else
 	{
 		while(x != 0)
 		{
-			r = cons(RCHAR('0' + (x % 10)), r);
+			vpush_front(r, RCHAR('0' + (x % 10)));
 			x /= 10;
 		}
+	}
+
+	if(is_minus)
+	{
+		vpush_front(r, RCHAR('-'));
 	}
 
 	return r;
@@ -33,8 +40,7 @@ static value_t pr_str_int(int x)
 static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
-	value_t r    = NIL;
-	value_t* cur = &r;
+	value_t r    = make_vector(0);
 
 	if(nilp(x))
 	{
@@ -44,24 +50,24 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 	{
 		do
 		{
-			cur = cons_and_cdr(RCHAR(nilp(r) ? '(' : ' '), cur);
+			vpush(r, RCHAR(INTOF(vsize(r)) == 0 ? '(' : ' '));
 
 			if(rtypeof(x) == CONS_T)
 			{
 				// append string
-				cur = nconc_and_last(pr_str(car(x), annotate, print_readably), cur);
+				vnconc(r, pr_str(car(x), annotate, print_readably));
 				x = cdr(x);
 			}
 			else	// dotted
 			{
-				cur = cons_and_cdr(RCHAR('.'), cur);
-				cur = cons_and_cdr(RCHAR(' '), cur);
-				cur = nconc_and_last(pr_str(x, annotate, print_readably), cur);
+				vpush(r, RCHAR('.'));
+				vpush(r, RCHAR(' '));
+				vnconc(r, pr_str(x, annotate, print_readably));
 				x = NIL;
 			}
 		} while(!nilp(x));
 
-		cur = cons_and_cdr(RCHAR(')'), cur);
+		vpush(r, RCHAR(')'));
 	}
 
 	return r;
@@ -185,64 +191,66 @@ static value_t pr_str_cons(value_t x, value_t cyclic, bool print_readably)
 
 static value_t pr_str_str(value_t s, bool print_readably)
 {
-	assert(rtypeof(s) == CONS_T);
+	assert(vectorp(s));
 
-	value_t r = cons(RCHAR('\0'), NIL);
-	value_t *cur = &r;
+	value_t r = make_vector(0);
+
 	if(print_readably)
 	{
-		cur = cons_and_cdr(RCHAR('"'), cur);
+		vpush(r, RCHAR('"'));
 	}
 
-	for(; !nilp(s); s = cdr(s))
+	for(value_t c = vpeek_front(s); !errp(c); c = (vpop_front(s), vpeek_front(s)))
 	{
-		assert(consp(s));
-
-		value_t tcar = car(s);
-		assert(charp(tcar));
+		assert(charp(c));
 
 		if(print_readably)	// escape
 		{
-			if(INTOF(tcar) == '\0')	// null string
+			if(INTOF(c) == '\0')	// null string
 			{
 				break;
 			}
-			else if(INTOF(tcar) == '"')
+			else if(INTOF(c) == '"')
 			{
-				cur = cons_and_cdr(RCHAR('\\'), cur);
-				cur = cons_and_cdr(tcar,        cur);
+				vpush(r, RCHAR('\\'));
+				vpush(r, c);
 			}
-			else if(INTOF(tcar) == '\n')
+			else if(INTOF(c) == '\n')
 			{
-				cur = cons_and_cdr(RCHAR('\\'), cur);
-				cur = cons_and_cdr(RCHAR('n'),  cur);
+				vpush(r, RCHAR('\\'));
+				vpush(r, RCHAR('n'));
 			}
-			else if(INTOF(tcar) == '\\')
+			else if(INTOF(c) == '\\')
 			{
-				cur = cons_and_cdr(RCHAR('\\'), cur);
-				cur = cons_and_cdr(tcar,        cur);
+				vpush(r, RCHAR('\\'));
+				vpush(r, c);
 			}
 			else
 			{
-				cur = cons_and_cdr(tcar,        cur);
+				vpush(r, c);
 			}
 		}
 		else
 		{
-			if(INTOF(tcar) == '\0')		// null string
+			if(INTOF(c) == '\0')		// null string
 			{
 				break;
 			}
 			else
 			{
-				cur = cons_and_cdr(tcar, cur);
+				vpush(r, c);
 			}
 		}
 	}
 
 	if(print_readably)
 	{
-		cur = cons_and_cdr(RCHAR('"'), cur);
+		vpush(r, RCHAR('"'));
+	}
+
+	if(INTOF(vsize(r)) == 0)
+	{
+		vpush(r, RCHAR('\0'));
 	}
 
 	return r;
@@ -254,8 +262,8 @@ static value_t pr_str_cfn(value_t s, value_t annotate)
 
 #ifdef PRINT_CLOS_ENV
 	value_t r = str_to_rstr("(#<COMPILED-FUNCTION> . ");
-	nconc(r, pr_str(cdr(s), annotate));
-	nconc(r, str_to_rstr(")"));
+	vnconc(r, pr_str(cdr(s), annotate));
+	vnconc(r, str_to_rstr(")"));
 
 	return r;
 #else  // PRINT_CLOS_ENV
@@ -269,8 +277,8 @@ static value_t pr_str_cloj(value_t s, value_t annotate)
 
 #ifdef PRINT_CLOS_ENV
 	value_t r = str_to_rstr("(#<CLOJURE> . ");
-	nconc(r, pr_str(cdr(s), annotate));
-	nconc(r, str_to_rstr(")"));
+	vnconc(r, pr_str(cdr(s), annotate));
+	vnconc(r, str_to_rstr(")"));
 
 	return r;
 #else  // PRINT_CLOS_ENV
@@ -284,8 +292,8 @@ static value_t pr_str_macro(value_t s, value_t annotate)
 
 #ifdef PRINT_CLOS_ENV
 	value_t r = str_to_rstr("(#<MACRO> . ");
-	nconc(r, pr_str(cdr(s), annotate));
-	nconc(r, str_to_rstr(")"));
+	vnconc(r, pr_str(cdr(s), annotate));
+	vnconc(r, str_to_rstr(")"));
 
 	return r;
 #else  // PRINT_CLOS_ENV
@@ -296,9 +304,9 @@ static value_t pr_str_macro(value_t s, value_t annotate)
 static value_t pr_err_cause(value_t e)
 {
 	value_t cause = RERR_CAUSE(e);
-	if(consp(cause))
+	if(vectorp(cause))
 	{
-		return copy_list(cause);
+		return copy_vector(cause);
 	}
 	else if(intp(cause))
 	{
@@ -349,13 +357,12 @@ static value_t pr_err_cause(value_t e)
 static value_t pr_err_pos(value_t e)
 {
 	value_t pos  = RERR_POS(e);
-	value_t r    = NIL;
-	value_t* cur = &r;
+	value_t r    = make_vector(0);
 
 	for(; !nilp(pos); pos = cdr(pos))
 	{
-		cur = nconc_and_last(str_to_rstr("\nat "), cur);
-		cur = nconc_and_last(pr_str(car(pos), NIL, true), cur);
+		vnconc(r, str_to_rstr("\nat "));
+		vnconc(r, pr_str(car(pos), NIL, true));
 	}
 
 	return r;
@@ -366,25 +373,24 @@ static value_t pr_err(value_t s)
 	assert(errp(s));
 
 	value_t r = pr_err_cause(s);
-	return nconc(r, pr_err_pos(s));
+	return vnconc(r, pr_err_pos(s));
 }
 
 static value_t pr_sym(value_t s)
 {
-	value_t r = copy_list(s);
-	r.type.main = CONS_T;
+	s.type.main = VEC_T;
+	value_t r = copy_vector(s);
 	return r;
 }
 
 static value_t pr_str_char(value_t s)
 {
 	assert(charp(s));
-	value_t r    = NIL;
-	value_t* cur = &r;
+	value_t r    = make_vector(0);
 
-	cur = cons_and_cdr(RCHAR('\''), cur);
-	cur = cons_and_cdr(s, cur);
-	cur = cons_and_cdr(RCHAR('\''), cur);
+	vpush(r, RCHAR('\''));
+	vpush(r, s);
+	vpush(r, RCHAR('\''));
 	return r;
 }
 
@@ -393,12 +399,11 @@ static value_t pr_ref(value_t s)
 	assert(refp(s));
 
 	value_t r    = str_to_rstr("#REF:");
-	value_t* cur = &(last(r).cons->cdr);
 
-	cur = nconc_and_last(pr_str_int(REF_D(s)), cur);
-	cur = cons_and_cdr(RCHAR(','), cur);
-	cur = nconc_and_last(pr_str_int(REF_W(s)), cur);
-	cur = cons_and_cdr(RCHAR('#'), cur);
+	vnconc(r, pr_str_int(REF_D(s)));
+	vpush (r, RCHAR(','));
+	vnconc(r, pr_str_int(REF_W(s)));
+	vpush (r, RCHAR('#'));
 
 	return r;
 }
@@ -435,13 +440,12 @@ static value_t pr_vec(value_t s)
 
 void printline(value_t s, FILE* fp)
 {
-
-	for(; !nilp(s) && INTOF(car(s)) != '\0'; s = cdr(s))
+	assert(vectorp(s));
+	for(value_t c = vpop_front(s); !errp(c) && !EQ(c, RCHAR('\0')); c = vpop_front(s))
 	{
-		assert(consp(s));
-		assert(charp(car(s)));
+		assert(charp(c));
 
-		fputc(INTOF(car(s)), fp);
+		fputc(INTOF(c), fp);
 	}
 
 	fputc('\n', fp);
@@ -455,10 +459,10 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 	switch(rtypeof(s))
 	{
 	    case CONS_T:
-		return is_str(s) ? pr_str_str(s, print_readably) : pr_str_cons(s, annotate, print_readably);
+		return pr_str_cons(s, annotate, print_readably);
 
 	    case VEC_T:
-		return pr_vec(s);
+		return is_str(s) ? pr_str_str(s, print_readably) : pr_vec(s);
 
 	    case SYM_T:
 		return pr_sym(s);

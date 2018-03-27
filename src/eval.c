@@ -459,10 +459,6 @@ value_t eval(value_t v, value_t env)
 		{
 			return NIL;
 		}
-		else if(is_str(v))
-		{
-			return v;
-		}
 		else
 		{
 			return eval_apply(v, env);
@@ -470,7 +466,14 @@ value_t eval(value_t v, value_t env)
 	}
 	else
 	{
-		return eval_ast(v, env);
+		if(vectorp(v) && is_str(v))
+		{
+			return v;
+		}
+		else
+		{
+			return eval_ast(v, env);
+		}
 	}
 }
 

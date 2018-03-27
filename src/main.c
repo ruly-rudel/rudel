@@ -54,7 +54,7 @@ void rep_file(char* fn, value_t env)
 	}
 	else
 	{
-		value_t c = concat(3, str_to_rstr("(progn "), fstr, str_to_rstr(")"));
+		value_t c = vnconc(vnconc(str_to_rstr("(progn "), fstr), str_to_rstr(")"));
 		print(eval(read_str(c), env), stdout);
 	}
 

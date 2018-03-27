@@ -6,20 +6,17 @@
 /////////////////////////////////////////////////////////////////////
 // private: scanner
 
-static void scan_to_lf(value_t *s)
+static void scan_to_lf(value_t s)
 {
-	assert(s != NULL);
+	assert(is_str(s));
 
-	for(; !nilp(*s); *s = cdr(*s))
+	for(value_t c = vpeek_front(s); !errp(c); c = (vpop_front(s), vpeek_front(s)))
 	{
-		assert(consp(*s));
-
-		value_t c = car(*s);	// current char
-		assert(rtypeof(c) == CHAR_T);
+		assert(charp(c));
 
 		if(INTOF(c) == '\n')
 		{
-			*s = cdr(*s);
+			vpop_front(s);
 			return ;
 		}
 	}
@@ -27,19 +24,14 @@ static void scan_to_lf(value_t *s)
 	return ;
 }
 
-static value_t scan_to_whitespace(value_t *s)
+static value_t scan_to_whitespace(value_t s)
 {
-	assert(s != NULL);
+	assert(is_str(s));
 
-	value_t r = NIL;
-	value_t *cur = &r;
+	value_t r = make_vector(0);
 
-	for(; !nilp(*s); *s = cdr(*s))
+	for(value_t c = vpeek_front(s); !errp(c); c = (vpop_front(s), vpeek_front(s)))
 	{
-		assert(consp(*s));
-
-		value_t c = car(*s);	// current char
-
 		assert(charp(c));
 
 		if( INTOF(c) == ' '  ||
@@ -50,12 +42,16 @@ static value_t scan_to_whitespace(value_t *s)
 		    INTOF(c) == ';'
 		  )
 		{
+			if(INTOF(vsize(r)) == 0)
+			{
+				vpush(r, RCHAR('\0'));
+			}
 			r.type.main = SYM_T;
 			return r;
 		}
 		else
 		{
-			cur = cons_and_cdr(c, cur);
+			vpush(r, c);
 		}
 	}
 
@@ -64,20 +60,16 @@ static value_t scan_to_whitespace(value_t *s)
 	return r;
 }
 
-static value_t scan_to_doublequote(value_t *s)
+static value_t scan_to_doublequote(value_t s)
 {
-	assert(s != NULL);
+	assert(is_str(s));
 
-	value_t r = NIL;
-	value_t *cur = &r;
+	value_t r = make_vector(0);
 
 	int st = 0;
-	for(; !nilp(*s); *s = cdr(*s))
+
+	for(value_t c = vpeek_front(s); !errp(c); c = (vpop_front(s), vpeek_front(s)))
 	{
-		assert(consp(*s));
-
-		value_t c = car(*s);	// current char
-
 		assert(charp(c));
 
 		switch(st)
@@ -89,27 +81,27 @@ static value_t scan_to_doublequote(value_t *s)
 			}
 			else if(INTOF(c) == '"')
 			{
-				*s = cdr(*s);
-				if(nilp(r))
+				vpop_front(s);
+				if(INTOF(vsize(r)) == 0)
 				{
-					r = cons(RCHAR('\0'), NIL);	// null string
+					vpush(r, RCHAR('\0'));	// null string
 				}
 				return r;
 			}
 			else
 			{
-				cur = cons_and_cdr(c, cur);
+				vpush(r, c);
 			}
 			break;
 
 		    case 1:	// escape
 			if(INTOF(c) == 'n')	// \n
 			{
-				cur = cons_and_cdr(RCHAR('\n'), cur);
+				vpush(r, RCHAR('\n'));
 			}
 			else
 			{
-				cur = cons_and_cdr(c, cur);
+				vpush(r, c);
 			}
 			st = 0;
 			break;
@@ -124,24 +116,25 @@ static inline bool is_ws(value_t c)
 	assert(charp(c));
 	int cc = INTOF(c);
 
-	return cc == ' ' || cc == '\t' || cc == '\n';
+	return cc == ' ' || cc == '\t' || cc == '\n'
+		         || cc == '\0';	//******* ad-hock
 }
 
-static value_t scan1(value_t *s)
+static value_t scan1(value_t s)
 {
-	assert(s != NULL);
+	assert(is_str(s));
 
 	// skip space
-	for(; !nilp(*s) && is_ws(car(*s)); *s = cdr(*s))
-		assert(consp(*s));
+	for(value_t c = vpeek_front(s); !errp(c) && is_ws(c); c = (vpop_front(s), vpeek_front(s)))
+		assert(charp(c));
 
-	if(nilp(*s))
+	value_t c = vpeek_front(s);
+	if(errp(c))
 	{
 		return NIL;
 	}
 	else
 	{
-		value_t c = car(*s);
 		switch(INTOF(c))
 		{
 		    // special character
@@ -151,20 +144,21 @@ static value_t scan1(value_t *s)
 		    case '\'':
 		    case '`':
 		    case '@':
-			*s           = cdr (*s);
-			value_t sr   = cons(c, NIL);
+			vpop_front(s);
+			value_t sr   = make_vector(0);
+			vpush(sr, c);
 			sr.type.main = SYM_T;
 			return sr;
 
 		    // comment
 		    case ';':
-			*s           = cdr (*s);
+			vpop_front(s);
 			scan_to_lf(s);
 			return scan1(s);
 
 		    // string
 		    case '"':
-			*s           = cdr (*s);
+			vpop_front(s);
 			return scan_to_doublequote(s);
 
 		    // atom
@@ -182,7 +176,7 @@ scan_t scan_init(value_t str)
 {
 	scan_t r = { 0 };
 	r.cur    = str;
-	r.token  = scan1(&r.cur);
+	r.token  = scan1(r.cur);
 
 	return r;
 }
@@ -191,7 +185,7 @@ value_t scan_next(scan_t *s)
 {
 	assert(s != NULL);
 
-	s->token = scan1(&s->cur);
+	s->token = scan1(s->cur);
 	return s->token;
 }
 

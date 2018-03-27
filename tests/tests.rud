@@ -1091,7 +1091,7 @@ x
 ;=>6
 (vref z 6)
 ;=>range exceeded.
-(setq x (make-vector-from-list "hoge"))
+(setq x "hoge")
 ;=>#<VECTOR>
 (vpop-front x)
 ;=>'h'
