@@ -176,7 +176,7 @@
 	(if (and (consp tree) (not (strp tree)))
 	 (let*
 	   ((trial (pp-n tree 0 0))
-	    (len   (count trial)))
+	    (len   (vsize trial)))
 	   (if (> len 30)
 	     (let* ((fn (car tree)))
 	       (cond

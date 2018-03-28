@@ -211,6 +211,7 @@ DEF_FN_3_BEGIN(b_rplacv)
 	return rplacv(arg1, INTOF(arg2), arg3);
 DEF_FN_END
 
+DEF_FN_1(b_vsize, !vectorp(arg1) ? RERR(ERR_TYPE, body) : vsize(arg1))
 DEF_FN_2(b_vpush, !vectorp(arg2) ? RERR(ERR_TYPE, body) : vpush(arg1, arg2))
 DEF_FN_1(b_vpop,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpop (arg1))
 DEF_FN_1(b_copy_vector,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : copy_vector (arg1))
@@ -260,7 +261,7 @@ DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(38 + 10,
+	value_t key = list(38 + 11,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("+"),
@@ -293,6 +294,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("make-vector"),
 	                      str_to_sym("vref"),
 	                      str_to_sym("rplacv"),
+	                      str_to_sym("vsize"),
 	                      str_to_sym("vpush"),
 	                      str_to_sym("vpop"),
 	                      str_to_sym("copy-vector"),
@@ -311,7 +313,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("*trace*")
 	                  );
 
-	value_t val = list(38 + 10,
+	value_t val = list(38 + 11,
 			      NIL,
 			      str_to_sym("t"),
 	                      cfn(RFN(b_add), NIL),
@@ -344,6 +346,7 @@ value_t	create_root_env	(void)
 	                      cfn(RFN(b_make_vector), NIL),
 	                      cfn(RFN(b_vref), NIL),
 	                      cfn(RFN(b_rplacv), NIL),
+	                      cfn(RFN(b_vsize), NIL),
 	                      cfn(RFN(b_vpush), NIL),
 	                      cfn(RFN(b_vpop), NIL),
 	                      cfn(RFN(b_copy_vector), NIL),
