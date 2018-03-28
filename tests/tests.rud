@@ -1140,3 +1140,17 @@ x
 ;=>7
 (exec-vm (compile-vm '(+ x y)))
 ;=>17
+(setq x (exec-vm (compile-vm '(make-vector 4))))
+;=>#<VECTOR>
+(vref x 0)
+;=>nil
+(vref x 3)
+;=>nil
+(vref x 4)
+;=>range exceeded.
+(exec-vm (compile-vm '(vpush (make-vector 0) cons)))
+;=>#<COMPILED-FUNCTION>
+(exec-vm (compile-vm '(vpop "abcd")))
+;=>'d'
+(exec-vm (compile-vm '(vref "abcd" 1)))
+;=>'b'

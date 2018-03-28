@@ -53,6 +53,10 @@ typedef enum {
 	IS_CONS,
 	IS_CAR,
 	IS_CDR,
+	IS_MKVEC,
+	IS_VPUSH,
+	IS_VPOP,
+	IS_VREF,
 } vmis_t;
 
 #if __WORDSIZE == 32

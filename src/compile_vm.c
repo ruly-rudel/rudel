@@ -9,6 +9,7 @@
 
 value_t compile_vm1(value_t code, value_t ast, value_t env);
 
+// applicative order
 value_t compile_vm_list(value_t code, value_t ast, value_t env)
 {
 	assert(vectorp(code));
@@ -46,15 +47,19 @@ value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	}
 
 	value_t tbl[] = {
-		str_to_sym("+"),     RIS(IS_ADD),
-		str_to_sym("-"),     RIS(IS_SUB),
-		str_to_sym("*"),     RIS(IS_MUL),
-		str_to_sym("/"),     RIS(IS_DIV),
-		str_to_sym("="),     RIS(IS_EQ),
-		str_to_sym("equal"), RIS(IS_EQUAL),
-		str_to_sym("cons"),  RIS(IS_CONS),
-		str_to_sym("car"),   RIS(IS_CAR),
-		str_to_sym("cdr"),   RIS(IS_CDR),
+		str_to_sym("+"),             RIS(IS_ADD),
+		str_to_sym("-"),             RIS(IS_SUB),
+		str_to_sym("*"),             RIS(IS_MUL),
+		str_to_sym("/"),             RIS(IS_DIV),
+		str_to_sym("="),             RIS(IS_EQ),
+		str_to_sym("equal"),         RIS(IS_EQUAL),
+		str_to_sym("cons"),          RIS(IS_CONS),
+		str_to_sym("car"),           RIS(IS_CAR),
+		str_to_sym("cdr"),           RIS(IS_CDR),
+		str_to_sym("make-vector"),   RIS(IS_MKVEC),
+		str_to_sym("vpush"),         RIS(IS_VPUSH),
+		str_to_sym("vpop"),          RIS(IS_VPOP),
+		str_to_sym("vref"),          RIS(IS_VREF),
 	};
 
 	value_t fn = car(ast);

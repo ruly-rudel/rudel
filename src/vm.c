@@ -87,6 +87,22 @@ value_t exec_vm(value_t code, value_t e)
 						OP_1P1P(cdr(r0));
 						break;
 
+					case IS_MKVEC:
+						OP_1P1P(make_vector(INTOF(r0)));
+						break;
+
+					case IS_VPUSH:
+						OP_2P1P(vpush(r0, r1));
+						break;
+
+					case IS_VPOP:
+						OP_1P1P(vpop(r0));
+						break;
+
+					case IS_VREF:
+						OP_2P1P(vref(r0, INTOF(r1)));
+						break;
+
 					default:
 						return RERR(ERR_INVALID_IS, RINT(pc));
 				}
