@@ -1160,3 +1160,7 @@ x
 ;=>'b'
 (exec-vm (compile-vm '(let* ((x (+ 2 3)) (y (* 4 2))) (- x y))))
 ;=>-3
+(exec-vm (compile-vm '(if t 1 2)))
+;=>1
+(exec-vm (compile-vm '(if nil 1 2)))
+;=>2

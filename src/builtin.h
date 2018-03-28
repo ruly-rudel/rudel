@@ -59,6 +59,8 @@ typedef enum {
 	IS_VREF,
 	IS_VPUSH_ENV,
 	IS_VPOP_ENV,
+	IS_BR,		// Branch to pc + operand (relative to pc)
+	IS_BNIL,	// Branch to pc + operand when NIL. (relative to pc)
 } vmis_t;
 
 #if __WORDSIZE == 32
@@ -76,6 +78,14 @@ typedef struct
 	uint32_t	depth: 12;
 	uint32_t	width: 12;
 } ref_t;
+
+typedef struct
+{
+	uint32_t	main:     3;
+	uint32_t	sub:      5;
+	uint32_t	mnem:     8;
+	uint32_t	operand: 16;
+} opcode_t;
 #else
 typedef struct
 {
@@ -91,6 +101,14 @@ typedef struct
 	uint64_t	depth: 28;
 	uint64_t	width: 28;
 } ref_t;
+
+typedef struct
+{
+	uint64_t	main:     3;
+	uint64_t	sub:      5;
+	uint64_t	mnem:     8;
+	uint64_t	operand: 48;
+} opcode_t;
 #endif
 
 union _value_t;
@@ -105,6 +123,7 @@ typedef union _value_t
 	struct _vector_t*	vector;
 	ref_t			ref;
 	rfn_t			rfn;
+	opcode_t		op;
 	void*			ptr;
 #if __WORDSIZE == 32
 	int32_t			raw;
@@ -128,13 +147,14 @@ typedef struct _vector_t
 	value_t*	data;
 } vector_t;
 
-#define NIL         ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   = 0   })
+#define NIL         ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   =  0  })
 
 #define RCHAR(X)    ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T,    .type.val   = (X) })
 #define RINT(X)     ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,     .type.val   = (X) })
 #define RSPECIAL(X) ((value_t){ .type.main   = OTH_T,  .type.sub = SPECIAL_T, .type.val   = (X) })
-#define RIS(X)      ((value_t){ .type.main   = OTH_T,  .type.sub = VMIS_T,    .type.val   = (X) })
-#define RREF(X, Y)  ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width = (Y) })
+#define ROP(X)      ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand =  0  })
+#define ROPD(X, Y)  ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand = (Y) })
+#define RREF(X, Y)  ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width  = (Y) })
 #define RFN(X)      ((value_t){ .rfn = (X) })
 #define RERR(X, Y)   rerr(RINT(X), (Y))
 
