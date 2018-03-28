@@ -18,7 +18,7 @@ static value_t pr_str_int(int x)
 
 	if(x == 0)
 	{
-		vpush(r, RCHAR('0'));
+		vpush(RCHAR('0'), r);
 	}
 	else
 	{
@@ -50,7 +50,7 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 	{
 		do
 		{
-			vpush(r, RCHAR(INTOF(vsize(r)) == 0 ? '(' : ' '));
+			vpush(RCHAR(INTOF(vsize(r)) == 0 ? '(' : ' '), r);
 
 			if(rtypeof(x) == CONS_T)
 			{
@@ -60,14 +60,14 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 			}
 			else	// dotted
 			{
-				vpush(r, RCHAR('.'));
-				vpush(r, RCHAR(' '));
+				vpush(RCHAR('.'), r);
+				vpush(RCHAR(' '), r);
 				vnconc(r, pr_str(x, annotate, print_readably));
 				x = NIL;
 			}
 		} while(!nilp(x));
 
-		vpush(r, RCHAR(')'));
+		vpush(RCHAR(')'), r);
 	}
 
 	return r;
@@ -197,7 +197,7 @@ static value_t pr_str_str(value_t s, bool print_readably)
 
 	if(print_readably)
 	{
-		vpush(r, RCHAR('"'));
+		vpush(RCHAR('"'), r);
 	}
 
 	for(int i = 0; i < INTOF(vsize(s)); i++)
@@ -213,22 +213,22 @@ static value_t pr_str_str(value_t s, bool print_readably)
 			}
 			else if(INTOF(c) == '"')
 			{
-				vpush(r, RCHAR('\\'));
-				vpush(r, c);
+				vpush(RCHAR('\\'), r);
+				vpush(c, r);
 			}
 			else if(INTOF(c) == '\n')
 			{
-				vpush(r, RCHAR('\\'));
-				vpush(r, RCHAR('n'));
+				vpush(RCHAR('\\'), r);
+				vpush(RCHAR('n'), r);
 			}
 			else if(INTOF(c) == '\\')
 			{
-				vpush(r, RCHAR('\\'));
-				vpush(r, c);
+				vpush(RCHAR('\\'), r);
+				vpush(c, r);
 			}
 			else
 			{
-				vpush(r, c);
+				vpush(c, r);
 			}
 		}
 		else
@@ -239,19 +239,19 @@ static value_t pr_str_str(value_t s, bool print_readably)
 			}
 			else
 			{
-				vpush(r, c);
+				vpush(c, r);
 			}
 		}
 	}
 
 	if(print_readably)
 	{
-		vpush(r, RCHAR('"'));
+		vpush(RCHAR('"'), r);
 	}
 
 	if(INTOF(vsize(r)) == 0)
 	{
-		vpush(r, RCHAR('\0'));
+		vpush(RCHAR('\0'), r);
 	}
 
 	return r;
@@ -392,9 +392,9 @@ static value_t pr_str_char(value_t s)
 	assert(charp(s));
 	value_t r    = make_vector(0);
 
-	vpush(r, RCHAR('\''));
-	vpush(r, s);
-	vpush(r, RCHAR('\''));
+	vpush(RCHAR('\''), r);
+	vpush(s, r);
+	vpush(RCHAR('\''), r);
 	return r;
 }
 
@@ -405,9 +405,9 @@ static value_t pr_ref(value_t s)
 	value_t r    = str_to_rstr("#REF:");
 
 	vnconc(r, pr_str_int(REF_D(s)));
-	vpush (r, RCHAR(','));
+	vpush (RCHAR(','), r);
 	vnconc(r, pr_str_int(REF_W(s)));
-	vpush (r, RCHAR('#'));
+	vpush (RCHAR('#'), r);
 
 	return r;
 }

@@ -48,8 +48,8 @@ value_t compile_vm_let(value_t code, value_t ast, value_t env)
 	// allocate new environment
 	value_t let_env = create_env(NIL, NIL, env);
 
-	vpush(code, RINT(0));
-	vpush(code, RIS(IS_MKVEC));
+	vpush(RINT(0), code);
+	vpush(RIS(IS_MKVEC), code);
 
 	// local symbols
 	value_t def = car(ast);
@@ -78,14 +78,14 @@ value_t compile_vm_let(value_t code, value_t ast, value_t env)
 		else
 		{
 			// add let environment.
-			vpush(code, NIL);	// env key is NIL
+			vpush(NIL, code);	// env key is NIL
 			set_env(sym, NIL, let_env);
-			vpush(code, RIS(IS_CONS));
-			vpush(code, RIS(IS_VPUSH));
+			vpush(RIS(IS_CONS), code);
+			vpush(RIS(IS_VPUSH), code);
 		}
 	}
 
-	vpush(code, RIS(IS_VPUSH_ENV));
+	vpush(RIS(IS_VPUSH_ENV), code);
 	code = compile_vm1(code, car(cdr(ast)), let_env);
 	if(errp(code))
 	{
@@ -93,7 +93,7 @@ value_t compile_vm_let(value_t code, value_t ast, value_t env)
 	}
 	else
 	{
-		vpush(code, RIS(IS_VPOP_ENV));
+		vpush(RIS(IS_VPOP_ENV), code);
 		return code;
 	}
 }
@@ -135,7 +135,7 @@ value_t compile_vm_apply_builtin(value_t code, value_t ast, value_t env)
 			{
 				if(EQ(tbl[i], fn))
 				{
-					vpush(code, tbl[i+1]);
+					vpush(tbl[i+1], code);
 					return code;
 				}
 			}
@@ -196,12 +196,12 @@ value_t compile_vm1(value_t code, value_t ast, value_t env)
 	switch(rtypeof(ast))
 	{
 		case INT_T:
-			vpush(code, ast);
+			vpush(ast, code);
 			break;
 
 		case SYM_T:
 			r = get_env_ref(ast, env);
-			vpush(code, r);
+			vpush(r, code);
 			if(errp(r))
 			{
 				return r;
@@ -209,17 +209,17 @@ value_t compile_vm1(value_t code, value_t ast, value_t env)
 			break;
 
 		case REF_T:
-			vpush(code, ast);
+			vpush(ast, code);
 			break;
 
 		case VEC_T:
-			vpush(code, ast);	//****** heap address in code: fix it.
+			vpush(ast, code);	//****** heap address in code: fix it.
 			break;
 
 		case CONS_T:
 			if(nilp(ast))
 			{
-				vpush(code, ast);
+				vpush(ast, code);
 			}
 			else
 			{
@@ -247,7 +247,7 @@ value_t compile_vm(value_t ast, value_t env)
 	code = compile_vm1(code, ast, env);
 	if(!errp(code))
 	{
-		vpush(code, RIS(IS_HALT));
+		vpush(RIS(IS_HALT), code);
 	}
 
 	return code;

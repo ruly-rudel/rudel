@@ -211,7 +211,7 @@ DEF_FN_3_BEGIN(b_rplacv)
 	return rplacv(arg1, INTOF(arg2), arg3);
 DEF_FN_END
 
-DEF_FN_2(b_vpush, !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpush(arg1, arg2))
+DEF_FN_2(b_vpush, !vectorp(arg2) ? RERR(ERR_TYPE, body) : vpush(arg1, arg2))
 DEF_FN_1(b_vpop,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : vpop (arg1))
 DEF_FN_1(b_copy_vector,  !vectorp(arg1) ? RERR(ERR_TYPE, body) : copy_vector (arg1))
 DEF_FN_2VEC(b_vconc, vconc (arg1, arg2))

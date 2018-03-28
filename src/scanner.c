@@ -64,14 +64,14 @@ static value_t scan_to_whitespace(scan_t* s)
 		{
 			if(INTOF(vsize(r)) == 0)
 			{
-				vpush(r, RCHAR('\0'));
+				vpush(RCHAR('\0'), r);
 			}
 			r.type.main = SYM_T;
 			return r;
 		}
 		else
 		{
-			vpush(r, RCHAR(c));
+			vpush(RCHAR(c), r);
 		}
 	}
 
@@ -102,24 +102,24 @@ static value_t scan_to_doublequote(scan_t* s)
 				scan_nch(s);
 				if(INTOF(vsize(r)) == 0)
 				{
-					vpush(r, RCHAR('\0'));	// null string
+					vpush(RCHAR('\0'), r);	// null string
 				}
 				return r;
 			}
 			else
 			{
-				vpush(r, RCHAR(c));
+				vpush(RCHAR(c), r);
 			}
 			break;
 
 		    case 1:	// escape
 			if(c == 'n')	// \n
 			{
-				vpush(r, RCHAR('\n'));
+				vpush(RCHAR('\n'), r);
 			}
 			else
 			{
-				vpush(r, RCHAR(c));
+				vpush(RCHAR(c), r);
 			}
 			st = 0;
 			break;
@@ -160,7 +160,7 @@ static value_t scan1(scan_t* s)
 		    case '@':
 			scan_nch(s);
 			value_t sr   = make_vector(0);
-			vpush(sr, RCHAR(c));
+			vpush(RCHAR(c), sr);
 			sr.type.main = SYM_T;
 			return sr;
 

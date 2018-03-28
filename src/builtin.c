@@ -522,7 +522,7 @@ value_t slurp(char* fn)
 		int c;
 		while((c = fgetc(fp)) != EOF)
 		{
-			vpush(buf, RCHAR(c));
+			vpush(RCHAR(c), buf);
 		}
 		fclose(fp);
 
@@ -661,7 +661,7 @@ bool veq(value_t x, value_t y)
 	return true;
 }
 
-value_t vpush(value_t v, value_t x)
+value_t vpush(value_t x, value_t v)
 {
 	assert(vectorp(v));
 
@@ -691,7 +691,7 @@ value_t vpush_front(value_t v, value_t x)
 {
 	assert(vectorp(v) || symbolp(v));
 
-	vpush(v, NIL);
+	vpush(NIL, v);
 	for(int i = INTOF(vsize(v)) - 2; i >= 0; i--)
 	{
 		rplacv(v, i + 1, vref(v, i));
@@ -749,7 +749,7 @@ value_t vnconc(value_t x, value_t y)
 	int sy = INTOF(vsize(y));
 	for(int i = 0; i < sy; i++)
 	{
-		vpush(x, vref(y, i));
+		vpush(vref(y, i), x);
 	}
 
 	return x;
@@ -762,7 +762,7 @@ value_t make_vector_from_list(value_t x)
 	value_t r = make_vector(0);
 	for(; !nilp(x); x = cdr(x))
 	{
-		vpush(r, car(x));
+		vpush(car(x), r);
 	}
 
 	return r;
@@ -810,7 +810,7 @@ value_t str_to_vec	(const char* s)
 	int c;
 	while((c = *s++) != '\0')
 	{
-		vpush(r, RCHAR(c));
+		vpush(RCHAR(c), r);
 	}
 
 	return r;
@@ -822,7 +822,7 @@ value_t str_to_rstr	(const char* s)
 	value_t r = str_to_vec(s);
 	if(INTOF(vsize(r)) == 0)
 	{
-		vpush(r, RCHAR('\0'));
+		vpush(RCHAR('\0'), r);
 	}
 
 	return r;

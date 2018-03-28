@@ -216,7 +216,7 @@ value_t rplacv		(value_t v, unsigned pos, value_t data);
 value_t vsize		(value_t v);
 value_t vresize		(value_t v, int n);
 bool	veq		(value_t x, value_t y);
-value_t vpush		(value_t v, value_t x);
+value_t vpush		(value_t x, value_t v);
 value_t vpop		(value_t v);
 value_t vpush_front	(value_t v, value_t x);
 value_t copy_vector	(value_t src);

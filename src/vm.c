@@ -10,17 +10,22 @@
 	X; \
 }
 
+#define OP_0P1P(X) \
+{ \
+	vpush(X, stack); \
+}
+
 #define OP_1P1P(X) \
 { \
 	r0 = vpop(stack); \
-	vpush(stack, X); \
+	vpush(X, stack); \
 }
 
 #define OP_2P1P(X) \
 { \
 	r0 = vpop(stack); \
 	r1 = vpop(stack); \
-	vpush(stack, X); \
+	vpush(X, stack); \
 }
 
 value_t exec_vm(value_t code, value_t e)
@@ -44,17 +49,17 @@ value_t exec_vm(value_t code, value_t e)
 		{
 			case INT_T:
 			case VEC_T:
-				vpush(stack, op);
+				OP_0P1P(op);
 				break;
 
 			case REF_T:
-				vpush(stack, get_env_value_ref(op, env));
+				OP_0P1P(get_env_value_ref(op, env));
 				break;
 
 			case CONS_T:
 				if(nilp(op))
 				{
-					vpush(stack, NIL);
+					OP_0P1P(NIL);
 				}
 				else
 				{
@@ -109,7 +114,7 @@ value_t exec_vm(value_t code, value_t e)
 						break;
 
 					case IS_VPUSH:
-						OP_2P1P(vpush(r1, r0));		//****** ad-hock: swap r1 and r0 later.
+						OP_2P1P(vpush(r0, r1));
 						break;
 
 					case IS_VPOP:
