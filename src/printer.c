@@ -349,6 +349,12 @@ static value_t pr_err_cause(value_t e)
 		    case ERR_INVALID_IS:
 			return str_to_rstr("unknown vm instruction.");
 
+		    case ERR_ARG_BUILTIN:
+			return str_to_rstr("built-in functions is not first class now. we will fix it later.");
+
+		    case ERR_INVALID_CLOJ:
+			return str_to_rstr("VM require clojure on top of the stack when AP.");
+
 		    default:
 			return str_to_rstr("unknown error.");
 		}

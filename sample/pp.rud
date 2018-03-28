@@ -1,0 +1,19 @@
+
+(defun pp-n-test (lst indent n)
+	(let* ((prec  (copy-list lst (if (= n 0) nil n)))
+	       (trail (if (= n 0) nil (nthcdr (- n 1) lst)))
+	       (next  (+ indent 3)))
+	  (str
+	    "("
+	    (reduce (lambda (x y) (str x " " y))
+		    (mapcar (lambda (x) (pp x next)) prec))
+	    (if trail
+	      (str
+	         "\n"
+	         (insert-space next)
+		 (reduce (lambda (x y) (str x "\n" (insert-space next) y))
+			 (mapcar (lambda (x) (pp x next)) trail))
+		 ")")
+	      ")"))))
+
+(ppln (car pp-n-test))

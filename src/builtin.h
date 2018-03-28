@@ -50,6 +50,7 @@ typedef enum {
 	IS_DIV,
 	IS_EQ,
 	IS_EQUAL,
+	IS_LT,
 	IS_CONS,
 	IS_CAR,
 	IS_CDR,
@@ -61,6 +62,10 @@ typedef enum {
 	IS_VPOP_ENV,
 	IS_BR,		// Branch to pc + operand (relative to pc)
 	IS_BNIL,	// Branch to pc + operand when NIL. (relative to pc)
+	IS_AP,
+	IS_RET,
+	IS_DUP,
+	IS_POP,
 } vmis_t;
 
 #if __WORDSIZE == 32
@@ -181,6 +186,8 @@ typedef struct _vector_t
 #define ERR_ALLOC		11
 #define ERR_EOS			12
 #define ERR_INVALID_IS		13
+#define ERR_ARG_BUILTIN		14
+#define ERR_INVALID_CLOJ	15
 
 #define UNSAFE_CAR(X)	(X).cons->car
 #define UNSAFE_CDR(X)	(X).cons->cdr

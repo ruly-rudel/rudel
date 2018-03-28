@@ -3,6 +3,7 @@
 #include "builtin.h"
 #include "vm.h"
 #include "env.h"
+#include "printer.h"
 
 #define OP_1P0P(X) \
 { \
@@ -38,19 +39,20 @@
 #define TRACE2(X, Y, Z)
 #endif // TRACE_VM
 
-value_t exec_vm(value_t code, value_t e)
+value_t exec_vm(value_t c, value_t e)
 {
-	assert(vectorp(code));
+	assert(vectorp(c));
 	assert(consp(e));
 
 	value_t stack = make_vector(0);
+	value_t code  = c;
 	value_t env   = e;
 	value_t ret   = make_vector(0);
 
 	value_t r0    = NIL;
 	value_t r1    = NIL;
 
-	unsigned int pc = 0;
+	int pc = 0;
 
 	while(true)
 	{
@@ -85,11 +87,86 @@ value_t exec_vm(value_t code, value_t e)
 				}
 				break;
 
+			case CLOJ_T: TRACE("push #<CLOJURE>");
+				rplacd(op, env);	// set current environment
+				OP_0P1P(op);
+				break;
+
 			case VMIS_T:
 				switch(op.op.mnem)
 				{
+					// core functions
 					case IS_HALT: TRACE("HALT");
 						return vpop(stack);
+
+					case IS_VPUSH_ENV: TRACE("VPUSH_ENV");
+						OP_1P0P(env = cons(r0, env));
+						break;
+
+					case IS_VPOP_ENV: TRACE("VPOP_ENV");
+						env = cdr(env);
+						break;
+
+					case IS_BR: TRACE1("BR %d", pc + op.op.operand);
+						pc += op.op.operand - 1;
+						break;
+
+					case IS_BNIL: TRACE1("BNIL %d", pc + op.op.operand);
+						OP_1P0P(pc += nilp(r0) ? op.op.operand - 1: 0);
+						break;
+
+					case IS_CONS: TRACE("CONS");
+						OP_2P1P(cons(r0, r1));
+						break;
+
+					case IS_MKVEC: TRACE("MKVEC");
+						OP_1P1P(make_vector(INTOF(r0)));
+						break;
+
+					case IS_VPUSH: TRACE("VPUSH");
+						OP_2P1P(vpush(r0, r1));
+						break;
+
+					case IS_DUP: TRACE("DUP");
+						r0 = vpop(stack);
+						vpush(r0, stack);
+						vpush(r0, stack);
+						break;
+
+					case IS_POP: TRACE("POP");
+						OP_1P0P();
+						break;
+
+					case IS_AP:
+					{
+						r0 = vpop(stack);
+						if(clojurep(r0))	// compiled function
+						{
+							TRACE("AP");
+							// save contexts
+							vpush(code,     ret);
+							vpush(RINT(pc), ret);
+							vpush(env,      ret);
+
+							// set new execute contexts
+							code = car(r0);	// clojure code
+							env  = cdr(r0); // clojure environment
+							pc   = -1;
+							OP_1P0P(env = cons(r0, env));	// new environment as arguments
+						}
+						else
+						{
+							return RERR(ERR_INVALID_CLOJ, RINT(pc));
+						}
+
+					}
+					break;
+
+					case IS_RET: TRACE("RET");
+						env  = vpop(ret);
+						pc   = INTOF(vpop(ret));
+						code = vpop(ret);
+						break;
 
 					case IS_ADD: TRACE("ADD");
 						OP_2P1P(RINT(INTOF(r0) + INTOF(r1)));
@@ -115,8 +192,8 @@ value_t exec_vm(value_t code, value_t e)
 						OP_2P1P(equal(r0, r1) ? g_t : NIL);
 						break;
 
-					case IS_CONS: TRACE("CONS");
-						OP_2P1P(cons(r0, r1));
+					case IS_LT: TRACE("LT");
+						OP_2P1P(INTOF(r0) < INTOF(r1) ? g_t : NIL);
 						break;
 
 					case IS_CAR: TRACE("CAR");
@@ -127,14 +204,6 @@ value_t exec_vm(value_t code, value_t e)
 						OP_1P1P(cdr(r0));
 						break;
 
-					case IS_MKVEC: TRACE("MKVEC");
-						OP_1P1P(make_vector(INTOF(r0)));
-						break;
-
-					case IS_VPUSH: TRACE("VPUSH");
-						OP_2P1P(vpush(r0, r1));
-						break;
-
 					case IS_VPOP: TRACE("VPOP");
 						OP_1P1P(vpop(r0));
 						break;
@@ -142,25 +211,6 @@ value_t exec_vm(value_t code, value_t e)
 					case IS_VREF: TRACE1("VREF %d", INTOF(r1));
 						OP_2P1P(vref(r0, INTOF(r1)));
 						break;
-
-					case IS_VPUSH_ENV: TRACE("VPUSH_ENV");
-						OP_1P0P(env = cons(r0, env));
-						break;
-
-					case IS_VPOP_ENV: TRACE("VPOP_ENV");
-						env = cdr(env);
-						break;
-
-					case IS_BR: TRACE1("BR %d", pc + op.op.operand);
-						pc += op.op.operand - 1;
-						break;
-
-					case IS_BNIL: TRACE1("BNIL %d", pc + op.op.operand);
-						OP_1P0P(pc += nilp(r0) ? op.op.operand - 1: 0);
-						break;
-
-					default:
-						return RERR(ERR_INVALID_IS, RINT(pc));
 				}
 				break;
 

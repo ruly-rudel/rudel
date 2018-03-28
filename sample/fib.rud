@@ -1,0 +1,9 @@
+(defun fib (n)
+  (if (< n 2) n
+    (+ (fib (- n 1)) (fib (- n 2)))))
+
+(resolv fib)
+
+;(fib 29)
+;(fib 32)
+(fib (cadr *ARGV*))
