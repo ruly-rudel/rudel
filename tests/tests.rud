@@ -11,7 +11,7 @@
 ;=>#:G4
 (eq x '#:G4)
 ;=>nil
-(= x '#:G4)	;; must be nil, but now t. fix it later.
+(equal x '#:G4)	;; must be nil, but now t. fix it later.
 ;=>t
 
 ;; Testing evaluation of arithmetic operations
@@ -153,7 +153,7 @@ a
 ;=>8
 (if (list 1 2 3) 7 8)
 ;=>7
-(= (list) nil)
+(eq (list) nil)
 ;=>t
 
 
@@ -167,19 +167,19 @@ a
 
 
 ;; Testing basic conditionals
-(= 2 1)
+(eq 2 1)
 ;=>nil
-(= 1 1)
+(eq 1 1)
 ;=>t
-(= 1 2)
+(eq 1 2)
 ;=>nil
-(= 1 (+ 1 1))
+(eq 1 (+ 1 1))
 ;=>nil
-(= 2 (+ 1 1))
+(eq 2 (+ 1 1))
 ;=>t
-(= nil 1)
+(eq nil 1)
 ;=>nil
-(= nil nil)
+(eq nil nil)
 ;=>t
 
 (> 2 1)
@@ -212,46 +212,46 @@ a
 
 
 ;; Testing equality
-(= 1 1)
+(equal 1 1)
 ;=>t
-(= 0 0)
+(equal 0 0)
 ;=>t
-(= 1 0)
+(equal 1 0)
 ;=>nil
-(= "" "")
+(equal "" "")
 ;=>t
-(= "abc" "abc")
+(equal "abc" "abc")
 ;=>t
-(= "abc" "")
+(equal "abc" "")
 ;=>nil
-(= "" "abc")
+(equal "" "abc")
 ;=>nil
-(= "abc" "def")
+(equal "abc" "def")
 ;=>nil
-(= "abc" "ABC")
+(equal "abc" "ABC")
 ;=>nil
-(= t t)
+(equal t t)
 ;=>t
-(= nil nil)
+(equal nil nil)
 ;=>t
-(= nil nil)
+(equal nil nil)
 ;=>t
 
-(= (list) (list))
+(equal (list) (list))
 ;=>t
-(= (list 1 2) (list 1 2))
+(equal (list 1 2) (list 1 2))
 ;=>t
-(= (list 1) (list))
+(equal (list 1) (list))
 ;=>nil
-(= (list) (list 1))
+(equal (list) (list 1))
 ;=>nil
-(= 0 (list))
+(equal 0 (list))
 ;=>nil
-(= (list) 0)
+(equal (list) 0)
 ;=>nil
-(= (list) "")
+(equal (list) "")
 ;=>nil
-(= "" (list))
+(equal "" (list))
 ;=>nil
 
 
@@ -314,7 +314,7 @@ a
 
 
 ;; Testing recursive fibonacci function
-(setq fib (lambda (N) (if (= N 0) 1 (if (= N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+(setq fib (lambda (N) (if (eq N 0) 1 (if (eq N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
 (fib 1)
 ;=>1
 (fib 2)
@@ -530,7 +530,7 @@ nil
 
 ;; Testing recursive tail-call function
 
-(setq sum2 (lambda (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))
+(setq sum2 (lambda (n acc) (if (eq n 0) acc (sum2 (- n 1) (+ n acc)))))
 
 ;; TODO: test let*, and do for TCO
 
@@ -697,19 +697,19 @@ b
 
 
 ;; Testing symbol equality
-(= (quote abc) (quote abc))
+(eq (quote abc) (quote abc))
 ;=>t
-(= (quote abc) (quote abcd))
+(eq (quote abc) (quote abcd))
 ;=>nil
-(= (quote abc) "abc")
+(eq (quote abc) "abc")
 ;=>nil
-(= "abc" (quote abc))
+(equal "abc" (quote abc))
 ;=>nil
-(= "abc" (str (quote abc)))
+(equal "abc" (str (quote abc)))
 ;=>t
-(= (quote abc) nil)
+(eq (quote abc) nil)
 ;=>nil
-(= nil (quote abc))
+(eq nil (quote abc))
 ;=>nil
 
 ;;;;; Test quine
@@ -797,10 +797,10 @@ b
 ;; -------- Deferrable Functionality --------
 
 ;; Testing non-macro function
-(not (= 1 1))
+(not (eq 1 1))
 ;=>nil
 ;;; This should fail if it is a macro
-(not (= 1 2))
+(not (eq 1 2))
 ;=>t
 
 ;; Testing nth, cons and cdr functions
@@ -859,7 +859,7 @@ x
 ;=>8
 (cond nil 7 nil 8 "else" 9)
 ;=>9
-(cond nil 7 (= 2 2) 8 "else" 9)
+(cond nil 7 (eq 2 2) 8 "else" 9)
 ;=>8
 (cond nil 7 nil 8 nil 9)
 ;=>nil
@@ -950,7 +950,7 @@ x
 ;=>(1 2 3 4 5)
 (eq x (list 1 2 3 4 5))
 ;=>nil
-(= x (list 1 2 3 4 5))
+(equal x (list 1 2 3 4 5))
 ;=>t
 (copy-list x 3)
 ;=>(1 2 3)
@@ -1126,11 +1126,11 @@ x
 ;=>1
 (exec-vm (compile-vm '(cdr (cons 1 (cons 2 (cons 3 nil))))))
 ;=>(2 3)
-(exec-vm (compile-vm '(= 1 2)))
+(exec-vm (compile-vm '(eq 1 2)))
 ;=>nil
-(exec-vm (compile-vm '(= 1 1)))
+(exec-vm (compile-vm '(eq 1 1)))
 ;=>t
-(exec-vm (compile-vm '(= "hoge" "hoge")))
+(exec-vm (compile-vm '(eq "hoge" "hoge")))
 ;=>nil
 (exec-vm (compile-vm '(equal "hoge" "hoge")))
 ;=>t

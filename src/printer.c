@@ -346,6 +346,9 @@ static value_t pr_err_cause(value_t e)
 		    case ERR_EOS:
 			return str_to_rstr("end of sequence.");
 
+		    case ERR_INVALID_IS:
+			return str_to_rstr("unknown vm instruction.");
+
 		    default:
 			return str_to_rstr("unknown error.");
 		}

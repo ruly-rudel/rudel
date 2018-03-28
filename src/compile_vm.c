@@ -33,7 +33,7 @@ value_t compile_vm_list(value_t code, value_t ast, value_t env)
 	return code;
 }
 
-value_t compile_vm_apply(value_t code, value_t ast, value_t env)
+value_t compile_vm_apply_builtin(value_t code, value_t ast, value_t env)
 {
 	assert(vectorp(code));
 	assert(consp(ast));
@@ -51,8 +51,8 @@ value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 		str_to_sym("-"),             RIS(IS_SUB),
 		str_to_sym("*"),             RIS(IS_MUL),
 		str_to_sym("/"),             RIS(IS_DIV),
-		str_to_sym("="),             RIS(IS_EQ),
 		str_to_sym("equal"),         RIS(IS_EQUAL),
+		str_to_sym("eq"),            RIS(IS_EQ),
 		str_to_sym("cons"),          RIS(IS_CONS),
 		str_to_sym("car"),           RIS(IS_CAR),
 		str_to_sym("cdr"),           RIS(IS_CDR),
@@ -81,6 +81,35 @@ value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	}
 
 	return code;
+}
+
+value_t compile_vm_apply(value_t code, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(ast));
+	assert(consp(env));
+
+	value_t fn = car(ast);
+	switch(rtypeof(fn))
+	{
+		case SYM_T:
+			fn = get_env_value(fn, env);
+			if(errp(fn))
+			{
+				return fn;
+			}
+			else if(cfnp(fn))
+			{
+				return compile_vm_apply_builtin(code, ast, env);
+			}
+			else
+			{
+				return RERR(ERR_NOTIMPL, ast);
+			}
+
+		default:
+			return RERR(ERR_NOTIMPL, ast);
+	}
 }
 
 value_t compile_vm1(value_t code, value_t ast, value_t env)
@@ -119,7 +148,7 @@ value_t compile_vm1(value_t code, value_t ast, value_t env)
 			}
 			else
 			{
-				compile_vm_apply(code, ast, env);
+				code = compile_vm_apply(code, ast, env);
 			}
 			break;
 

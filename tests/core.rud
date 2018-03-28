@@ -2,7 +2,7 @@
 
 (setq dec (lambda (a) (- a 1)))
 
-(setq zero? (lambda (n) (= 0 n)))
+(setq zero? (lambda (n) (eq 0 n)))
 
 ;(setq reduce
 ;  (lambda (f init xs)

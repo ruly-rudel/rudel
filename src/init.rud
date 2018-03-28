@@ -21,7 +21,7 @@
 (defmacro and (& xs)
     (if (not xs)
       t
-      (if (= 1 (count xs))
+      (if (equal 1 (count xs))
         (car xs)
         (let* ((condvar (gensym)))
           `(let* ((,condvar ,(car xs)))
@@ -30,7 +30,7 @@
 (defmacro or (& xs)
     (if (not xs)
       nil
-      (if (= 1 (count xs))
+      (if (equal 1 (count xs))
         (car xs)
         (let* ((condvar (gensym)))
           `(let* ((,condvar ,(car xs)))
@@ -85,7 +85,7 @@
 (defun list (& body) (copy-list body))
 
 (defun copy-list (x n)
-	(if (and n (= n 0)) nil
+	(if (and n (equal n 0)) nil
 	   (if x
 	     (if (consp x)
 	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
@@ -93,7 +93,7 @@
 
 (defun remove (x lst)
 	(if lst
-	  (if (= x (car lst))
+	  (if (equal x (car lst))
 	    (remove x (cdr lst))
 	    (cons (car lst) (remove x (cdr lst))))))
 
@@ -156,8 +156,8 @@
 	(repeat n " " str))
 
 (defun pp-n (lst indent n)
-	(let* ((prec  (copy-list lst (if (= n 0) nil n)))
-	       (trail (if (= n 0) nil (nthcdr (- n 1) lst)))
+	(let* ((prec  (copy-list lst (if (equal n 0) nil n)))
+	       (trail (if (equal n 0) nil (nthcdr (- n 1) lst)))
 	       (next  (+ indent 3)))
 	  (str
 	    "("
@@ -180,11 +180,11 @@
 	   (if (> len 30)
 	     (let* ((fn (car tree)))
 	       (cond
-		 (= fn 'if)       (pp-n tree indent 2)
-		 (= fn 'setq)     (pp-n tree indent 2)
-		 (= fn 'lambda)   (pp-n tree indent 2)
-		 (= fn 'defun)    (pp-n tree indent 3)
-		 (= fn 'defmacro) (pp-n tree indent 3)
+		 (equal fn 'if)       (pp-n tree indent 2)
+		 (equal fn 'setq)     (pp-n tree indent 2)
+		 (equal fn 'lambda)   (pp-n tree indent 2)
+		 (equal fn 'defun)    (pp-n tree indent 3)
+		 (equal fn 'defmacro) (pp-n tree indent 3)
 		 t                (pp-n tree indent 1)))
 	     trial))
 	 (pr-str tree)))

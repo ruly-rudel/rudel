@@ -281,7 +281,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("nth"),
 	                      str_to_sym("car"),
 	                      str_to_sym("cdr"),
-	                      str_to_sym("="),
+	                      str_to_sym("equal"),
 	                      str_to_sym("eq"),
 	                      str_to_sym("veq"),
 	                      str_to_sym("atom"),
