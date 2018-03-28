@@ -4,6 +4,12 @@
 #include "vm.h"
 #include "env.h"
 
+#define OP_1P0P(X) \
+{ \
+	r0 = vpop(stack); \
+	X; \
+}
+
 #define OP_1P1P(X) \
 { \
 	r0 = vpop(stack); \
@@ -43,6 +49,17 @@ value_t exec_vm(value_t code, value_t e)
 
 			case REF_T:
 				vpush(stack, get_env_value_ref(op, env));
+				break;
+
+			case CONS_T:
+				if(nilp(op))
+				{
+					vpush(stack, NIL);
+				}
+				else
+				{
+					return RERR(ERR_INVALID_IS, RINT(pc));
+				}
 				break;
 
 			case VMIS_T:
@@ -92,7 +109,7 @@ value_t exec_vm(value_t code, value_t e)
 						break;
 
 					case IS_VPUSH:
-						OP_2P1P(vpush(r0, r1));
+						OP_2P1P(vpush(r1, r0));		//****** ad-hock: swap r1 and r0 later.
 						break;
 
 					case IS_VPOP:
@@ -101,6 +118,14 @@ value_t exec_vm(value_t code, value_t e)
 
 					case IS_VREF:
 						OP_2P1P(vref(r0, INTOF(r1)));
+						break;
+
+					case IS_VPUSH_ENV:
+						OP_1P0P(env = cons(r0, env));
+						break;
+
+					case IS_VPOP_ENV:
+						env = cdr(env);
 						break;
 
 					default:

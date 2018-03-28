@@ -665,7 +665,8 @@ value_t vpush(value_t v, value_t x)
 {
 	assert(vectorp(v));
 
-	return rplacv(v, INTOF(vsize(v)), x);
+	rplacv(v, INTOF(vsize(v)), x);		//***** assume no error
+	return v;
 }
 
 value_t vpop(value_t v)

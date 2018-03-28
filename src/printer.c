@@ -439,6 +439,29 @@ static value_t pr_vec(value_t s)
 	return str_to_rstr("#<VECTOR>");
 }
 
+static value_t pr_vmis(value_t s)
+{
+	switch(INTOF(s))
+	{
+		case IS_HALT:		return str_to_rstr("IS_HALT");
+		case IS_ADD:		return str_to_rstr("IS_ADD");
+		case IS_SUB:		return str_to_rstr("IS_SUB");
+		case IS_MUL:		return str_to_rstr("IS_MUL");
+		case IS_DIV:		return str_to_rstr("IS_DIV");
+		case IS_EQ:		return str_to_rstr("IS_EQ");
+		case IS_EQUAL:		return str_to_rstr("IS_EQUAL");
+		case IS_CONS:		return str_to_rstr("IS_CONS");
+		case IS_CAR:		return str_to_rstr("IS_CAR");
+		case IS_CDR:		return str_to_rstr("IS_CDR");
+		case IS_MKVEC:		return str_to_rstr("IS_MKVEC");
+		case IS_VPUSH:		return str_to_rstr("IS_VPUSH");
+		case IS_VPOP:		return str_to_rstr("IS_VPOP");
+		case IS_VREF:		return str_to_rstr("IS_VREF");
+		case IS_VPUSH_ENV:	return str_to_rstr("IS_VPUSH_ENV");
+		case IS_VPOP_ENV:	return str_to_rstr("IS_VPOP_ENV");
+		default:		return RERR(ERR_NOTIMPL, NIL);
+	}
+}
 /////////////////////////////////////////////////////////////////////
 // public: Rudel-specific functions
 
@@ -495,6 +518,9 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 
 	    case REF_T:
 		return pr_ref(s);
+
+	    case VMIS_T:
+		return pr_vmis(s);
 
 	    default:
 		return s;

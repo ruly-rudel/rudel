@@ -33,6 +33,71 @@ value_t compile_vm_list(value_t code, value_t ast, value_t env)
 	return code;
 }
 
+value_t compile_vm_let(value_t code, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(ast));
+	assert(consp(env));
+
+	// cereate environment
+	if(!consp(ast))
+	{
+		return RERR(ERR_ARG, ast);
+	}
+
+	// allocate new environment
+	value_t let_env = create_env(NIL, NIL, env);
+
+	vpush(code, RINT(0));
+	vpush(code, RIS(IS_MKVEC));
+
+	// local symbols
+	value_t def = car(ast);
+	if(rtypeof(def) != CONS_T)
+	{
+		return RERR(ERR_ARG, ast);
+	}
+
+	for(; !nilp(def); def = cdr(def))
+	{
+		value_t bind = car(def);
+
+		// symbol
+		value_t sym = car(bind);
+		if(!symbolp(sym))
+		{
+			return RERR(ERR_ARG, bind);
+		}
+
+		// body
+		code = compile_vm1(code, car(cdr(bind)), let_env);
+		if(errp(code))
+		{
+			return code;
+		}
+		else
+		{
+			// add let environment.
+			vpush(code, NIL);	// env key is NIL
+			set_env(sym, NIL, let_env);
+			vpush(code, RIS(IS_CONS));
+			vpush(code, RIS(IS_VPUSH));
+		}
+	}
+
+	vpush(code, RIS(IS_VPUSH_ENV));
+	code = compile_vm1(code, car(cdr(ast)), let_env);
+	if(errp(code))
+	{
+		return code;
+	}
+	else
+	{
+		vpush(code, RIS(IS_VPOP_ENV));
+		return code;
+	}
+}
+
 value_t compile_vm_apply_builtin(value_t code, value_t ast, value_t env)
 {
 	assert(vectorp(code));
@@ -92,6 +157,16 @@ value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	value_t fn = car(ast);
 	switch(rtypeof(fn))
 	{
+		case SPECIAL_T:
+			switch(INTOF(fn))
+			{
+				case SP_LET:
+					return compile_vm_let(code, cdr(ast), env);
+
+				default:
+					return RERR(ERR_NOTIMPL, ast);
+			}
+
 		case SYM_T:
 			fn = get_env_value(fn, env);
 			if(errp(fn))

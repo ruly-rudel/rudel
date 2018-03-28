@@ -57,6 +57,8 @@ typedef enum {
 	IS_VPUSH,
 	IS_VPOP,
 	IS_VREF,
+	IS_VPUSH_ENV,
+	IS_VPOP_ENV,
 } vmis_t;
 
 #if __WORDSIZE == 32

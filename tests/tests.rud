@@ -1106,6 +1106,8 @@ x
 (make-list-from-vector x)
 ;=>('h' 'o' 'g' 'e')
 
+(exec-vm (compile-vm nil))
+;=>nil
 (exec-vm (compile-vm 1))
 ;=>1
 (exec-vm (compile-vm t))
@@ -1148,9 +1150,13 @@ x
 ;=>nil
 (vref x 4)
 ;=>range exceeded.
-(exec-vm (compile-vm '(vpush (make-vector 0) cons)))
+(exec-vm (compile-vm '(vpush cons (make-vector 0))))
+;=>#<VECTOR>
+(exec-vm (compile-vm '(vpop (vpush cons (make-vector 0)))))
 ;=>#<COMPILED-FUNCTION>
 (exec-vm (compile-vm '(vpop "abcd")))
 ;=>'d'
 (exec-vm (compile-vm '(vref "abcd" 1)))
 ;=>'b'
+(exec-vm (compile-vm '(let* ((x (+ 2 3)) (y (* 4 2))) (- x y))))
+;=>-3
