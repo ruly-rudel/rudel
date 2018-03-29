@@ -459,7 +459,7 @@ static value_t pr_vmis(value_t s)
 		case IS_CONS:		return str_to_rstr("IS_CONS");
 		case IS_CAR:		return str_to_rstr("IS_CAR");
 		case IS_CDR:		return str_to_rstr("IS_CDR");
-		case IS_MKVEC:		return str_to_rstr("IS_MKVEC");
+		case IS_MAKE_VECTOR:	return str_to_rstr("IS_MAKE_VECTOR");
 		case IS_VPUSH:		return str_to_rstr("IS_VPUSH");
 		case IS_VPOP:		return str_to_rstr("IS_VPOP");
 		case IS_VREF:		return str_to_rstr("IS_VREF");

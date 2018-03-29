@@ -25,6 +25,7 @@ typedef enum _rtype_t {
 	REF_T,
 	SPECIAL_T,
 	VMIS_T,
+	VMREF_T,
 } rtype_t;
 
 typedef enum {
@@ -44,30 +45,54 @@ typedef enum {
 
 typedef enum {
 	IS_HALT = 0,
-	IS_ADD,
-	IS_SUB,
-	IS_MUL,
-	IS_DIV,
-	IS_EQ,
-	IS_EQUAL,
-	IS_LT,
-	IS_CONS,
-	IS_CAR,
-	IS_CDR,
-	IS_MKVEC,
-	IS_VPUSH,
-	IS_VPOP,
-	IS_VREF,
-	IS_VPUSH_ENV,
-	IS_VPOP_ENV,
 	IS_BR,		// Branch to pc + operand (relative to pc)
 	IS_BNIL,	// Branch to pc + operand when NIL. (relative to pc)
+	IS_MKVEC_ENV,
+	IS_VPUSH_ENV,
+	IS_VPOP_ENV,
+	IS_NIL_CONS_VPUSH,
 	IS_AP,
 	IS_RET,
 	IS_DUP,
 	IS_POP,
-	IS_NIL_CONS_VPUSH,
-	IS_MKVEC_ENV,
+	IS_SETENV,
+
+	IS_ATOM,
+	IS_CONSP,
+	IS_CONS,
+	IS_CAR,
+	IS_CDR,
+	IS_EQ,
+	IS_EQUAL,
+	IS_RPLACA,
+	IS_RPLACD,
+	IS_GENSYM,
+	IS_LT,
+	IS_ELT,
+	IS_MT,
+	IS_EMT,
+	IS_ADD,
+	IS_SUB,
+	IS_MUL,
+	IS_DIV,
+	IS_READ_STRING,
+	IS_SLURP,
+	IS_EVAL,
+	IS_ERR,
+	IS_NTH,
+	IS_INIT,
+	IS_MAKE_VECTOR,
+	IS_VREF,
+	IS_RPLACV,
+	IS_VSIZE,
+	IS_VEQ,
+	IS_VPUSH,
+	IS_VPOP,
+	IS_COPY_VECTOR,
+	IS_VCONC,
+	IS_VNCONC,
+	IS_COMPILE_VM,
+	IS_EXEC_VM,
 } vmis_t;
 
 #if __WORDSIZE == 32
@@ -156,13 +181,14 @@ typedef struct _vector_t
 
 #define NIL         ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   =  0  })
 
-#define RCHAR(X)    ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T,    .type.val   = (X) })
-#define RINT(X)     ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,     .type.val   = (X) })
-#define RSPECIAL(X) ((value_t){ .type.main   = OTH_T,  .type.sub = SPECIAL_T, .type.val   = (X) })
-#define ROP(X)      ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand =  0  })
-#define ROPD(X, Y)  ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand = (Y) })
-#define RREF(X, Y)  ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width  = (Y) })
-#define RFN(X)      ((value_t){ .rfn = (X) })
+#define RCHAR(X)     ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T,    .type.val   = (X) })
+#define RINT(X)      ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,     .type.val   = (X) })
+#define RSPECIAL(X)  ((value_t){ .type.main   = OTH_T,  .type.sub = SPECIAL_T, .type.val   = (X) })
+#define ROP(X)       ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand =  0  })
+#define ROPD(X, Y)   ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand = (Y) })
+#define RREF(X, Y)   ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width  = (Y) })
+#define RVMREF(X, Y) ((value_t){ .ref .main   = OTH_T,  .ref .sub = VMREF_T,   .ref .depth = (X), .ref.width  = (Y) })
+#define RFN(X)       ((value_t){ .rfn = (X) })
 #define RERR(X, Y)   rerr(RINT(X), (Y))
 
 #define INTOF(X)        ((X).raw >> 8)

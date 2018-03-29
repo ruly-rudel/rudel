@@ -3,7 +3,10 @@
 #include "builtin.h"
 #include "vm.h"
 #include "env.h"
+#include "reader.h"
 #include "printer.h"
+#include "eval.h"
+#include "compile_vm.h"
 
 /////////////////////////////////////////////////////////////////////
 // macros
@@ -29,6 +32,14 @@
 { \
 	r0 = local_vpop(stack); \
 	r1 = local_vpeek(stack); \
+	local_rplacv_top(X, stack); \
+}
+
+#define OP_3P1P(X) \
+{ \
+	r0 = local_vpop(stack); \
+	r1 = local_vpop(stack); \
+	r2 = local_vpeek(stack); \
 	local_rplacv_top(X, stack); \
 }
 
@@ -168,6 +179,20 @@ static value_t flatten_env(value_t env)
 #endif // USE_FLATTEN_ENV
 }
 
+static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
+{
+	assert(consp(env));
+	assert(rtypeof(ref) == VMREF_T);
+
+	for(int d = REF_D(ref); d > 0; d--, env = UNSAFE_CDR(env))
+		assert(consp(env));
+
+	assert(consp(env));
+	env = UNSAFE_CAR(env);
+
+
+	return rplacd(vref(env, REF_W(ref)), val);
+}
 
 /////////////////////////////////////////////////////////////////////
 // public: VM
@@ -183,6 +208,7 @@ value_t exec_vm(value_t c, value_t e)
 
 	value_t r0    = NIL;
 	value_t r1    = NIL;
+	value_t r2    = NIL;
 
 	int pc = 0;
 
@@ -206,6 +232,16 @@ value_t exec_vm(value_t c, value_t e)
 				OP_0P1P(local_get_env_value_ref(op, env));
 				break;
 
+			case VMREF_T:
+				TRACE2("push #VMREF:%d,%d# itself", REF_D(op), REF_W(op));
+				OP_0P1P(op);
+				break;
+
+			case SYM_T:
+				TRACE("push symbol");
+				OP_0P1P(op);
+				break;
+
 			case CONS_T:
 				if(nilp(op))
 				{
@@ -214,8 +250,8 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else
 				{
-					TRACE("error: attempt to push cons.");
-					return RERR(ERR_INVALID_IS, RINT(pc));
+					TRACE("push cons");
+					OP_0P1P(op);
 				}
 				break;
 
@@ -231,15 +267,6 @@ value_t exec_vm(value_t c, value_t e)
 					case IS_HALT: TRACE("HALT");
 						return vpop(stack);
 
-					case IS_VPUSH_ENV: TRACE("VPUSH_ENV");
-						r0 = local_vpeek(stack);
-						env = cons(r0, env);
-						break;
-
-					case IS_VPOP_ENV: TRACE("VPOP_ENV");
-						env = UNSAFE_CDR(env);
-						break;
-
 					case IS_BR: TRACE1("BR %d", pc + op.op.operand);
 						pc += op.op.operand - 1;
 						break;
@@ -248,25 +275,17 @@ value_t exec_vm(value_t c, value_t e)
 						OP_1P0P(pc += nilp(r0) ? op.op.operand - 1: 0);
 						break;
 
-					case IS_CONS: TRACE("CONS");
-						OP_2P1P(cons(r0, r1));
-						break;
-
 					case IS_MKVEC_ENV: TRACE1("MKVEC_ENV %d", op.op.operand);
 						OP_0P1P(local_make_vector(op.op.operand));
 						break;
 
-					case IS_VPUSH: TRACE("VPUSH");
-						OP_2P1P(vpush(r0, r1));
-						break;
-
-					case IS_DUP: TRACE("DUP");
+					case IS_VPUSH_ENV: TRACE("VPUSH_ENV");
 						r0 = local_vpeek(stack);
-						vpush(r0, stack);
+						env = cons(r0, env);
 						break;
 
-					case IS_POP: TRACE("POP");
-						OP_1P0P();
+					case IS_VPOP_ENV: TRACE("VPOP_ENV");
+						env = UNSAFE_CDR(env);
 						break;
 
 					case IS_NIL_CONS_VPUSH: TRACE("NIL_CONS_VPUSH");
@@ -325,6 +344,78 @@ value_t exec_vm(value_t c, value_t e)
 #endif	// REPLACE_STACK
 						break;
 
+					case IS_DUP: TRACE("DUP");
+						r0 = local_vpeek(stack);
+						vpush(r0, stack);
+						break;
+
+					case IS_POP: TRACE("POP");
+						OP_1P0P();
+						break;
+
+					case IS_SETENV: TRACE("SETENV");
+						r0 = vpop(stack);
+						r1 = vpeek(stack);
+						if(symbolp(r0))
+						{
+							value_t target = find_env_all(r0, env);
+							if(nilp(target))
+							{
+								set_env(r0, r1, env);		// set to current
+							}
+							else
+							{
+								rplacd(target, r1);		// replace
+							}
+							local_rplacv_top(r1, stack);
+						}
+						else if(rtypeof(r0) == VMREF_T)
+						{
+							local_set_env_ref(r0, r1, env);
+						}
+						local_rplacv_top(r1, stack);
+						break;
+
+					case IS_ATOM: TRACE("ATOM");
+						OP_1P1P(atom(r0) ? g_t : NIL);
+						break;
+
+					case IS_CONSP: TRACE("CONSP");
+						OP_1P1P(consp(r0) ? g_t : NIL);
+						break;
+
+					case IS_CONS: TRACE("CONS");
+						OP_2P1P(cons(r0, r1));
+						break;
+
+					case IS_CAR: TRACE("CAR");
+						OP_1P1P(car(r0));
+						break;
+
+					case IS_CDR: TRACE("CDR");
+						OP_1P1P(cdr(r0));
+						break;
+
+					case IS_EQ: TRACE("EQ");
+						OP_2P1P(EQ(r0, r1)    ? g_t : NIL);
+						break;
+
+					case IS_EQUAL: TRACE("EQUAL");
+						OP_2P1P(equal(r0, r1) ? g_t : NIL);
+						break;
+
+					case IS_RPLACA: TRACE("RPLACA");
+						OP_2P1P(consp(r0) ? rplaca(r0, r1) : RERR(ERR_TYPE, NIL));
+						break;
+
+					case IS_RPLACD: TRACE("RPLACD");
+						OP_2P1P(consp(r0) ? rplacd(r0, r1) : RERR(ERR_TYPE, NIL));
+						break;
+
+					case IS_GENSYM: TRACE("GENSYM");
+						OP_0P1P(gensym(last(env)));
+						break;
+
 					case IS_ADD: TRACE("ADD");
 						OP_2P1P(RINT(INTOF(r0) + INTOF(r1)));
 						break;
@@ -341,44 +432,99 @@ value_t exec_vm(value_t c, value_t e)
 						OP_2P1P(RINT(INTOF(r0) / INTOF(r1)));
 						break;
 
-					case IS_EQ: TRACE("EQ");
-						OP_2P1P(EQ(r0, r1)    ? g_t : NIL);
-						break;
-
-					case IS_EQUAL: TRACE("EQUAL");
-						OP_2P1P(equal(r0, r1) ? g_t : NIL);
-						break;
-
 					case IS_LT: TRACE("LT");
-						OP_2P1P(INTOF(r0) < INTOF(r1) ? g_t : NIL);
+						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) <  INTOF(r1) ? g_t : NIL) : RERR(ERR_TYPE, RINT(pc)));
 						break;
 
-					case IS_CAR: TRACE("CAR");
-						OP_1P1P(car(r0));
+					case IS_ELT: TRACE("ELT");
+						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) <= INTOF(r1) ? g_t : NIL) : RERR(ERR_TYPE, RINT(pc)));
 						break;
 
-					case IS_CDR: TRACE("CDR");
-						OP_1P1P(cdr(r0));
+					case IS_MT: TRACE("MT");
+						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) >  INTOF(r1) ? g_t : NIL) : RERR(ERR_TYPE, RINT(pc)));
 						break;
 
-					case IS_MKVEC: TRACE("MKVEC");
+					case IS_EMT: TRACE("EMT");
+						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) >= INTOF(r1) ? g_t : NIL) : RERR(ERR_TYPE, RINT(pc)));
+						break;
+
+					case IS_READ_STRING: TRACE("READ_STRING");
+						OP_1P1P(read_str(r0));
+						break;
+
+					case IS_EVAL: TRACE("EVAL");
+						OP_1P1P(eval(r0, last(env)));
+						break;
+
+					case IS_ERR: TRACE("ERR");
+						OP_1P1P(rerr(r0, RINT(pc)));
+						break;
+
+					case IS_NTH: TRACE("NTH");
+						OP_2P1P(intp(r1) ? nth(INTOF(r1), r0) : RERR(ERR_TYPE, RINT(pc)));
+						break;
+
+					case IS_INIT: TRACE("INIT");
+						OP_0P1P(init(env));
+						break;
+
+
+					case IS_MAKE_VECTOR: TRACE("MAKE_VECTOR");
 						OP_1P1P(make_vector(INTOF(r0)));
+						break;
+
+					case IS_VREF: TRACE("VREF");
+						OP_2P1P(vref(r0, INTOF(r1)));
+						break;
+
+					case IS_RPLACV: TRACE("RPLACV");
+						OP_3P1P(vectorp(r0) && intp(r1) ? rplacv(r0, INTOF(r1), r2) : RERR(ERR_TYPE, RINT(pc)));
+						break;
+
+					case IS_VSIZE: TRACE("VSIZE");
+						OP_1P1P(vectorp(r0) ? vsize(r0) : RERR(ERR_TYPE, RINT(pc)));
+						break;
+
+					case IS_VEQ: TRACE("VEQ");
+						OP_2P1P(veq(r0, r1) ? g_t : NIL);
+						break;
+
+					case IS_VPUSH: TRACE("VPUSH");
+						OP_2P1P(vpush(r0, r1));
 						break;
 
 					case IS_VPOP: TRACE("VPOP");
 						OP_1P1P(vpop(r0));
 						break;
 
-					case IS_VREF: TRACE1("VREF %d", INTOF(r1));
-						OP_2P1P(vref(r0, INTOF(r1)));
+					case IS_COPY_VECTOR: TRACE("COPY_VECTOR");
+						OP_1P1P(vectorp(r0) ? copy_vector(r0) : RERR(ERR_TYPE, RINT(pc)));
 						break;
+
+					case IS_VCONC: TRACE("VCONC");
+						OP_2P1P(vectorp(r0) && vectorp(r1) ? vconc(r0, r1) : RERR(ERR_TYPE, RINT(pc)));
+						break;
+
+					case IS_VNCONC: TRACE("VNCONC");
+						OP_2P1P(vectorp(r0) && vectorp(r1) ? vnconc(r0, r1) : RERR(ERR_TYPE, RINT(pc)));
+						break;
+
+					case IS_COMPILE_VM: TRACE("COMPILE_VM");
+						OP_1P1P(compile_vm(r0, last(env)));
+						break;
+
+					case IS_EXEC_VM: TRACE("EXEC_VM");
+						OP_1P1P(vectorp(r0) ? exec_vm(r0, last(env)) : RERR(ERR_TYPE, RINT(pc)));
+						break;
+
+					default:
+						return RERR(ERR_INVALID_IS, RINT(pc));
 				}
 				break;
 
 			default:
 				return RERR(ERR_INVALID_IS, RINT(pc));
 		}
-
 		pc++;
 	}
 
