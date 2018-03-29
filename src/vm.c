@@ -21,15 +21,15 @@
 
 #define OP_1P1P(X) \
 { \
-	r0 = local_vpop(stack); \
-	local_vpush(X, stack); \
+	r0 = local_vpeek(stack); \
+	local_rplacv_top(X, stack); \
 }
 
 #define OP_2P1P(X) \
 { \
 	r0 = local_vpop(stack); \
-	r1 = local_vpop(stack); \
-	local_vpush(X, stack); \
+	r1 = local_vpeek(stack); \
+	local_rplacv_top(X, stack); \
 }
 
 #ifdef TRACE_VM
@@ -117,6 +117,13 @@ inline static value_t local_vpeek(value_t v)
 	return v.vector->data[INTOF(v.vector->size) - 1];
 }
 
+inline static value_t local_rplacv_top(value_t x, value_t v)
+{
+	assert(vectorp(v) || symbolp(v));
+	v.vector = local_aligned_vaddr(v);
+	return v.vector->data[INTOF(v.vector->size) - 1] = x;
+}
+
 inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 {
 	assert(consp(env));
@@ -128,7 +135,26 @@ inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 	assert(consp(env));
 	env = UNSAFE_CAR(env);
 
-	return UNSAFE_CDR(local_vref(env, REF_W(ref)));
+	return local_vref(env, REF_W(ref));
+}
+
+static value_t flatten_env(value_t env)
+{
+	if(nilp(env))
+	{
+		return NIL;
+	}
+	else
+	{
+		value_t cur_env = car(env);
+		value_t new_env = make_vector(INTOF(vsize(cur_env)));
+		for(int i = 0; i < INTOF(vsize(cur_env)); i++)
+		{
+			rplacv(new_env, i, cdr(vref(cur_env, i)));
+		}
+
+		return cons(new_env, flatten_env(cdr(env)));
+	}
 }
 
 
@@ -141,7 +167,7 @@ value_t exec_vm(value_t c, value_t e)
 
 	value_t stack = make_vector(16);
 	value_t code  = c;
-	value_t env   = e;
+	value_t env   = flatten_env(e);
 	value_t ret   = make_vector(256);
 
 	value_t r0    = NIL;
@@ -235,7 +261,8 @@ value_t exec_vm(value_t c, value_t e)
 					case IS_NIL_CONS_VPUSH: TRACE("NIL_CONS_VPUSH");
 						r0 = local_vpop(stack);
 						r1 = local_vpeek(stack);
-						local_vpush(cons(NIL, r0), r1);
+						//local_vpush(cons(NIL, r0), r1);
+						local_vpush(r0, r1);
 						break;
 
 					case IS_AP:
