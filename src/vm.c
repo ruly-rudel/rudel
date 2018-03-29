@@ -42,6 +42,8 @@
 #define TRACE2(X, Y, Z)
 #endif // TRACE_VM
 
+//#define USE_FLATTEN_ENV
+
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
 
@@ -135,11 +137,17 @@ inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 	assert(consp(env));
 	env = UNSAFE_CAR(env);
 
+#ifdef USE_FLATTEN_ENV
 	return local_vref(env, REF_W(ref));
+#else // USE_FLATTEN_ENV
+	return cdr(local_vref(env, REF_W(ref)));
+#endif // USE_FLATTEN_ENV
+
 }
 
 static value_t flatten_env(value_t env)
 {
+#ifdef USE_FLATTEN_ENV
 	if(nilp(env))
 	{
 		return NIL;
@@ -155,6 +163,9 @@ static value_t flatten_env(value_t env)
 
 		return cons(new_env, flatten_env(cdr(env)));
 	}
+#else // USE_FLATTEN_ENV
+	return env;
+#endif // USE_FLATTEN_ENV
 }
 
 
@@ -261,8 +272,11 @@ value_t exec_vm(value_t c, value_t e)
 					case IS_NIL_CONS_VPUSH: TRACE("NIL_CONS_VPUSH");
 						r0 = local_vpop(stack);
 						r1 = local_vpeek(stack);
-						//local_vpush(cons(NIL, r0), r1);
+#ifdef USE_FLATTEN_ENV
 						local_vpush(r0, r1);
+#else // USE_FLATTEN_ENV
+						local_vpush(cons(NIL, r0), r1);
+#endif // USE_FLATTEN_ENV
 						break;
 
 					case IS_AP:
