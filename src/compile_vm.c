@@ -75,8 +75,7 @@ static value_t compile_vm_apply_arg(value_t code, value_t ast, value_t env)
 	assert(rtypeof(ast) == CONS_T);
 	assert(consp(env));
 
-	vpush(RINT(0), code);
-	vpush(ROP(IS_MKVEC), code);
+	vpush(ROPD(IS_MKVEC_ENV, count(ast)), code);
 
 	for(; !nilp(ast); ast = cdr(ast))
 	{
@@ -88,14 +87,11 @@ static value_t compile_vm_apply_arg(value_t code, value_t ast, value_t env)
 		else
 		{
 			// add apply environment.
-			vpush(NIL, code);	// env key is NIL
-			vpush(ROP(IS_CONS), code);
-			vpush(ROP(IS_VPUSH), code);
+			vpush(ROP(IS_NIL_CONS_VPUSH), code);	// env key is NIL
 		}
 	}
 
 	// push env is in IS_AP
-	//vpush(ROP(IS_VPUSH_ENV), code);
 
 	return code;
 }
@@ -162,21 +158,20 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 	// allocate new environment
 	value_t let_env = create_env(NIL, NIL, env);
 
-	// create env vector
-	vpush(RINT(0), code);
-	vpush(ROP(IS_MKVEC), code);
-
-	// push empty env vector to env
-	vpush(ROP(IS_DUP), code);
-	vpush(ROP(IS_VPUSH_ENV), code);
-
-	// cereate environment
 	// local symbols
 	value_t def = car(ast);
 	if(rtypeof(def) != CONS_T)
 	{
 		return RERR(ERR_ARG, ast);
 	}
+
+	// create env vector
+	vpush(ROPD(IS_MKVEC_ENV, count(def)), code);
+
+	// push empty env vector to env
+	vpush(ROP(IS_VPUSH_ENV), code);		// duplicate ENV_VEC on stack top
+
+	// cereate environment
 
 	for(; !nilp(def); def = cdr(def))
 	{
@@ -199,9 +194,7 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 		else
 		{
 			// add let environment.
-			vpush(NIL, code);	// env key is NIL
-			vpush(ROP(IS_CONS), code);
-			vpush(ROP(IS_VPUSH), code);
+			vpush(ROP(IS_NIL_CONS_VPUSH), code);
 		}
 	}
 
@@ -223,7 +216,7 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 
 static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
 {
-	//assert(vectorp(code));
+	assert(vectorp(code));
 	assert(consp(ast));
 	assert(consp(env));
 

@@ -1018,10 +1018,10 @@ x
 (strp 1)
 ;=>nil
 
-(setq x (make-vector 1))
+(setq x (vpush 1 (make-vector 0)))
 ;=>#<VECTOR>
 (vref x 0)
-;=>nil
+;=>1
 (vref x 1)
 ;=>range exceeded.
 (rplacv x 0 'car)
@@ -1142,13 +1142,11 @@ x
 ;=>7
 (exec-vm (compile-vm '(+ x y)))
 ;=>17
-(setq x (exec-vm (compile-vm '(make-vector 4))))
+(setq x (exec-vm (compile-vm '(vpush 10 (make-vector 4)))))
 ;=>#<VECTOR>
 (vref x 0)
-;=>nil
-(vref x 3)
-;=>nil
-(vref x 4)
+;=>10
+(vref x 1)
 ;=>range exceeded.
 (exec-vm (compile-vm '(vpush cons (make-vector 0))))
 ;=>#<VECTOR>

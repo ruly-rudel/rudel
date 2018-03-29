@@ -553,11 +553,10 @@ value_t make_vector(unsigned n)
 	v.vector  = alloc_vector();
 
 	v.vector->size  = RINT(0);
-	v.vector->alloc = RINT(0);
+	v.vector->alloc = RINT(n);
 	v.vector->type  = NIL;
-	v.vector->data  = 0;
+	v.vector->data  = (value_t*)malloc(n * sizeof(value_t));
 	v.type.main     = VEC_T;
-	vresize(v, n);
 	return v;
 }
 
@@ -684,6 +683,21 @@ value_t vpop(value_t v)
 		vresize(v, s - 1);
 
 		return r;
+	}
+}
+
+value_t vpeek(value_t v)
+{
+	assert(vectorp(v) || symbolp(v));
+	int s = INTOF(vsize(v));
+
+	if(s <= 0)
+	{
+		return RERR(ERR_RANGE, NIL);
+	}
+	else
+	{
+		return vref(v, s - 1);
 	}
 }
 

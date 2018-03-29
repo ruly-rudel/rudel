@@ -66,6 +66,8 @@ typedef enum {
 	IS_RET,
 	IS_DUP,
 	IS_POP,
+	IS_NIL_CONS_VPUSH,
+	IS_MKVEC_ENV,
 } vmis_t;
 
 #if __WORDSIZE == 32
@@ -245,6 +247,7 @@ value_t vresize		(value_t v, int n);
 bool	veq		(value_t x, value_t y);
 value_t vpush		(value_t x, value_t v);
 value_t vpop		(value_t v);
+value_t vpeek		(value_t v);
 value_t vpush_front	(value_t v, value_t x);
 value_t copy_vector	(value_t src);
 value_t vconc		(value_t x, value_t y);
