@@ -44,9 +44,9 @@
 }
 
 #ifdef TRACE_VM
-#define TRACE(X)        fprintf(stderr, "[rudel-vm:pc=%08d] "  X  "\n", pc)
-#define TRACE1(X, Y)    fprintf(stderr, "[rudel-vm:pc=%08d] "  X  "\n", pc, (int)(Y))
-#define TRACE2(X, Y, Z) fprintf(stderr, "[rudel-vm:pc=%08d] "  X  "\n", pc, (int)(Y), (int)(Z))
+#define TRACE(X)        fprintf(stderr, "[rudel-vm:pc=%06x] "  X  "\n", pc)
+#define TRACE1(X, Y)    fprintf(stderr, "[rudel-vm:pc=%06x] "  X  "\n", pc, (int)(Y))
+#define TRACE2(X, Y, Z) fprintf(stderr, "[rudel-vm:pc=%06x] "  X  "\n", pc, (int)(Y), (int)(Z))
 #else  // TRACE_VM
 #define TRACE(X)
 #define TRACE1(X, Y)
@@ -313,12 +313,12 @@ value_t exec_vm(value_t c, value_t e)
 							local_vpush(env,      ret);
 
 							// set new execute contexts
-							r1 = r0;
-							r1.type.main = CONS_T;
-							code = UNSAFE_CAR(r1);	// clojure code
-							env  = UNSAFE_CDR(r1);	// clojure environment
+							r0.type.main = CONS_T;
+							code = UNSAFE_CAR(r0);	// clojure code
+							env  = UNSAFE_CDR(r0);	// clojure environment
 							pc   = -1;
-							OP_1P0P(env = cons(r0, env));	// new environment as arguments
+							r1   = local_vpop(stack);
+							env  = cons(r1, env);	// new environment as arguments
 
 #ifdef REPLACE_STACK
 							// save contexts(stack is last)
@@ -378,6 +378,11 @@ value_t exec_vm(value_t c, value_t e)
 						}
 						local_rplacv_top(r1, stack);
 						break;
+
+					case IS_CONCAT: TRACE("CONCAT");
+						OP_2P1P(concat(2, r0, r1));
+						break;
+
 
 					case IS_ATOM: TRACE("ATOM");
 						OP_1P1P(atom(r0) ? g_t : NIL);

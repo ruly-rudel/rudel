@@ -365,6 +365,56 @@ static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
 	return code;
 }
 
+static value_t compile_vm_quasiquote(value_t code, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(env));
+
+	if(!consp(ast))					// atom
+	{
+		vpush(ast, code);			  // -> push immediate to stack
+	}
+	else
+	{
+		value_t arg1 = car(ast);
+		if(EQ(arg1, RSPECIAL(SP_UNQUOTE)))	// (unquote x)
+		{
+			value_t arg2 = car(cdr(ast));
+			return compile_vm1(code, arg2, env);	  // -> add evaluation code
+		}
+		else if(consp(arg1) && EQ(car(arg1), RSPECIAL(SP_SPLICE_UNQUOTE)))	// ((splice-unquote x) ...)
+		{
+			code = compile_vm_quasiquote(code, cdr(ast), env);
+			if(errp(code))
+			{
+				return code;
+			}
+			code = compile_vm1(code, car(cdr(arg1)), env);
+			if(errp(code))
+			{
+				return code;
+			}
+			vpush(ROP(IS_CONCAT), code);
+		}
+		else
+		{
+			code = compile_vm_quasiquote(code, cdr(ast), env);
+			if(errp(code))
+			{
+				return code;
+			}
+			code = compile_vm_quasiquote(code, arg1    , env);
+			if(errp(code))
+			{
+				return code;
+			}
+			vpush(ROP(IS_CONS), code);
+		}
+	}
+
+	return code;
+}
+
 static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 {
 	assert(vectorp(code));
@@ -378,25 +428,28 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 		switch(INTOF(fn))
 		{
 			case SP_SETQ:
-				return compile_vm_setq  (code, cdr(ast), env);
+				return compile_vm_setq      (code, cdr(ast), env);
 
 			case SP_LET:
-				return compile_vm_let   (code, cdr(ast), env);
-
-			case SP_IF:
-				return compile_vm_if    (code, cdr(ast), env);
+				return compile_vm_let       (code, cdr(ast), env);
 
 			case SP_PROGN:
-				return compile_vm_progn (code, cdr(ast), env);
+				return compile_vm_progn     (code, cdr(ast), env);
+
+			case SP_IF:
+				return compile_vm_if        (code, cdr(ast), env);
 
 			case SP_LAMBDA:
-				return compile_vm_lambda(code, cdr(ast), env);
+				return compile_vm_lambda    (code, cdr(ast), env);
 
 			case SP_MACRO:
-				return compile_vm_macro (code, cdr(ast), env);
+				return compile_vm_macro     (code, cdr(ast), env);
 
 			case SP_QUOTE:
 				return vpush(car(cdr(ast)), code);
+
+			case SP_QUASIQUOTE:
+				return compile_vm_quasiquote(code, car(cdr(ast)), env);
 
 			default:
 				return RERR(ERR_NOTIMPL, ast);

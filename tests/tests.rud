@@ -1018,6 +1018,7 @@ x
 (strp 1)
 ;=>nil
 
+;; Testing vector
 (setq x (vpush 1 (make-vector 0)))
 ;=>#<VECTOR>
 (vref x 0)
@@ -1106,6 +1107,7 @@ x
 (make-list-from-vector x)
 ;=>('h' 'o' 'g' 'e')
 
+;; Testing VM
 (exec-vm (compile-vm nil))
 ;=>nil
 (exec-vm (compile-vm 1))
@@ -1164,3 +1166,47 @@ x
 ;=>2
 (exec-vm (compile-vm '(let* ((fn (lambda (x) (+ x 1))))  (fn 5))))
 ;=>6
+
+(exec-vm (compile-vm '(quote 7)))
+;=>7
+(exec-vm (compile-vm '(quote (1 2 3))))
+;=>(1 2 3)
+(exec-vm (compile-vm '(quote (1 2 (3 4)))))
+;=>(1 2 (3 4))
+
+(exec-vm (compile-vm '(quasiquote 7)))
+;=>7
+(exec-vm (compile-vm '(quasiquote (1 2 3))))
+;=>(1 2 3)
+(exec-vm (compile-vm '(quasiquote (1 2 (3 4)))))
+;=>(1 2 (3 4))
+(exec-vm (compile-vm '(quasiquote (nil))))
+;=>(nil)
+
+(exec-vm (compile-vm '(quasiquote (unquote 7))))
+;=>7
+(exec-vm (compile-vm '(setq a 8)))
+;=>8
+(exec-vm (compile-vm '(quasiquote a)))
+;=>a
+(exec-vm (compile-vm '(quasiquote (unquote a))))
+;=>8
+(exec-vm (compile-vm '(quasiquote (1 a 3))))
+;=>(1 a 3)
+(exec-vm (compile-vm '(quasiquote (1 (unquote a) 3))))
+;=>(1 8 3)
+(exec-vm (compile-vm '(setq b (quote (1 "b" "d")))))
+;=>(1 "b" "d")
+(exec-vm (compile-vm '(quasiquote (1 b 3))))
+;=>(1 b 3)
+(exec-vm (compile-vm '(quasiquote (1 (unquote b) 3))))
+;=>(1 (1 "b" "d") 3)
+(exec-vm (compile-vm '(quasiquote ((unquote 1) (unquote 2)))))
+;=>(1 2)
+
+(exec-vm (compile-vm '(setq c (quote (1 "b" "d")))))
+;=>(1 "b" "d")
+(exec-vm (compile-vm '(quasiquote (1 c 3))))
+;=>(1 c 3)
+(exec-vm (compile-vm '(quasiquote (1 (splice-unquote c) 3))))
+;=>(1 1 "b" "d" 3)
