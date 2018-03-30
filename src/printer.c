@@ -338,7 +338,7 @@ static value_t pr_err_cause(value_t e)
 			return str_to_rstr("range exceeded.");
 
 		    case ERR_NOTIMPL:
-			return str_to_rstr("internal error: that special form is not implemented.");
+			return str_to_rstr("internal error: that is not implemented yet.");
 
 		    case ERR_ALLOC:
 			return str_to_rstr("memory allocation fails.");
@@ -435,7 +435,7 @@ static value_t pr_special(value_t s)
 		case SP_UNQUOTE:	return symbol_string(g_unquote);
 		case SP_SPLICE_UNQUOTE:	return symbol_string(g_splice_unquote);
 		case SP_AMP:		return symbol_string(g_amp);
-		default:		return RERR(ERR_NOTIMPL, NIL);
+		default:		return RERR(ERR_NOTIMPL, str_to_rstr("special"));
 	}
 }
 
@@ -447,25 +447,57 @@ static value_t pr_vec(value_t s)
 
 static value_t pr_vmis(value_t s)
 {
-	switch(INTOF(s))
+	switch(s.op.mnem)	//***** printing operand is not support yet. fix it.
 	{
 		case IS_HALT:		return str_to_rstr("IS_HALT");
+		case IS_BR:		return str_to_rstr("IS_BR");
+		case IS_BNIL:		return str_to_rstr("IS_BNIL");
+		case IS_MKVEC_ENV:	return str_to_rstr("IS_MKVEC_ENV");
+		case IS_VPUSH_ENV:	return str_to_rstr("IS_VPUSH_ENV");
+		case IS_VPOP_ENV:	return str_to_rstr("IS_VPOP_ENV");
+		case IS_NIL_CONS_VPUSH:	return str_to_rstr("IS_NIL_CONS_VPUSH");
+		case IS_AP:		return str_to_rstr("IS_AP");
+		case IS_RET:		return str_to_rstr("IS_RET");
+		case IS_DUP:		return str_to_rstr("IS_DUP");
+		case IS_POP:		return str_to_rstr("IS_POP");
+		case IS_SETENV:		return str_to_rstr("IS_SETENV");
+		case IS_ATOM:		return str_to_rstr("IS_ATOM");
+		case IS_CONSP:		return str_to_rstr("IS_CONSP");
+		case IS_CONS:		return str_to_rstr("IS_CONS");
+		case IS_CAR:		return str_to_rstr("IS_CAR");
+		case IS_CDR:		return str_to_rstr("IS_CDR");
+		case IS_EQ:		return str_to_rstr("IS_EQ");
+		case IS_EQUAL:		return str_to_rstr("IS_EQUAL");
+		case IS_RPLACA:		return str_to_rstr("IS_RPLACA");
+		case IS_RPLACD:		return str_to_rstr("IS_RPLACD");
+		case IS_GENSYM:		return str_to_rstr("IS_GENSYM");
+		case IS_LT:		return str_to_rstr("IS_LT");
+		case IS_ELT:		return str_to_rstr("IS_ELT");
+		case IS_MT:		return str_to_rstr("IS_MT");
+		case IS_EMT:		return str_to_rstr("IS_EMT");
 		case IS_ADD:		return str_to_rstr("IS_ADD");
 		case IS_SUB:		return str_to_rstr("IS_SUB");
 		case IS_MUL:		return str_to_rstr("IS_MUL");
 		case IS_DIV:		return str_to_rstr("IS_DIV");
-		case IS_EQ:		return str_to_rstr("IS_EQ");
-		case IS_EQUAL:		return str_to_rstr("IS_EQUAL");
-		case IS_CONS:		return str_to_rstr("IS_CONS");
-		case IS_CAR:		return str_to_rstr("IS_CAR");
-		case IS_CDR:		return str_to_rstr("IS_CDR");
+		case IS_READ_STRING:	return str_to_rstr("IS_READ_STRING");
+		case IS_SLURP:		return str_to_rstr("IS_SLURP");
+		case IS_EVAL:		return str_to_rstr("IS_EVAL");
+		case IS_ERR:		return str_to_rstr("IS_ERR");
+		case IS_NTH:		return str_to_rstr("IS_NTH");
+		case IS_INIT:		return str_to_rstr("IS_INIT");
 		case IS_MAKE_VECTOR:	return str_to_rstr("IS_MAKE_VECTOR");
+		case IS_VREF:		return str_to_rstr("IS_VREF");
+		case IS_RPLACV:		return str_to_rstr("IS_RPLACV");
+		case IS_VSIZE:		return str_to_rstr("IS_VSIZE");
+		case IS_VEQ:		return str_to_rstr("IS_VEQ");
 		case IS_VPUSH:		return str_to_rstr("IS_VPUSH");
 		case IS_VPOP:		return str_to_rstr("IS_VPOP");
-		case IS_VREF:		return str_to_rstr("IS_VREF");
-		case IS_VPUSH_ENV:	return str_to_rstr("IS_VPUSH_ENV");
-		case IS_VPOP_ENV:	return str_to_rstr("IS_VPOP_ENV");
-		default:		return RERR(ERR_NOTIMPL, NIL);
+		case IS_COPY_VECTOR:	return str_to_rstr("IS_COPY_VECTOR");
+		case IS_VCONC:		return str_to_rstr("IS_VCONC");
+		case IS_VNCONC:		return str_to_rstr("IS_VNCONC");
+		case IS_COMPILE_VM:	return str_to_rstr("IS_COMPILE_VM");
+		case IS_EXEC_VM:	return str_to_rstr("IS_EXEC_VM");
+		default:		return RERR(ERR_NOTIMPL, str_to_rstr("VMIS"));
 	}
 }
 /////////////////////////////////////////////////////////////////////
@@ -535,7 +567,16 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 
 void print(value_t s, FILE* fp)
 {
-	printline(pr_str(s, cons(RINT(0), NIL), true), fp);
+
+	value_t r = pr_str(s, cons(RINT(0), NIL), true);
+	if(errp(r))
+	{
+		printline(pr_str(r, NIL, true), stderr);
+	}
+	else
+	{
+		printline(r, fp);
+	}
 	return;
 }
 

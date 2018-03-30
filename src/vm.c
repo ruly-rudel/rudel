@@ -53,6 +53,9 @@
 #define TRACE2(X, Y, Z)
 #endif // TRACE_VM
 
+#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(RINT(pc), NIL))
+#define RERR_PC(X)	RERR((X), cons(RINT(pc), NIL))
+
 //#define USE_FLATTEN_ENV
 
 /////////////////////////////////////////////////////////////////////
@@ -325,7 +328,7 @@ value_t exec_vm(value_t c, value_t e)
 						}
 						else
 						{
-							return RERR(ERR_INVALID_CLOJ, RINT(pc));
+							return RERR_PC(ERR_INVALID_CLOJ);
 						}
 
 					}
@@ -405,11 +408,11 @@ value_t exec_vm(value_t c, value_t e)
 						break;
 
 					case IS_RPLACA: TRACE("RPLACA");
-						OP_2P1P(consp(r0) ? rplaca(r0, r1) : RERR(ERR_TYPE, NIL));
+						OP_2P1P(consp(r0) ? rplaca(r0, r1) : RERR_TYPE_PC);
 						break;
 
 					case IS_RPLACD: TRACE("RPLACD");
-						OP_2P1P(consp(r0) ? rplacd(r0, r1) : RERR(ERR_TYPE, NIL));
+						OP_2P1P(consp(r0) ? rplacd(r0, r1) : RERR_TYPE_PC);
 						break;
 
 					case IS_GENSYM: TRACE("GENSYM");
@@ -433,19 +436,19 @@ value_t exec_vm(value_t c, value_t e)
 						break;
 
 					case IS_LT: TRACE("LT");
-						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) <  INTOF(r1) ? g_t : NIL) : RERR(ERR_TYPE, RINT(pc)));
+						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) <  INTOF(r1) ? g_t : NIL) : RERR_TYPE_PC);
 						break;
 
 					case IS_ELT: TRACE("ELT");
-						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) <= INTOF(r1) ? g_t : NIL) : RERR(ERR_TYPE, RINT(pc)));
+						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) <= INTOF(r1) ? g_t : NIL) : RERR_TYPE_PC);
 						break;
 
 					case IS_MT: TRACE("MT");
-						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) >  INTOF(r1) ? g_t : NIL) : RERR(ERR_TYPE, RINT(pc)));
+						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) >  INTOF(r1) ? g_t : NIL) : RERR_TYPE_PC);
 						break;
 
 					case IS_EMT: TRACE("EMT");
-						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) >= INTOF(r1) ? g_t : NIL) : RERR(ERR_TYPE, RINT(pc)));
+						OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) >= INTOF(r1) ? g_t : NIL) : RERR_TYPE_PC);
 						break;
 
 					case IS_READ_STRING: TRACE("READ_STRING");
@@ -461,7 +464,7 @@ value_t exec_vm(value_t c, value_t e)
 						break;
 
 					case IS_NTH: TRACE("NTH");
-						OP_2P1P(intp(r1) ? nth(INTOF(r1), r0) : RERR(ERR_TYPE, RINT(pc)));
+						OP_2P1P(intp(r1) ? nth(INTOF(r1), r0) : RERR_TYPE_PC);
 						break;
 
 					case IS_INIT: TRACE("INIT");
@@ -478,11 +481,11 @@ value_t exec_vm(value_t c, value_t e)
 						break;
 
 					case IS_RPLACV: TRACE("RPLACV");
-						OP_3P1P(vectorp(r0) && intp(r1) ? rplacv(r0, INTOF(r1), r2) : RERR(ERR_TYPE, RINT(pc)));
+						OP_3P1P(vectorp(r0) && intp(r1) ? rplacv(r0, INTOF(r1), r2) : RERR_TYPE_PC);
 						break;
 
 					case IS_VSIZE: TRACE("VSIZE");
-						OP_1P1P(vectorp(r0) ? vsize(r0) : RERR(ERR_TYPE, RINT(pc)));
+						OP_1P1P(vectorp(r0) ? vsize(r0) : RERR_TYPE_PC);
 						break;
 
 					case IS_VEQ: TRACE("VEQ");
@@ -498,15 +501,15 @@ value_t exec_vm(value_t c, value_t e)
 						break;
 
 					case IS_COPY_VECTOR: TRACE("COPY_VECTOR");
-						OP_1P1P(vectorp(r0) ? copy_vector(r0) : RERR(ERR_TYPE, RINT(pc)));
+						OP_1P1P(vectorp(r0) ? copy_vector(r0) : RERR_TYPE_PC);
 						break;
 
 					case IS_VCONC: TRACE("VCONC");
-						OP_2P1P(vectorp(r0) && vectorp(r1) ? vconc(r0, r1) : RERR(ERR_TYPE, RINT(pc)));
+						OP_2P1P(vectorp(r0) && vectorp(r1) ? vconc(r0, r1) : RERR_TYPE_PC);
 						break;
 
 					case IS_VNCONC: TRACE("VNCONC");
-						OP_2P1P(vectorp(r0) && vectorp(r1) ? vnconc(r0, r1) : RERR(ERR_TYPE, RINT(pc)));
+						OP_2P1P(vectorp(r0) && vectorp(r1) ? vnconc(r0, r1) : RERR_TYPE_PC);
 						break;
 
 					case IS_COMPILE_VM: TRACE("COMPILE_VM");
@@ -514,16 +517,16 @@ value_t exec_vm(value_t c, value_t e)
 						break;
 
 					case IS_EXEC_VM: TRACE("EXEC_VM");
-						OP_1P1P(vectorp(r0) ? exec_vm(r0, last(env)) : RERR(ERR_TYPE, RINT(pc)));
+						OP_1P1P(vectorp(r0) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
 						break;
 
 					default:
-						return RERR(ERR_INVALID_IS, RINT(pc));
+						return RERR_PC(ERR_INVALID_IS);
 				}
 				break;
 
 			default:
-				return RERR(ERR_INVALID_IS, RINT(pc));
+				return RERR_PC(ERR_INVALID_IS);
 		}
 		pc++;
 	}

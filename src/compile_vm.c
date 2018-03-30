@@ -62,23 +62,6 @@ static value_t compile_vm_check_builtin(value_t atom, value_t env)
 			str_to_sym("make-vector-from-list"),		ROP(IS_make-vector-from-list),
 			str_to_sym("make-list-from-vector"),		ROP(IS_make-list-from-vector),
 			*/
-
-			/*
-			str_to_sym("+"),             ROP(IS_ADD),
-			str_to_sym("-"),             ROP(IS_SUB),
-			str_to_sym("*"),             ROP(IS_MUL),
-			str_to_sym("/"),             ROP(IS_DIV),
-			str_to_sym("eq"),            ROP(IS_EQ),
-			str_to_sym("equal"),         ROP(IS_EQUAL),
-			str_to_sym("<"),             ROP(IS_LT),
-			str_to_sym("cons"),          ROP(IS_CONS),
-			str_to_sym("car"),           ROP(IS_CAR),
-			str_to_sym("cdr"),           ROP(IS_CDR),
-			str_to_sym("make-vector"),   ROP(IS_MKVEC),
-			str_to_sym("vpush"),         ROP(IS_VPUSH),
-			str_to_sym("vpop"),          ROP(IS_VPOP),
-			str_to_sym("vref"),          ROP(IS_VREF),
-			*/
 		};
 
 		for(int i = 0; i < sizeof(tbl) / sizeof(tbl[0]); i += 2)
@@ -320,9 +303,8 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 	}
 }
 
-static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
+static value_t compile_vm_lambda1(value_t ast, value_t env)
 {
-	assert(vectorp(code));
 	assert(consp(ast));
 	assert(consp(env));
 
@@ -348,8 +330,37 @@ static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
 	}
 	vpush(ROP(IS_RET), lambda_code);	// RET
 
-	// lambda is clojure call
-	vpush(cloj(lambda_code, NIL), code);	// clojure environment must be set while exec
+	return lambda_code;
+}
+
+static value_t compile_vm_macro(value_t code, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(ast));
+	assert(consp(env));
+
+	value_t macro_code = compile_vm_lambda1(ast, env);
+	if(!errp(macro_code))
+	{
+		// macro is clojure call
+		vpush(macro(macro_code, env), code);	//**** macro environment?
+	}
+
+	return code;
+}
+
+static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(ast));
+	assert(consp(env));
+
+	value_t lambda_code = compile_vm_lambda1(ast, env);
+	if(!errp(lambda_code))
+	{
+		// lambda is clojure call
+		vpush(cloj(lambda_code, NIL), code);	// clojure environment must be set while exec
+	}
 
 	return code;
 }
@@ -362,27 +373,30 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 
 	value_t fn = car(ast);
 
-	if(rtypeof(fn) == SPECIAL_T)
+	if(specialp(fn))
 	{
 		switch(INTOF(fn))
 		{
 			case SP_SETQ:
-				return compile_vm_setq(code, cdr(ast), env);
+				return compile_vm_setq  (code, cdr(ast), env);
 
 			case SP_LET:
-				return compile_vm_let(code, cdr(ast), env);
+				return compile_vm_let   (code, cdr(ast), env);
 
 			case SP_IF:
-				return compile_vm_if(code, cdr(ast), env);
-
-			case SP_QUOTE:
-				return vpush(car(cdr(ast)), code);
+				return compile_vm_if    (code, cdr(ast), env);
 
 			case SP_PROGN:
-				return compile_vm_progn(code, cdr(ast), env);
+				return compile_vm_progn (code, cdr(ast), env);
 
 			case SP_LAMBDA:
 				return compile_vm_lambda(code, cdr(ast), env);
+
+			case SP_MACRO:
+				return compile_vm_macro (code, cdr(ast), env);
+
+			case SP_QUOTE:
+				return vpush(car(cdr(ast)), code);
 
 			default:
 				return RERR(ERR_NOTIMPL, ast);
