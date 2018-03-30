@@ -11,36 +11,71 @@
 /////////////////////////////////////////////////////////////////////
 // macros
 
+#define LOCAL_VPUSH_RAW(X) \
+{ \
+	if(sp + 2 >= alloc) { \
+		alloc *= 2; \
+		stack_raw = (value_t*)realloc(stack_raw, alloc * sizeof(value_t)); \
+		if(!stack_raw) { \
+			return RERR(ERR_ALLOC, NIL); \
+		} \
+	} \
+	stack_raw[++sp] = (X); \
+}
+
+#define LOCAL_VPOP_RAW    (stack_raw[sp--])
+
+#define LOCAL_VPEEK_RAW   (stack_raw[sp])
+
+#define LOCAL_RPLACV_TOP_RAW(X)  stack_raw[sp] = (X)
+
+
+#define LOCAL_VPUSH_RET_RAW(X) \
+{ \
+	if(rsp + 2 >= ralloc) { \
+		ralloc *= 2; \
+		ret_raw = (value_t*)realloc(ret_raw, ralloc * sizeof(value_t)); \
+		if(!ret_raw) { \
+			return RERR(ERR_ALLOC, NIL); \
+		} \
+	} \
+	ret_raw[++rsp] = (X); \
+}
+
+#define LOCAL_VPOP_RET_RAW    (ret_raw[rsp--])
+
+
+
 #define OP_1P0P(X) \
 { \
-	r0 = local_vpop(stack); \
+	r0 = LOCAL_VPOP_RAW; \
 	X; \
 }
 
 #define OP_0P1P(X) \
 { \
-	local_vpush(X, stack); \
+	LOCAL_VPUSH_RAW(X); \
 }
 
 #define OP_1P1P(X) \
 { \
-	r0 = local_vpeek(stack); \
-	local_rplacv_top(X, stack); \
+	r0 = LOCAL_VPEEK_RAW; \
+	LOCAL_RPLACV_TOP_RAW(X); \
 }
 
 #define OP_2P1P(X) \
 { \
-	r0 = local_vpop(stack); \
-	r1 = local_vpeek(stack); \
-	local_rplacv_top(X, stack); \
+	r0 = LOCAL_VPOP_RAW; \
+	r1 = LOCAL_VPEEK_RAW; \
+	LOCAL_RPLACV_TOP_RAW(X); \
 }
 
 #define OP_3P1P(X) \
 { \
-	r0 = local_vpop(stack); \
-	r1 = local_vpop(stack); \
-	r2 = local_vpeek(stack); \
-	local_rplacv_top(X, stack); \
+	r0 = LOCAL_VPOP_RAW; \
+	r1 = LOCAL_VPOP_RAW; \
+	r2 = LOCAL_VPEEK_RAW; \
+	LOCAL_RPLACV_TOP_RAW(X); \
 }
 
 #ifdef TRACE_VM
@@ -201,6 +236,7 @@ static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
 	return rplacd(vref(env, REF_W(ref)), val);
 }
 
+
 /////////////////////////////////////////////////////////////////////
 // public: VM
 value_t exec_vm(value_t c, value_t e)
@@ -208,10 +244,17 @@ value_t exec_vm(value_t c, value_t e)
 	assert(vectorp(c));
 	assert(consp(e));
 
-	value_t stack = make_vector(16);
+	int alloc = 16;
+	int sp    = -1;
+	value_t* stack_raw = (value_t*)malloc(sizeof(value_t) * alloc);
+
+	int ralloc = 16;
+	int rsp    = -1;
+	value_t* ret_raw = (value_t*)malloc(sizeof(value_t) * ralloc);
+
 	value_t code  = c;
+	code.type.main = CONS_T;
 	value_t env   = flatten_env(e);
-	value_t ret   = make_vector(256);
 
 	value_t r0    = NIL;
 	value_t r1    = NIL;
@@ -219,17 +262,14 @@ value_t exec_vm(value_t c, value_t e)
 
 	for(int pc = 0; true; pc++)
 	{
-		value_t op = local_vref(code, pc);
-		if(rtypeof(op) != VMIS_T)
-		{
-			return RERR_TYPE_PC;
-		}
+		value_t op = code.vector->data[pc];
+		assert(rtypeof(op) == VMIS_T);
 
 		switch(op.op.mnem)
 		{
 			// core functions
 			case IS_HALT: TRACE("HALT");
-				return vpop(stack);
+				return LOCAL_VPOP_RAW;
 
 			case IS_BR: TRACE1("BR %d", pc + op.op.operand);
 				pc += op.op.operand - 1;
@@ -244,7 +284,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_VPUSH_ENV: TRACE("VPUSH_ENV");
-				r0 = local_vpeek(stack);
+				r0 = LOCAL_VPEEK_RAW;
 				env = cons(r0, env);
 				break;
 
@@ -253,8 +293,8 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_NIL_CONS_VPUSH: TRACE("NIL_CONS_VPUSH");
-				r0 = local_vpop(stack);
-				r1 = local_vpeek(stack);
+				r0 = LOCAL_VPOP_RAW;
+				r1 = LOCAL_VPEEK_RAW;
 #ifdef USE_FLATTEN_ENV
 				local_vpush(r0, r1);
 #else // USE_FLATTEN_ENV
@@ -264,28 +304,23 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_AP:
 			{
-				r0 = local_vpop(stack);
+				r0 = LOCAL_VPOP_RAW;
 				if(clojurep(r0))	// compiled function
 				{
 					TRACE("AP");
 					// save contexts
-					local_vpush(code,     ret);
-					local_vpush(RINT(pc), ret);
-					local_vpush(env,      ret);
+					LOCAL_VPUSH_RET_RAW(code);
+					LOCAL_VPUSH_RET_RAW(RINT(pc));
+					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
 					r0.type.main = CONS_T;
 					code = UNSAFE_CAR(r0);	// clojure code
+					code.type.main = CONS_T;
 					env  = UNSAFE_CDR(r0);	// clojure environment
 					pc   = -1;
-					r1   = local_vpop(stack);
+					r1   = LOCAL_VPOP_RAW;
 					env  = cons(r1, env);	// new environment as arguments
-
-#ifdef REPLACE_STACK
-					// save contexts(stack is last)
-					local_vpush(stack,    ret);
-					stack = make_vector(16);
-#endif	// REPLACE_STACK
 				}
 				else
 				{
@@ -296,25 +331,18 @@ value_t exec_vm(value_t c, value_t e)
 			break;
 
 			case IS_RET: TRACE("RET");
-#ifdef REPLACE_STACK
-				r0   = local_vpop(stack);	// ret value
-				stack = local_vpop(ret);
-#endif	// REPLACE_STACK
-				env  = local_vpop(ret);
-				pc   = INTOF(local_vpop(ret));
-				code = local_vpop(ret);
-#ifdef REPLACE_STACK
-				local_vpush(r0, stack);
-#endif	// REPLACE_STACK
+				env  = LOCAL_VPOP_RET_RAW;
+				pc   = INTOF(LOCAL_VPOP_RET_RAW);
+				code = LOCAL_VPOP_RET_RAW;
 				break;
 
 			case IS_DUP: TRACE("DUP");
-				r0 = local_vpeek(stack);
-				vpush(r0, stack);
+				r0 = LOCAL_VPEEK_RAW;
+				LOCAL_VPUSH_RAW(r0);
 				break;
 
 			case IS_PUSH: TRACEN("PUSH: ");
-				r0 = local_vref(code, ++pc);	// next code is entity
+				r0 = code.vector->data[++pc];	// next code is entity
 				if(refp(r0))
 				{
 					TRACE2N("#REF:%d,%d# ", REF_D(r0), REF_W(r0));
@@ -328,7 +356,7 @@ value_t exec_vm(value_t c, value_t e)
 #ifdef TRACE_VM
 				      print(pr_str(r0, NIL, true), stderr);
 #endif // TRACE_VM
-				local_vpush(r0, stack);
+				LOCAL_VPUSH_RAW(r0);
 				break;
 
 			case IS_POP: TRACE("POP");
@@ -336,8 +364,8 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_SETENV: TRACE("SETENV");
-				r0 = vpop(stack);
-				r1 = vpeek(stack);
+				r0 = LOCAL_VPOP_RAW;
+				r1 = LOCAL_VPEEK_RAW;
 				if(symbolp(r0))
 				{
 					value_t target = find_env_all(r0, env);
@@ -349,13 +377,12 @@ value_t exec_vm(value_t c, value_t e)
 					{
 						rplacd(target, r1);		// replace
 					}
-					local_rplacv_top(r1, stack);
 				}
 				else if(rtypeof(r0) == REF_T)
 				{
 					local_set_env_ref(r0, r1, env);
 				}
-				local_rplacv_top(r1, stack);
+				LOCAL_RPLACV_TOP_RAW(r1);
 				break;
 
 			case IS_CONCAT: TRACE("CONCAT");
