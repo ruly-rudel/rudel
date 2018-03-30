@@ -101,12 +101,13 @@ static value_t compile_vm_setq(value_t code, value_t ast, value_t env)
 		value_t key_ref = get_env_ref(key, env);
 		if(errp(key_ref))
 		{
-			vpush(key, code);	//**** push symbol to code
+			vpush(ROP(IS_PUSH), code);
+			vpush(key,          code);	//**** push symbol to code
 		}
 		else
 		{
-			key_ref.ref.sub = VMREF_T;	// push ref itself to stack
-			vpush(key_ref, code);
+			vpush(ROP(IS_PUSH), code);
+			vpush(key_ref,      code);	// push ref itself to stack
 		}
 
 		vpush(ROP(IS_SETENV), code);
@@ -343,6 +344,7 @@ static value_t compile_vm_macro(value_t code, value_t ast, value_t env)
 	if(!errp(macro_code))
 	{
 		// macro is clojure call
+		vpush(ROP(IS_PUSH),           code);
 		vpush(macro(macro_code, env), code);	//**** macro environment?
 	}
 
@@ -359,6 +361,7 @@ static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
 	if(!errp(lambda_code))
 	{
 		// lambda is clojure call
+		vpush(ROP(IS_PUSH),           code);
 		vpush(cloj(lambda_code, NIL), code);	// clojure environment must be set while exec
 	}
 
@@ -372,6 +375,7 @@ static value_t compile_vm_quasiquote(value_t code, value_t ast, value_t env)
 
 	if(!consp(ast))					// atom
 	{
+		vpush(ROP(IS_PUSH), code);
 		vpush(ast, code);			  // -> push immediate to stack
 	}
 	else
@@ -446,6 +450,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 				return compile_vm_macro     (code, cdr(ast), env);
 
 			case SP_QUOTE:
+				vpush(ROP(IS_PUSH), code);
 				return vpush(car(cdr(ast)), code);
 
 			case SP_QUASIQUOTE:
@@ -458,14 +463,14 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	else
 	{
 		value_t fn = compile_vm_check_builtin(car(ast), env);
-		if(nilp(fn))	// apply clojure
+		if(nilp(fn))	// apply clojure?
 		{
 			code = compile_vm_apply_arg(code, cdr(ast), env);	// arguments
 			if(errp(code))
 			{
 				return code;
 			}
-			code = compile_vm1(code, car(ast), env);		// maybe clojure
+			code = compile_vm1(code, car(ast), env);		//**** assume evaluation result on VM is clojure: will be fixed, support built-in and macro?
 			if(errp(code))
 			{
 				return code;
@@ -474,8 +479,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 		}
 		else		// apply builtin
 		{
-			// evaluate each list items
-			code = compile_vm_list(code, cdr(ast), env);
+			code = compile_vm_list(code, cdr(ast), env);		// arguments
 			if(errp(code))
 			{
 				return code;
@@ -495,7 +499,8 @@ static value_t compile_vm1(value_t code, value_t ast, value_t env)
 	switch(rtypeof(ast))
 	{
 		case INT_T:
-			vpush(ast, code);
+			vpush(ROP(IS_PUSH), code);
+			vpush(ast,          code);
 			break;
 
 		case SYM_T:
@@ -508,25 +513,25 @@ static value_t compile_vm1(value_t code, value_t ast, value_t env)
 					return r;
 				}
 			}
-			else
-			{
-				return RERR(ERR_ARG_BUILTIN, ast);	//***** buit-in function is not first class: FIX IT!
-			}
-			vpush(r, code);
+			vpush(ROP(IS_PUSH), code);
+			vpush(r,            code);
 			break;
 
 		case REF_T:
-			vpush(ast, code);
+			vpush(ROP(IS_PUSH), code);
+			vpush(ast,          code);
 			break;
 
 		case VEC_T:
-			vpush(ast, code);	//****** heap address in code: fix it.
+			vpush(ROP(IS_PUSH), code);
+			vpush(ast,          code);	//****** heap address in code: fix it.
 			break;
 
 		case CONS_T:
 			if(nilp(ast))
 			{
-				vpush(ast, code);
+				vpush(ROP(IS_PUSH), code);
+				vpush(ast,          code);
 			}
 			else
 			{

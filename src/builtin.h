@@ -25,7 +25,6 @@ typedef enum _rtype_t {
 	REF_T,
 	SPECIAL_T,
 	VMIS_T,
-	VMREF_T,
 } rtype_t;
 
 typedef enum {
@@ -54,6 +53,7 @@ typedef enum {
 	IS_AP,
 	IS_RET,
 	IS_DUP,
+	IS_PUSH,
 	IS_POP,
 	IS_SETENV,
 	IS_CONCAT,
@@ -188,7 +188,6 @@ typedef struct _vector_t
 #define ROP(X)       ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand =  0  })
 #define ROPD(X, Y)   ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand = (Y) })
 #define RREF(X, Y)   ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width  = (Y) })
-#define RVMREF(X, Y) ((value_t){ .ref .main   = OTH_T,  .ref .sub = VMREF_T,   .ref .depth = (X), .ref.width  = (Y) })
 #define RFN(X)       ((value_t){ .rfn = (X) })
 #define RERR(X, Y)   rerr(RINT(X), (Y))
 
