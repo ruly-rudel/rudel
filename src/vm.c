@@ -304,10 +304,11 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_AP:
 			{
+				r1 = LOCAL_VPOP_RAW;
 				r0 = LOCAL_VPOP_RAW;
 				if(clojurep(r0))	// compiled function
 				{
-					TRACE("AP");
+					TRACE("AP(Clojure)");
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
 					LOCAL_VPUSH_RET_RAW(RINT(pc));
@@ -319,14 +320,24 @@ value_t exec_vm(value_t c, value_t e)
 					code.type.main = CONS_T;
 					env  = UNSAFE_CDR(r0);	// clojure environment
 					pc   = -1;
-					r1   = LOCAL_VPOP_RAW;
 					env  = cons(r1, env);	// new environment as arguments
+				}
+				else if(macrop(r0))	// compiled macro
+				{
+					TRACE("AP(Macro)");
+					TRACE("  Expand macro, invoking another VM.");
+					value_t ext = exec_vm(car(r0), cons(r1, cdr(r0)));
+					TRACE("  Compiling the result on-the-fly.");
+					value_t new_code = compile_vm(ext, env);
+					TRACE("  Evaluate it, invoking another VM.");
+					value_t res = exec_vm(new_code, env);
+					TRACE("AP(Macro) Done.");
+					LOCAL_VPUSH_RAW(res);
 				}
 				else
 				{
-					return RERR_PC(ERR_INVALID_CLOJ);
+					return RERR_PC(ERR_INVALID_AP);
 				}
-
 			}
 			break;
 
@@ -348,11 +359,18 @@ value_t exec_vm(value_t c, value_t e)
 					TRACE2N("#REF:%d,%d# ", REF_D(r0), REF_W(r0));
 					r0 = local_get_env_value_ref(r0, env);
 				}
-				else if(clojurep(r0))
+				else if(clojurep(r0) || macrop(r0))
 				{
 					rplacd(r0, env);	// set current environment
 				}
-				//TRACE2("push #VMREF:%d,%d# itself", REF_D(op), REF_W(op));
+#ifdef TRACE_VM
+				      print(pr_str(r0, NIL, true), stderr);
+#endif // TRACE_VM
+				LOCAL_VPUSH_RAW(r0);
+				break;
+
+			case IS_PUSHR: TRACEN("PUSHR: ");
+				r0 = code.vector->data[++pc];	// next code is entity
 #ifdef TRACE_VM
 				      print(pr_str(r0, NIL, true), stderr);
 #endif // TRACE_VM

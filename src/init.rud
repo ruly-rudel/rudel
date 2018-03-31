@@ -195,6 +195,13 @@
 (defun vector (& lst)
   (make-vector-from-list lst))
 
+(defun vdump (v)
+	(let* ((rec (lambda (n)
+		      (if (eq n (- (vsize v) 1))
+			(str n ": " (vref v n) "\n")
+			(str n ": " (vref v n) "\n" (rec (+ n 1)))))))
+	  (println (rec 0))))
+
 ;; debug functions
 (defun trace (x)
 	(setq *trace* (if x (cons x *trace*))))

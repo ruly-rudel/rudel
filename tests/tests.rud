@@ -1210,3 +1210,28 @@ x
 ;=>(1 c 3)
 (exec-vm (compile-vm '(quasiquote (1 (splice-unquote c) 3))))
 ;=>(1 1 "b" "d" 3)
+(exec-vm (compile-vm '((macro (x) x) 1)))
+;=>1
+(exec-vm (compile-vm '((macro (x) `(cons ,x (cons ,(+ x 1) nil))) 1)))
+;=>(1 2)
+
+(exec-vm (compile-vm '(setq x 10)))
+;=>10
+x
+;=>10
+(exec-vm (compile-vm '(setq x (lambda (x) (+ x 10)))))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(x 2)))
+;=>12
+(exec-vm (compile-vm '(setq x (macro (x) `(cons ,x (cons ,(+ x 1) nil))))))
+;=>#<MACRO>
+(exec-vm (compile-vm '(x 7)))
+;=>(7 8)
+
+(exec-vm (compile-vm '(progn 1 2 3)))
+;=>3
+
+(setq defun (macro (name arg body) `(setq ,name (compile-vm `(lambda ,arg ,body)))))
+;=>#<MACRO>
+;;(exec-vm '(defun not (a) (if a nil t)))
+;;;=>#<CLOJURE>

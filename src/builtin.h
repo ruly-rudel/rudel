@@ -54,6 +54,7 @@ typedef enum {
 	IS_RET,
 	IS_DUP,
 	IS_PUSH,
+	IS_PUSHR,
 	IS_POP,
 	IS_SETENV,
 	IS_CONCAT,
@@ -215,7 +216,7 @@ typedef struct _vector_t
 #define ERR_EOS			12
 #define ERR_INVALID_IS		13
 #define ERR_ARG_BUILTIN		14
-#define ERR_INVALID_CLOJ	15
+#define ERR_INVALID_AP		15
 
 #define UNSAFE_CAR(X)	(X).cons->car
 #define UNSAFE_CDR(X)	(X).cons->cdr

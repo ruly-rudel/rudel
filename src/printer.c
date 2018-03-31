@@ -352,8 +352,8 @@ static value_t pr_err_cause(value_t e)
 		    case ERR_ARG_BUILTIN:
 			return str_to_rstr("built-in functions is not first class now. we will fix it later.");
 
-		    case ERR_INVALID_CLOJ:
-			return str_to_rstr("VM require clojure on top of the stack when AP.");
+		    case ERR_INVALID_AP:
+			return str_to_rstr("try to AP other than  clojure or macro.");
 
 		    default:
 			return str_to_rstr("unknown error.");
@@ -459,6 +459,8 @@ static value_t pr_vmis(value_t s)
 		case IS_AP:		return str_to_rstr("IS_AP");
 		case IS_RET:		return str_to_rstr("IS_RET");
 		case IS_DUP:		return str_to_rstr("IS_DUP");
+		case IS_PUSH:		return str_to_rstr("IS_PUSH");
+		case IS_PUSHR:		return str_to_rstr("IS_PUSHR");
 		case IS_POP:		return str_to_rstr("IS_POP");
 		case IS_SETENV:		return str_to_rstr("IS_SETENV");
 		case IS_ATOM:		return str_to_rstr("IS_ATOM");

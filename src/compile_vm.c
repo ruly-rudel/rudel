@@ -101,13 +101,13 @@ static value_t compile_vm_setq(value_t code, value_t ast, value_t env)
 		value_t key_ref = get_env_ref(key, env);
 		if(errp(key_ref))
 		{
-			vpush(ROP(IS_PUSH), code);
-			vpush(key,          code);	//**** push symbol to code
+			vpush(ROP(IS_PUSH),  code);
+			vpush(key,           code);	//**** push symbol to code
 		}
 		else
 		{
-			vpush(ROP(IS_PUSH), code);
-			vpush(key_ref,      code);	// push ref itself to stack
+			vpush(ROP(IS_PUSHR), code);
+			vpush(key_ref,       code);	// push ref itself to stack
 		}
 
 		vpush(ROP(IS_SETENV), code);
@@ -329,7 +329,6 @@ static value_t compile_vm_lambda1(value_t ast, value_t env)
 	{
 		return lambda_code;
 	}
-	vpush(ROP(IS_RET), lambda_code);	// RET
 
 	return lambda_code;
 }
@@ -343,7 +342,8 @@ static value_t compile_vm_macro(value_t code, value_t ast, value_t env)
 	value_t macro_code = compile_vm_lambda1(ast, env);
 	if(!errp(macro_code))
 	{
-		// macro is clojure call
+		// macro invokes another VM.
+		vpush(ROP(IS_HALT),     macro_code);	// HALT
 		vpush(ROP(IS_PUSH),           code);
 		vpush(macro(macro_code, env), code);	//**** macro environment?
 	}
@@ -361,6 +361,7 @@ static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
 	if(!errp(lambda_code))
 	{
 		// lambda is clojure call
+		vpush(ROP(IS_RET),     lambda_code);	// RET
 		vpush(ROP(IS_PUSH),           code);
 		vpush(cloj(lambda_code, NIL), code);	// clojure environment must be set while exec
 	}
@@ -465,12 +466,12 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 		value_t fn = compile_vm_check_builtin(car(ast), env);
 		if(nilp(fn))	// apply clojure?
 		{
-			code = compile_vm_apply_arg(code, cdr(ast), env);	// arguments
+			code = compile_vm1(code, car(ast), env);
 			if(errp(code))
 			{
 				return code;
 			}
-			code = compile_vm1(code, car(ast), env);		//**** assume evaluation result on VM is clojure: will be fixed, support built-in and macro?
+			code = compile_vm_apply_arg(code, cdr(ast), env);	// arguments
 			if(errp(code))
 			{
 				return code;
