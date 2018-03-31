@@ -416,6 +416,14 @@ value_t exec_vm(value_t c, value_t e)
 				OP_1P1P(consp(r0) ? g_t : NIL);
 				break;
 
+			case IS_CLOJUREP: TRACE("CLOJUREP");
+				OP_1P1P(clojurep(r0) ? g_t : NIL);
+				break;
+
+			case IS_MACROP: TRACE("MACROP");
+				OP_1P1P(macrop(r0) ? g_t : NIL);
+				break;
+
 			case IS_CONS: TRACE("CONS");
 				OP_2P1P(cons(r0, r1));
 				break;

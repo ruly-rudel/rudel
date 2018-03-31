@@ -1231,7 +1231,11 @@ x
 (exec-vm (compile-vm '(progn 1 2 3)))
 ;=>3
 
-(setq defun (macro (name arg body) `(setq ,name (compile-vm `(lambda ,arg ,body)))))
+(exec-vm (compile-vm '(setq defun (macro (name arg body) `(setq ,name (lambda ,arg ,body))))))
 ;=>#<MACRO>
-;;(exec-vm '(defun not (a) (if a nil t)))
-;;;=>#<CLOJURE>
+(exec-vm (compile-vm '(defun mnot (a) (if a nil t))))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(mnot t)))
+;=>nil
+(exec-vm (compile-vm '(mnot nil)))
+;=>t

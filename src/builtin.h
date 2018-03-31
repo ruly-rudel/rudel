@@ -61,6 +61,8 @@ typedef enum {
 
 	IS_ATOM,
 	IS_CONSP,
+	IS_CLOJUREP,
+	IS_MACROP,
 	IS_CONS,
 	IS_CAR,
 	IS_CDR,

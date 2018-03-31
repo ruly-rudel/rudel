@@ -465,6 +465,8 @@ static value_t pr_vmis(value_t s)
 		case IS_SETENV:		return str_to_rstr("IS_SETENV");
 		case IS_ATOM:		return str_to_rstr("IS_ATOM");
 		case IS_CONSP:		return str_to_rstr("IS_CONSP");
+		case IS_CLOJUREP:	return str_to_rstr("IS_CLOJUREP");
+		case IS_MACROP:		return str_to_rstr("IS_MACROP");
 		case IS_CONS:		return str_to_rstr("IS_CONS");
 		case IS_CAR:		return str_to_rstr("IS_CAR");
 		case IS_CDR:		return str_to_rstr("IS_CDR");

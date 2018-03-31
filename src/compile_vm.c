@@ -137,6 +137,28 @@ static value_t compile_vm_apply_arg(value_t code, value_t ast, value_t env)
 	return code;
 }
 
+// ****** not applicative order: fix it with eval
+static value_t compile_vm_macro_arg(value_t code, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(rtypeof(ast) == CONS_T);
+	assert(consp(env));
+
+	vpush(ROPD(IS_MKVEC_ENV, count(ast)), code);
+
+	for(; !nilp(ast); ast = cdr(ast))
+	{
+		assert(consp(ast));
+		vpush(ROP(IS_PUSH), code);		// push unevaluated args
+		vpush(car(ast), code);
+		vpush(ROP(IS_NIL_CONS_VPUSH), code);
+	}
+
+	// push env is in IS_AP
+
+	return code;
+}
+
 static value_t compile_vm_if(value_t code, value_t ast, value_t env)
 {
 	assert(vectorp(code));
@@ -412,34 +434,75 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 				return RERR(ERR_NOTIMPL, ast);
 		}
 	}
-	else
+	else if(symbolp(fn))
 	{
-		value_t fn = compile_vm_check_builtin(car(ast), env);
-		if(nilp(fn))	// apply clojure?
-		{
-			code = compile_vm1(code, car(ast), env);
-			if(errp(code))
-			{
-				return code;
-			}
-			code = compile_vm_apply_arg(code, cdr(ast), env);	// arguments
-			if(errp(code))
-			{
-				return code;
-			}
-			vpush(ROP(IS_AP), code);
-		}
-		else		// apply builtin
+		value_t bfn = compile_vm_check_builtin(car(ast), env);
+		if(!nilp(bfn))			// apply builtin
 		{
 			code = compile_vm_list(code, cdr(ast), env);		// arguments
 			if(errp(code))
 			{
 				return code;
 			}
-			vpush(fn, code);
+			vpush(bfn, code);
+			return code;
 		}
+	}
+
+	// evaluate 1st element of apply list
+	code = compile_vm1(code, car(ast), env);
+	if(errp(code))
+	{
 		return code;
 	}
+
+	// check function type and select call type
+	vpush(ROP(IS_DUP), code);
+	vpush(ROP(IS_CLOJUREP), code);
+
+	int cond_br = INTOF(vsize(code));
+	vpush(ROP(IS_BNIL), code);	// dummy operand(0)
+
+	// true situation: clojure call
+	code = compile_vm_apply_arg(code, cdr(ast), env);	// arguments
+	if(errp(code))
+	{
+		return code;
+	}
+
+	int true_br = INTOF(vsize(code));
+	vpush(ROP(IS_BR), code);	// dummy operand(0)
+
+	// false situation: macro call
+	code = compile_vm_macro_arg(code, cdr(ast), env);	// arguments
+	if(errp(code))
+	{
+		return code;
+	}
+
+	int next_addr = INTOF(vsize(code));
+
+	// fix branch address: relative to pc
+	rplacv(code, cond_br, ROPD(IS_BNIL, true_br + 1 - cond_br));
+	rplacv(code, true_br, ROPD(IS_BR,   next_addr - true_br));
+
+
+	// Join: apply
+	vpush(ROP(IS_AP), code);
+#if 0
+				code = compile_vm1(code, car(ast), env);
+				if(errp(code))
+				{
+					return code;
+				}
+				code = compile_vm_macro_arg(code, cdr(ast), env);	// arguments
+				if(errp(code))
+				{
+					return code;
+				}
+				vpush(ROP(IS_AP), code);
+#endif
+	return code;
 }
 
 static value_t compile_vm1(value_t code, value_t ast, value_t env)
@@ -462,7 +525,7 @@ static value_t compile_vm1(value_t code, value_t ast, value_t env)
 				r = get_env_ref(ast, env);
 				if(errp(r))
 				{
-					return r;
+					r = ast;		// late bind(will be bound while exec VM)
 				}
 			}
 			vpush(ROP(IS_PUSH), code);
