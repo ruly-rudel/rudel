@@ -312,4 +312,7 @@ EXTERN value_t g_trace;
 EXTERN value_t g_debug;
 EXTERN value_t g_amp;
 
+EXTERN value_t* g_istbl;
+EXTERN int      g_istbl_size;
+
 #endif // _builtin_h_

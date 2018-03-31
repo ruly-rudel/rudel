@@ -15,60 +15,11 @@ static value_t compile_vm_check_builtin(value_t atom, value_t env)
 
 	if(symbolp(atom))
 	{
-		value_t tbl[] = {
-			str_to_sym("atom"),		ROP(IS_ATOM),
-			str_to_sym("consp"),		ROP(IS_CONSP),
-			str_to_sym("cons"),		ROP(IS_CONS),
-			str_to_sym("car"),		ROP(IS_CAR),
-			str_to_sym("cdr"),		ROP(IS_CDR),
-			str_to_sym("eq"),		ROP(IS_EQ),
-			str_to_sym("equal"),		ROP(IS_EQUAL),
-			str_to_sym("rplaca"),		ROP(IS_RPLACA),
-			str_to_sym("rplacd"),		ROP(IS_RPLACD),
-			str_to_sym("gensym"),		ROP(IS_GENSYM),
-			str_to_sym("+"),		ROP(IS_ADD),
-			str_to_sym("-"),		ROP(IS_SUB),
-			str_to_sym("*"),		ROP(IS_MUL),
-			str_to_sym("/"),		ROP(IS_DIV),
-			str_to_sym("<"),		ROP(IS_LT),
-			str_to_sym("<="),		ROP(IS_ELT),
-			str_to_sym(">"),		ROP(IS_MT),
-			str_to_sym(">="),		ROP(IS_EMT),
-			str_to_sym("read-string"),	ROP(IS_READ_STRING),
-			str_to_sym("slurp"),		ROP(IS_SLURP),
-			str_to_sym("eval"),		ROP(IS_EVAL),
-			str_to_sym("err"),		ROP(IS_ERR),
-			str_to_sym("nth"),		ROP(IS_NTH),
-			str_to_sym("init"),		ROP(IS_INIT),
-			str_to_sym("make-vector"),	ROP(IS_MAKE_VECTOR),
-			str_to_sym("vref"),		ROP(IS_VREF),
-			str_to_sym("rplacv"),		ROP(IS_RPLACV),
-			str_to_sym("vsize"),		ROP(IS_VSIZE),
-			str_to_sym("veq"),		ROP(IS_VEQ),
-			str_to_sym("vpush"),		ROP(IS_VPUSH),
-			str_to_sym("vpop"),		ROP(IS_VPOP),
-			str_to_sym("copy-vector"),	ROP(IS_COPY_VECTOR),
-			str_to_sym("vconc"),		ROP(IS_VCONC),
-			str_to_sym("vnconc"),		ROP(IS_VNCONC),
-			str_to_sym("compile-vm"),	ROP(IS_COMPILE_VM),
-			str_to_sym("exec-vm"),		ROP(IS_EXEC_VM),
-
-			/*
-			str_to_sym("pr-str"),		ROP(IS_PR_STR),
-			str_to_sym("str"),		ROP(IS_STR),
-			str_to_sym("prn"),		ROP(IS_PRN),
-			str_to_sym("println"),		ROP(IS_PRINTLN),
-			str_to_sym("strp"),		ROP(IS_STRP),
-			str_to_sym("make-vector-from-list"),		ROP(IS_make-vector-from-list),
-			str_to_sym("make-list-from-vector"),		ROP(IS_make-list-from-vector),
-			*/
-		};
-
-		for(int i = 0; i < sizeof(tbl) / sizeof(tbl[0]); i += 2)
+		for(int i = 0; i < g_istbl_size; i += 2)
 		{
-			if(EQ(tbl[i], atom))
+			if(EQ(g_istbl[i], atom))
 			{
-				return tbl[i + 1];
+				return g_istbl[i + 1];
 			}
 		}
 	}
