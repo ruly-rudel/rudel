@@ -78,10 +78,10 @@
 	LOCAL_RPLACV_TOP_RAW(X); \
 }
 
-#define FIRST(X)  (car(X))
-#define SECOND(X) (UNSAFE_CAR(cdr(X)))
-#define THIRD(X)  (UNSAFE_CAR(UNSAFE_CDR(cdr(X))))
-#define FOURTH(X) (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(cdr(X)))))
+#define FIRST(X)  (UNSAFE_CAR(X))
+#define SECOND(X) (UNSAFE_CAR(UNSAFE_CDr(X)))
+#define THIRD(X)  (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(X))))
+#define FOURTH(X) (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(X)))))
 
 #ifdef TRACE_VM
 #define TRACEN(X)        fprintf(stderr, "[rudel-vm:pc=%06x] "  X      , pc)
@@ -314,14 +314,19 @@ value_t exec_vm(value_t c, value_t e)
 				if(clojurep(r0))	// compiled function
 				{
 					TRACE("AP(Clojure)");
-					compile_vm(r0, env);
+					r0.type.main = CONS_T;
+					if(nilp(THIRD(r0)))
+					{
+						r0.type.main = CLOJ_T;
+						compile_vm(r0, env);
+						r0.type.main = CONS_T;
+					}
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
 					LOCAL_VPUSH_RET_RAW(RINT(pc));
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
-					r0.type.main = CONS_T;
 					code = THIRD(r0);	// clojure code
 					code.type.main = CONS_T;
 					env  = cons(r1, FOURTH(r0));	// clojure environment + new environment as arguments
@@ -330,7 +335,13 @@ value_t exec_vm(value_t c, value_t e)
 				else if(macrop(r0))	// compiled macro
 				{
 					TRACE("AP(Macro)");
-					compile_vm(r0, env);
+					r0.type.main = CONS_T;
+					if(nilp(THIRD(r0)))
+					{
+						r0.type.main = MACRO_T;
+						compile_vm(r0, env);
+						r0.type.main = CONS_T;
+					}
 					TRACE("  Expand macro, invoking another VM.");
 					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
 					TRACE("  Compiling the result on-the-fly.");
@@ -367,8 +378,9 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{
-					rplaca(cdr(cdr(cdr(r0))), env);	// set current environment
-					//rplaca(cdr(r0), env);	// set current environment
+					r1 = r0;
+					r1.type.main = CONS_T;
+					rplaca(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r1))), env);	// set current environment
 				}
 #ifdef TRACE_VM
 				      print(pr_str(r0, NIL, true), stderr);
