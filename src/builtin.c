@@ -496,7 +496,7 @@ value_t	cfn(value_t car, value_t cdr)
 
 value_t	cloj(value_t car, value_t cdr)
 {
-	value_t	r	= cons(car, cdr);
+	value_t	r	= cons(car, cons(cdr, NIL));
 	r.type.main	= CLOJ_T;
 
 	return r;
@@ -504,7 +504,7 @@ value_t	cloj(value_t car, value_t cdr)
 
 value_t	macro(value_t car, value_t cdr)
 {
-	value_t	r	= cons(car, cdr);
+	value_t	r	= cons(car, cons(cdr, NIL));
 	r.type.main	= MACRO_T;
 
 	return r;

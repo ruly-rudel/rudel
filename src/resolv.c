@@ -21,7 +21,7 @@ static value_t resolv_ast	(value_t ast, value_t env)
 
 	    case CLOJ_T:
 	    case MACRO_T:
-		new_ast = resolv_lambda(car(ast), cdr(ast));
+		new_ast = resolv_lambda(car(ast), car(cdr(ast)));
 		if(errp(new_ast))
 		{
 			return rerr_add_pos(ast, new_ast);
@@ -30,11 +30,11 @@ static value_t resolv_ast	(value_t ast, value_t env)
 		{
 			if(rtypeof(ast) == MACRO_T)
 			{
-				return macro(new_ast, cdr(ast));
+				return macro(new_ast, car(cdr(ast)));
 			}
 			else
 			{
-				return cloj(new_ast, cdr(ast));
+				return cloj(new_ast, car(cdr(ast)));
 			}
 		}
 

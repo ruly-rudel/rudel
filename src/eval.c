@@ -438,7 +438,7 @@ value_t apply(value_t fn, value_t args, bool blk)
 	value_t fn_body = car(fn_ast);
 
 	// create bindings (is environment)
-	value_t fn_env = create_env(fn_args, args, cdr(fn));
+	value_t fn_env = create_env(fn_args, args, car(cdr(fn)));
 
 	// debug repl
 	if(blk) debug_repl(fn_env);

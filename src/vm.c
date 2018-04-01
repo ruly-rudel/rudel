@@ -318,7 +318,7 @@ value_t exec_vm(value_t c, value_t e)
 					r0.type.main = CONS_T;
 					code = UNSAFE_CAR(r0);	// clojure code
 					code.type.main = CONS_T;
-					env  = UNSAFE_CDR(r0);	// clojure environment
+					env  = UNSAFE_CAR(UNSAFE_CDR(r0));	// clojure environment
 					pc   = -1;
 					env  = cons(r1, env);	// new environment as arguments
 				}
@@ -326,7 +326,7 @@ value_t exec_vm(value_t c, value_t e)
 				{
 					TRACE("AP(Macro)");
 					TRACE("  Expand macro, invoking another VM.");
-					value_t ext = exec_vm(car(r0), cons(r1, cdr(r0)));
+					value_t ext = exec_vm(car(r0), cons(r1, car(cdr(r0))));
 					TRACE("  Compiling the result on-the-fly.");
 					value_t new_code = compile_vm(ext, env);
 					TRACE("  Evaluate it, invoking another VM.");
@@ -361,7 +361,7 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{
-					rplacd(r0, env);	// set current environment
+					rplaca(cdr(r0), env);	// set current environment
 				}
 #ifdef TRACE_VM
 				      print(pr_str(r0, NIL, true), stderr);
