@@ -1239,3 +1239,8 @@ x
 ;=>nil
 (exec-vm (compile-vm '(mnot nil)))
 ;=>t
+
+(exec-vm (compile-vm '(defun tlist (& a) a)))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(tlist 1 2 3)))
+;=>(1 2 3)

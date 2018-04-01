@@ -58,6 +58,7 @@ typedef enum {
 	IS_POP,
 	IS_SETENV,
 	IS_CONCAT,
+	IS_RESTPARAM,
 
 	IS_ATOM,
 	IS_CONSP,

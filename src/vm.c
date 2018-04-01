@@ -426,6 +426,21 @@ value_t exec_vm(value_t c, value_t e)
 				OP_2P1P(concat(2, r0, r1));
 				break;
 
+			case IS_RESTPARAM: TRACE1("RESTPARAM %d", pc + op.op.operand);
+			{
+				r0 = UNSAFE_CAR(env);
+				int size = INTOF(vsize(r0));
+				r1 = NIL;
+				value_t* cur = &r1;
+
+				for(int i = op.op.operand; i < size; i++)
+				{
+					cur = cons_and_cdr(cdr(vref(r0, i)), cur);
+				}
+				rplacv(r0, op.op.operand, cons(NIL, r1));
+			}
+				break;
+
 
 			case IS_ATOM: TRACE("ATOM");
 				OP_1P1P(atom(r0) ? g_t : NIL);

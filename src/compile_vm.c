@@ -277,6 +277,23 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 	}
 }
 
+static value_t	compile_vm_rest(value_t code, value_t key)
+{
+	for(int i = 0; !nilp(key); i++, (key = UNSAFE_CDR(key)))
+	{
+		assert(consp(key));
+
+		value_t key_car = UNSAFE_CAR(key);
+
+		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
+		{
+			vpush(ROPD(IS_RESTPARAM, i), code);
+			break;
+		}
+	}
+
+	return code;
+}
 static value_t compile_vm_lambda1(value_t ast, value_t env)
 {
 	assert(consp(ast));
@@ -295,8 +312,15 @@ static value_t compile_vm_lambda1(value_t ast, value_t env)
 	}
 	value_t lambda_env = create_env(def, NIL, env);
 
+
 	// compile body
 	value_t lambda_code = make_vector(0);
+	lambda_code = compile_vm_rest(lambda_code, def);	// rest parameter support
+	if(errp(lambda_code))
+	{
+		return lambda_code;
+	}
+
 	lambda_code = compile_vm1(lambda_code, car(cdr(ast)), lambda_env);
 	if(errp(lambda_code))
 	{
@@ -442,6 +466,9 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 			case SP_QUASIQUOTE:
 				return compile_vm_quasiquote(code, car(cdr(ast)), env);
 
+			case SP_AMP:	//******* ad-hock: ignore it
+				return code;
+
 			default:
 				return RERR(ERR_NOTIMPL, ast);
 		}
@@ -569,6 +596,13 @@ static value_t compile_vm1(value_t code, value_t ast, value_t env)
 				{
 					rplaca(cdr(cdr(ast)), lambda_code);
 				}
+			}
+			break;
+
+		case SPECIAL_T:
+			if(INTOF(ast) != SP_AMP)	//****** ignore '&' for dummy compilation: it is not evaluate.
+			{
+				return RERR(ERR_NOTIMPL, ast);
 			}
 			break;
 
