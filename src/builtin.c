@@ -510,6 +510,22 @@ value_t	macro(value_t car, value_t cdr)
 	return r;
 }
 
+value_t	vmcloj(value_t ast, value_t ast_env, value_t code, value_t vm_env)
+{
+	value_t	r	= list(4, ast, ast_env, code, vm_env);
+	r.type.main	= CLOJ_T;
+
+	return r;
+}
+
+value_t	vmmacro(value_t ast, value_t ast_env, value_t code, value_t vm_env)
+{
+	value_t	r	= list(4, ast, ast_env, code, vm_env);
+	r.type.main	= MACRO_T;
+
+	return r;
+}
+
 value_t slurp(char* fn)
 {
 	FILE* fp = fopen(fn, "r");

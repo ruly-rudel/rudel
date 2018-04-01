@@ -78,6 +78,11 @@
 	LOCAL_RPLACV_TOP_RAW(X); \
 }
 
+#define FIRST(X)  (car(X))
+#define SECOND(X) (UNSAFE_CAR(cdr(X)))
+#define THIRD(X)  (UNSAFE_CAR(UNSAFE_CDR(cdr(X))))
+#define FOURTH(X) (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(cdr(X)))))
+
 #ifdef TRACE_VM
 #define TRACEN(X)        fprintf(stderr, "[rudel-vm:pc=%06x] "  X      , pc)
 #define TRACE(X)         fprintf(stderr, "[rudel-vm:pc=%06x] "  X  "\n", pc)
@@ -309,6 +314,7 @@ value_t exec_vm(value_t c, value_t e)
 				if(clojurep(r0))	// compiled function
 				{
 					TRACE("AP(Clojure)");
+					compile_vm(r0, env);
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
 					LOCAL_VPUSH_RET_RAW(RINT(pc));
@@ -316,17 +322,17 @@ value_t exec_vm(value_t c, value_t e)
 
 					// set new execute contexts
 					r0.type.main = CONS_T;
-					code = UNSAFE_CAR(r0);	// clojure code
+					code = THIRD(r0);	// clojure code
 					code.type.main = CONS_T;
-					env  = UNSAFE_CAR(UNSAFE_CDR(r0));	// clojure environment
+					env  = cons(r1, FOURTH(r0));	// clojure environment + new environment as arguments
 					pc   = -1;
-					env  = cons(r1, env);	// new environment as arguments
 				}
 				else if(macrop(r0))	// compiled macro
 				{
 					TRACE("AP(Macro)");
+					compile_vm(r0, env);
 					TRACE("  Expand macro, invoking another VM.");
-					value_t ext = exec_vm(car(r0), cons(r1, car(cdr(r0))));
+					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
 					TRACE("  Compiling the result on-the-fly.");
 					value_t new_code = compile_vm(ext, env);
 					TRACE("  Evaluate it, invoking another VM.");
@@ -361,7 +367,8 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{
-					rplaca(cdr(r0), env);	// set current environment
+					rplaca(cdr(cdr(cdr(r0))), env);	// set current environment
+					//rplaca(cdr(r0), env);	// set current environment
 				}
 #ifdef TRACE_VM
 				      print(pr_str(r0, NIL, true), stderr);

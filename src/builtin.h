@@ -265,6 +265,8 @@ value_t rerr_add_pos	(value_t pos, value_t e);
 value_t	cfn		(value_t fn, value_t env);
 value_t	cloj		(value_t fn, value_t env);
 value_t	macro		(value_t fn, value_t env);
+value_t	vmcloj		(value_t ast, value_t ast_env, value_t code, value_t vm_env);
+value_t	vmmacro		(value_t ast, value_t ast_env, value_t code, value_t vm_env);
 value_t slurp		(char* fn);
 value_t init		(value_t env);
 

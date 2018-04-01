@@ -317,11 +317,14 @@ static value_t compile_vm_macro(value_t code, value_t ast, value_t env)
 	{
 		// macro invokes another VM.
 		vpush(ROP(IS_HALT),     macro_code);	// HALT
+#if 0
 		vpush(ROP(IS_PUSH),           code);
 		vpush(macro(macro_code, env), code);	//**** macro environment?
+#endif
 	}
 
-	return code;
+//	return code;
+	return macro_code;
 }
 
 static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
@@ -335,11 +338,14 @@ static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
 	{
 		// lambda is clojure call
 		vpush(ROP(IS_RET),     lambda_code);	// RET
+#if 0
 		vpush(ROP(IS_PUSH),           code);
 		vpush(cloj(lambda_code, NIL), code);	// clojure environment must be set while exec
+#endif
 	}
 
-	return code;
+	//return code;
+	return lambda_code;
 }
 
 static value_t compile_vm_quasiquote(value_t code, value_t ast, value_t env)
@@ -417,11 +423,17 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 			case SP_IF:
 				return compile_vm_if        (code, cdr(ast), env);
 
-			case SP_LAMBDA:
-				return compile_vm_lambda    (code, cdr(ast), env);
+			case SP_LAMBDA:		// set only s-expression
+				vpush(ROP(IS_PUSH), code);
+				vpush(vmcloj (cdr(ast), env, NIL, NIL), code);
+				return code;
+//				return compile_vm_lambda    (code, cdr(ast), env);
 
-			case SP_MACRO:
-				return compile_vm_macro     (code, cdr(ast), env);
+			case SP_MACRO:		// set only s-expression
+				vpush(ROP(IS_PUSH), code);
+				vpush(vmmacro(cdr(ast), env, NIL, NIL), code);
+				return code;
+//				return compile_vm_macro     (code, cdr(ast), env);
 
 			case SP_QUOTE:
 				vpush(ROP(IS_PUSH), code);
@@ -489,19 +501,6 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 
 	// Join: apply
 	vpush(ROP(IS_AP), code);
-#if 0
-				code = compile_vm1(code, car(ast), env);
-				if(errp(code))
-				{
-					return code;
-				}
-				code = compile_vm_macro_arg(code, cdr(ast), env);	// arguments
-				if(errp(code))
-				{
-					return code;
-				}
-				vpush(ROP(IS_AP), code);
-#endif
 	return code;
 }
 
@@ -553,6 +552,26 @@ static value_t compile_vm1(value_t code, value_t ast, value_t env)
 				code = compile_vm_apply(code, ast, env);
 			}
 			break;
+
+		case CLOJ_T:
+		case MACRO_T:
+			// compile lambda or macro body
+			if(nilp(car(cdr(cdr(ast)))))
+			{
+				value_t lambda_code = clojurep(ast) ?
+							compile_vm_lambda(code, car(ast), car(cdr(ast))) :
+							compile_vm_macro (code, car(ast), car(cdr(ast)));
+				if(errp(lambda_code))
+				{
+					return lambda_code;
+				}
+				else
+				{
+					rplaca(cdr(cdr(ast)), lambda_code);
+				}
+			}
+			break;
+
 
 		default:
 			return RERR(ERR_NOTIMPL, ast);
