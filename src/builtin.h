@@ -59,11 +59,13 @@ typedef enum {
 	IS_SETENV,
 	IS_CONCAT,
 	IS_RESTPARAM,
+	IS_MACROEXPAND,
 
 	IS_ATOM,
 	IS_CONSP,
 	IS_CLOJUREP,
 	IS_MACROP,
+	IS_STRP,
 	IS_CONS,
 	IS_CAR,
 	IS_CDR,
@@ -98,6 +100,10 @@ typedef enum {
 	IS_VNCONC,
 	IS_COMPILE_VM,
 	IS_EXEC_VM,
+	IS_PR_STR,
+	IS_PRINTLINE,
+	IS_MVFL,
+	IS_MLFV,
 } vmis_t;
 
 #if __WORDSIZE == 32

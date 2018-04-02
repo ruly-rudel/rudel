@@ -30,6 +30,7 @@ void init_global(void)
 	value_t tbl[] = {
 		str_to_sym("atom"),		ROP(IS_ATOM),
 		str_to_sym("consp"),		ROP(IS_CONSP),
+		str_to_sym("strp"),		ROP(IS_STRP),
 		str_to_sym("cons"),		ROP(IS_CONS),
 		str_to_sym("car"),		ROP(IS_CAR),
 		str_to_sym("cdr"),		ROP(IS_CDR),
@@ -64,16 +65,11 @@ void init_global(void)
 		str_to_sym("vnconc"),		ROP(IS_VNCONC),
 		str_to_sym("compile-vm"),	ROP(IS_COMPILE_VM),
 		str_to_sym("exec-vm"),		ROP(IS_EXEC_VM),
-
-		/*
-		str_to_sym("pr-str"),		ROP(IS_PR_STR),
-		str_to_sym("str"),		ROP(IS_STR),
-		str_to_sym("prn"),		ROP(IS_PRN),
-		str_to_sym("println"),		ROP(IS_PRINTLN),
-		str_to_sym("strp"),		ROP(IS_STRP),
-		str_to_sym("make-vector-from-list"),		ROP(IS_make-vector-from-list),
-		str_to_sym("make-list-from-vector"),		ROP(IS_make-list-from-vector),
-		*/
+		str_to_sym("pr_str"),		ROP(IS_PR_STR),
+		str_to_sym("printline"),	ROP(IS_PRINTLINE),
+		str_to_sym("slurp"),		ROP(IS_SLURP),
+		str_to_sym("make-vector-from-list"),		ROP(IS_MVFL),
+		str_to_sym("make-list-from-vector"),		ROP(IS_MLFV),
 	};
 
 	g_istbl_size = sizeof(tbl) / sizeof(tbl[0]);

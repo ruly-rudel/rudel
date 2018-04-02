@@ -1,17 +1,17 @@
 ;; Testing gensym
 *gensym-counter*
-;=>2
+;=>0
 (gensym)
-;=>#:G2
+;=>#:G0
 (gensym)
-;=>#:G3
+;=>#:G1
 *gensym-counter*
-;=>4
+;=>2
 (setq x (gensym))
-;=>#:G4
-(eq x '#:G4)
+;=>#:G2
+(eq x '#:G2)
 ;=>nil
-(equal x '#:G4)	;; must be nil, but now t. fix it later.
+(equal x '#:G2)	;; must be nil, but now t. fix it later.
 ;=>t
 
 ;; Testing evaluation of arithmetic operations
@@ -546,8 +546,8 @@ res2
 
 ;; Test mutually recursive tail-call functions
 
-(setq foo (lambda (n) (if (= n 0) 0 (bar (- n 1)))))
-(setq bar (lambda (n) (if (= n 0) 0 (foo (- n 1)))))
+(setq foo (lambda (n) (if (eq n 0) 0 (bar (- n 1)))))
+(setq bar (lambda (n) (if (eq n 0) 0 (foo (- n 1)))))
 
 (foo 10000)
 ;=>0

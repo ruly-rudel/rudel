@@ -198,7 +198,7 @@ inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 #ifdef USE_FLATTEN_ENV
 	return local_vref(env, REF_W(ref));
 #else // USE_FLATTEN_ENV
-	return cdr(local_vref(env, REF_W(ref)));
+	return cdr(vref(env, REF_W(ref)));
 #endif // USE_FLATTEN_ENV
 
 }
@@ -276,11 +276,11 @@ value_t exec_vm(value_t c, value_t e)
 			case IS_HALT: TRACE("HALT");
 				return LOCAL_VPOP_RAW;
 
-			case IS_BR: TRACE1("BR %d", pc + op.op.operand);
+			case IS_BR: TRACE1("BR %x", pc + op.op.operand);
 				pc += op.op.operand - 1;
 				break;
 
-			case IS_BNIL: TRACE1("BNIL %d", pc + op.op.operand);
+			case IS_BNIL: TRACE1("BNIL %x", pc + op.op.operand);
 				OP_1P0P(pc += nilp(r0) ? op.op.operand - 1: 0);
 				break;
 
@@ -374,18 +374,33 @@ value_t exec_vm(value_t c, value_t e)
 				if(refp(r0))
 				{
 					TRACE2N("#REF:%d,%d# ", REF_D(r0), REF_W(r0));
-					r0 = local_get_env_value_ref(r0, env);
+					r1 = local_get_env_value_ref(r0, env);
+				}
+				else if(symbolp(r0))
+				{
+					r1 = get_env_value(r0, env);
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{
 					r1 = r0;
-					r1.type.main = CONS_T;
-					rplaca(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r1))), env);	// set current environment
+					r0.type.main = CONS_T;
+					if(nilp(FOURTH(r0)))	//***** ad-hock: will be fixed
+					{
+						rplaca(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0))), env);	// set current environment
+					}
+				}
+				else
+				{
+					r1 = r0;
 				}
 #ifdef TRACE_VM
-				      print(pr_str(r0, NIL, true), stderr);
+				      print(pr_str(r1, NIL, true), stderr);
 #endif // TRACE_VM
-				LOCAL_VPUSH_RAW(r0);
+				if(errp(r1))
+				{
+					return r1;
+				}
+				LOCAL_VPUSH_RAW(r1);
 				break;
 
 			case IS_PUSHR: TRACEN("PUSHR: ");
@@ -441,6 +456,31 @@ value_t exec_vm(value_t c, value_t e)
 			}
 				break;
 
+			case IS_MACROEXPAND:
+			{
+				r1 = LOCAL_VPOP_RAW;
+				r0 = LOCAL_VPOP_RAW;
+				if(macrop(r0))	// compiled macro
+				{
+					TRACE("MACROEXPAND");
+					r0.type.main = CONS_T;
+					if(nilp(THIRD(r0)))
+					{
+						r0.type.main = MACRO_T;
+						compile_vm(r0, env);
+						r0.type.main = CONS_T;
+					}
+					TRACE("  Expand macro, invoking another VM.");
+					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
+					TRACE("MACROEXPAND Done.");
+					LOCAL_VPUSH_RAW(ext);
+				}
+				else
+				{
+					return RERR_PC(ERR_INVALID_AP);
+				}
+			}
+			break;
 
 			case IS_ATOM: TRACE("ATOM");
 				OP_1P1P(atom(r0) ? g_t : NIL);
@@ -456,6 +496,10 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_MACROP: TRACE("MACROP");
 				OP_1P1P(macrop(r0) ? g_t : NIL);
+				break;
+
+			case IS_STRP: TRACE("STRP");
+				OP_1P1P(is_str(r0) ? g_t : NIL);
 				break;
 
 			case IS_CONS: TRACE("CONS");
@@ -527,7 +571,9 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_EVAL: TRACE("EVAL");
-				OP_1P1P(eval(r0, last(env)));
+				r0 = LOCAL_VPEEK_RAW;
+				r1 = compile_vm(r0, last(env));
+				LOCAL_RPLACV_TOP_RAW(exec_vm(r1, last(env)));
 				break;
 
 			case IS_ERR: TRACE("ERR");
@@ -589,6 +635,35 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_EXEC_VM: TRACE("EXEC_VM");
 				OP_1P1P(vectorp(r0) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
+				break;
+
+			case IS_PR_STR: TRACE("PR_STR");
+				OP_2P1P(pr_str(r0, NIL, !nilp(r1)));
+				break;
+
+			case IS_PRINTLINE: TRACE("PRINTLINE");
+				OP_1P1P((printline(r0, stdout), NIL));
+				break;
+
+			case IS_SLURP: TRACE("SLURP");
+			{
+				r0 = LOCAL_VPEEK_RAW;
+				if(!vectorp(r0))
+				{
+					return RERR(ERR_TYPE, NIL);
+				}
+				char* fn  = rstr_to_str(r0);
+				LOCAL_RPLACV_TOP_RAW(slurp(fn));
+				free(fn);
+			}
+			break;
+
+			case IS_MVFL: TRACE("MVFL");
+				OP_1P1P(make_vector_from_list(r0));
+				break;
+
+			case IS_MLFV: TRACE("MLFV");
+				OP_1P1P(make_list_from_vector(r0));
 				break;
 
 			default:

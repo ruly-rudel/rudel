@@ -5,7 +5,8 @@
 #include "reader.h"
 #include "printer.h"
 #include "env.h"
-#include "eval.h"
+#include "vm.h"
+#include "compile_vm.h"
 #include "resolv.h"
 #include "core.h"
 
@@ -32,7 +33,7 @@ void repl(value_t env)
 		}
 		else
 		{
-			e = eval(r, env);
+			e = exec_vm(compile_vm(r, env), env);
 			if(!errp(e))
 			{
 				print(e, stdout);
@@ -55,7 +56,7 @@ void rep_file(char* fn, value_t env)
 	else
 	{
 		value_t c = vnconc(vnconc(str_to_rstr("(progn "), fstr), str_to_rstr(")"));
-		print(eval(read_str(c), env), stdout);
+		print(exec_vm(compile_vm(read_str(c), env), env), stdout);
 	}
 
 	return ;

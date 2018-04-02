@@ -7,13 +7,6 @@
 	   (macro (name arg body)
 		`(setq ,name (macro ,arg ,body))))
 
-(defmacro resolv (x)
-  `(setq ,x (resolv-bind ,x)))
-
-(resolv resolv)
-(resolv defun)
-(resolv defmacro)
-
 ;; conditions
 (defun not (a)
 	(if a nil t))
@@ -84,12 +77,18 @@
 ;(defun list (& body) body)
 (defun list (& body) (copy-list body))
 
-(defun copy-list (x n)
-	(if (and n (equal n 0)) nil
-	   (if x
-	     (if (consp x)
-	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
-	       x))))
+; ****fix it
+;(defun copy-list (x n)
+;	(if (and n (eq n 0)) nil
+;	   (if x
+;	     (if (consp x)
+;	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
+;	       x))))
+
+(defun copy-list (lst)
+  (if lst
+    (if (consp lst)
+      (cons (car lst) (copy-list (cdr lst))))))
 
 (defun remove (x lst)
 	(if lst
@@ -129,7 +128,27 @@
 	(if (<= n 1) x
 	  (fn x (repeat (- n 1) x fn))))
 
+(defun str (& body)
+  (if body
+    (reduce (lambda (x y) (vconc x y))
+	    (mapcar (lambda (x) (pr_str x nil)) body))
+    ""))
 
+(defun pr-str (& body)
+  (if body
+    (reduce (lambda (x y) (vconc (vconc x " ") y))
+	    (mapcar (lambda (x) (pr_str x t)) body))
+    ""))
+
+(defun println-str (body)
+  (reduce (lambda (x y) (vconc (vconc x " ") y))
+	  (mapcar (lambda (x) (pr_str x nil)) body)))
+
+(defun println (& body)
+  (printline (println-str body)))
+
+(defmacro prn (& body)
+  `(printline (pr-str ,@body)))
 
 
 ;; rudel-specific functions
@@ -220,28 +239,4 @@
 
 (defun clear-all ()
 	(setq *debug* nil))
-
-;; resolv bindings
-(resolv not)
-(resolv and)
-(resolv or)
-(resolv cond)
-(resolv cadr)
-(resolv cddr)
-(resolv caddr)
-(resolv nthcdr)
-(resolv count)
-(resolv last)
-(resolv list)
-(resolv copy-list)
-(resolv remove)
-(resolv concat)
-(resolv reduce)
-(resolv mapcar)
-(resolv repeat)
-(resolv load-file)
-(resolv insert-space)
-(resolv pp-n)
-(resolv pp)
-(resolv ppln)
 

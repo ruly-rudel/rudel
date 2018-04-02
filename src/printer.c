@@ -509,18 +509,19 @@ static value_t pr_vmis(value_t s)
 
 void printline(value_t s, FILE* fp)
 {
-	assert(vectorp(s));
-	for(int i = 0; i < INTOF(vsize(s)); i++)
+	assert(vectorp(s) || nilp(s));
+	if(!nilp(s))
 	{
-		value_t c = vref(s, i);
-		assert(charp(c));
-		if(INTOF(c) == '\0') break;
-		fputc(INTOF(c), fp);
+		for(int i = 0; i < INTOF(vsize(s)); i++)
+		{
+			value_t c = vref(s, i);
+			assert(charp(c));
+			if(INTOF(c) == '\0') break;
+			fputc(INTOF(c), fp);
+		}
 	}
-
 	fputc('\n', fp);
 	fflush(fp);
-
 	return ;
 }
 

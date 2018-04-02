@@ -141,6 +141,7 @@ static value_t NAME(value_t body, value_t env) \
 	} \
 }
 
+#if 0
 ////////// basic functions
 
 DEF_FN_1(b_atom,    atom   (arg1)       ? g_t : NIL)
@@ -254,13 +255,29 @@ DEF_FN_VARG(b_println, (printline(b_println_str(body, env), stdout), NIL))
 
 DEF_FN_VARG(b_prn,     (printline(b_pr_str     (body, env), stdout), NIL))
 
-
+#endif
 
 /////////////////////////////////////////////////////////////////////
 // public: Create root environment
 
 value_t	create_root_env	(void)
 {
+	value_t key = list(5,
+	                      str_to_sym("nil"),
+	                      str_to_sym("t"),
+	                      str_to_sym("*gensym-counter*"),
+	                      str_to_sym("*debug*"),
+	                      str_to_sym("*trace*")
+	                  );
+
+	value_t val = list(5,
+			      NIL,
+			      str_to_sym("t"),
+			      RINT(0),
+	                      NIL,
+	                      NIL
+			  );
+#if 0
 	value_t key = list(38 + 11,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
@@ -364,6 +381,7 @@ value_t	create_root_env	(void)
 	                      NIL,
 	                      NIL
 			  );
+#endif
 
 	return create_env(key, val, NIL);
 }

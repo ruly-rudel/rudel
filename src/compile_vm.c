@@ -52,7 +52,7 @@ static value_t compile_vm_setq(value_t code, value_t ast, value_t env)
 		value_t key_ref = get_env_ref(key, env);
 		if(errp(key_ref))
 		{
-			vpush(ROP(IS_PUSH),  code);
+			vpush(ROP(IS_PUSHR), code);
 			vpush(key,           code);	//**** push symbol to code
 		}
 		else
@@ -137,6 +137,33 @@ static value_t compile_vm_apply_arg(value_t code, value_t ast, value_t env)
 	return code;
 }
 
+static value_t resolv_reference(value_t ast, value_t env)
+{
+	if(symbolp(ast))
+	{
+		value_t key_ref = get_env_ref(ast, env);
+		if(errp(key_ref))
+		{
+			return ast;
+		}
+		else
+		{
+			return key_ref;
+		}
+	}
+	/******** fix it with lambda/macro/let environment
+	else if(consp(ast))
+	{
+		return cons(resolv_reference(car(ast), env),
+			    resolv_reference(cdr(ast), env));
+	}
+	*/
+	else
+	{
+		return ast;
+	}
+}
+
 // ****** not applicative order: fix it with eval
 static value_t compile_vm_macro_arg(value_t code, value_t ast, value_t env)
 {
@@ -149,7 +176,8 @@ static value_t compile_vm_macro_arg(value_t code, value_t ast, value_t env)
 	for(; !nilp(ast); ast = cdr(ast))
 	{
 		assert(consp(ast));
-		vpush(ROP(IS_PUSH), code);		// push unevaluated args
+		vpush(ROP(IS_PUSHR), code);		// push unevaluated args
+		//vpush(resolv_reference(car(ast), env), code);
 		vpush(car(ast), code);
 		vpush(ROP(IS_NIL_CONS_VPUSH), code);
 	}
@@ -379,7 +407,7 @@ static value_t compile_vm_quasiquote(value_t code, value_t ast, value_t env)
 
 	if(!consp(ast))					// atom
 	{
-		vpush(ROP(IS_PUSH), code);
+		vpush(ROP(IS_PUSHR), code);
 		vpush(ast, code);			  // -> push immediate to stack
 	}
 	else
@@ -423,6 +451,35 @@ static value_t compile_vm_quasiquote(value_t code, value_t ast, value_t env)
 	return code;
 }
 
+static value_t compile_vm_macroexpand(value_t code, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(ast));
+	assert(consp(env));
+
+	if(consp(ast))
+	{
+		code = compile_vm1(code, car(ast), env);
+		if(errp(code))
+		{
+			return code;
+		}
+
+		code = compile_vm_macro_arg(code, cdr(ast), env);	// arguments
+		if(errp(code))
+		{
+			return code;
+		}
+		vpush(ROP(IS_MACROEXPAND),    code);
+	}
+	else
+	{
+		return RERR(ERR_TYPE, NIL);
+	}
+
+	return code;
+}
+
 static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 {
 	assert(vectorp(code));
@@ -460,11 +517,14 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 //				return compile_vm_macro     (code, cdr(ast), env);
 
 			case SP_QUOTE:
-				vpush(ROP(IS_PUSH), code);
+				vpush(ROP(IS_PUSHR), code);
 				return vpush(car(cdr(ast)), code);
 
 			case SP_QUASIQUOTE:
 				return compile_vm_quasiquote(code, car(cdr(ast)), env);
+
+			case SP_MACROEXPAND:
+				return compile_vm_macroexpand(code, car(cdr(ast)), env);
 
 			case SP_AMP:	//******* ad-hock: ignore it
 				return code;

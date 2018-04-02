@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "builtin.h"
-#include "eval.h"
+#include "vm.h"
+#include "compile_vm.h"
 #include "core.h"
 #include "reader.h"
 #include "env.h"
@@ -556,8 +557,8 @@ value_t init(value_t env)
 	rplaca(env, car(create_root_env()));
 
 	value_t c = vconc(vconc(str_to_rstr("(progn "), slurp("init.rud")), str_to_rstr(")"));
-	return eval(read_str(c), env);
-	//return NIL;
+	return exec_vm(compile_vm(read_str(c), env), env);
+	//return eval(read_str(c), env);
 }
 
 /////////////////////////////////////////////////////////////////////
