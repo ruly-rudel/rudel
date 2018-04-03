@@ -8,6 +8,7 @@
 // private:
 
 static value_t compile_vm1(value_t code, value_t ast, value_t env);
+static value_t compile_vm1_fn(value_t code, value_t ast, value_t env);
 
 static value_t compile_vm_check_builtin(value_t atom, value_t env)
 {
@@ -15,7 +16,7 @@ static value_t compile_vm_check_builtin(value_t atom, value_t env)
 
 	if(symbolp(atom))
 	{
-		for(int i = 0; i < g_istbl_size; i += 2)
+		for(int i = 0; i < g_istbl_size; i += 3)
 		{
 			if(EQ(g_istbl[i], atom))
 			{
@@ -25,6 +26,24 @@ static value_t compile_vm_check_builtin(value_t atom, value_t env)
 	}
 
 	return NIL;
+}
+
+static int compile_vm_get_builtin_argnum(value_t atom, value_t env)
+{
+	assert(consp(env));
+
+	if(symbolp(atom))
+	{
+		for(int i = 0; i < g_istbl_size; i += 3)
+		{
+			if(EQ(g_istbl[i], atom))
+			{
+				return INTOF(g_istbl[i + 2]);
+			}
+		}
+	}
+
+	return -1;
 }
 
 static value_t compile_vm_setq(value_t code, value_t ast, value_t env)
@@ -549,7 +568,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	}
 
 	// evaluate 1st element of apply list
-	code = compile_vm1(code, car(ast), env);
+	code = compile_vm1_fn(code, car(ast), env);
 	if(errp(code))
 	{
 		return code;
@@ -591,7 +610,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	return code;
 }
 
-static value_t compile_vm1(value_t code, value_t ast, value_t env)
+static value_t compile_vm1_fn(value_t code, value_t ast, value_t env)
 {
 	assert(vectorp(code));
 	assert(consp(env));
@@ -672,6 +691,37 @@ static value_t compile_vm1(value_t code, value_t ast, value_t env)
 	}
 
 	return code;
+}
+
+static value_t compile_vm1(value_t code, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(env));
+	if(symbolp(ast))
+	{
+		value_t op = compile_vm_check_builtin(ast, env); // Builtin Function (is one VM Instruction)
+		if(!nilp(op))
+		{
+			// create clojure calling built-in function
+			int n = compile_vm_get_builtin_argnum(ast, env);
+			assert(n >= 0);
+			value_t b_code = make_vector(0);
+			for(int i = n - 1; i >= 0; i--)
+			{
+				vpush(ROP(IS_PUSH), b_code);
+				vpush(RREF(0, i),   b_code);
+			}
+			vpush(op,          b_code);
+			vpush(ROP(IS_RET), b_code);
+
+			// generate push-clojure code
+			vpush(ROP(IS_PUSH),                  code);
+			vpush(vmcloj(NIL, env, b_code, NIL), code);
+			return code;
+		}
+	}
+
+	return compile_vm1_fn(code, ast, env);
 }
 
 /////////////////////////////////////////////////////////////////////

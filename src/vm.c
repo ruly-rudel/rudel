@@ -5,7 +5,6 @@
 #include "env.h"
 #include "reader.h"
 #include "printer.h"
-#include "eval.h"
 #include "compile_vm.h"
 
 /////////////////////////////////////////////////////////////////////
