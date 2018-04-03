@@ -384,10 +384,7 @@ value_t exec_vm(value_t c, value_t e)
 				{
 					r1 = r0;
 					r0.type.main = CONS_T;
-					if(nilp(FOURTH(r0)))	//***** ad-hock: will be fixed
-					{
-						rplaca(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0))), env);	// set current environment
-					}
+					rplaca(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0))), env);	// set current environment
 				}
 				else
 				{
