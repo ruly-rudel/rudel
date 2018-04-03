@@ -7,7 +7,6 @@
 #include "env.h"
 #include "vm.h"
 #include "compile_vm.h"
-#include "core.h"
 
 void repl(value_t env)
 {

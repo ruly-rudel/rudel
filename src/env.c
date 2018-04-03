@@ -206,5 +206,26 @@ value_t	get_env_value_ref(value_t ref, value_t env)
 	return UNSAFE_CDR(vref(env, REF_W(ref)));
 }
 
+value_t	create_root_env	(void)
+{
+	value_t key = list(5,
+	                      str_to_sym("nil"),
+	                      str_to_sym("t"),
+	                      str_to_sym("*gensym-counter*"),
+	                      str_to_sym("*debug*"),
+	                      str_to_sym("*trace*")
+	                  );
+
+	value_t val = list(5,
+			      NIL,
+			      str_to_sym("t"),
+			      RINT(0),
+	                      NIL,
+	                      NIL
+			  );
+
+	return create_env(key, val, NIL);
+}
+
 // End of File
 /////////////////////////////////////////////////////////////////////

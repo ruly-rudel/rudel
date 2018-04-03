@@ -3,6 +3,7 @@
 #define DEF_EXTERN
 #include "builtin.h"
 #include "misc.h"
+#include "env.h"
 
 /////////////////////////////////////////////////////////////////////
 // public: initialize well-known symbols
@@ -80,3 +81,6 @@ void init_global(void)
 		g_istbl[i] = tbl[i];
 	}
 }
+
+// End of File
+/////////////////////////////////////////////////////////////////////

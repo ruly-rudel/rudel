@@ -23,6 +23,6 @@
 
 #endif // DEF_EXTERN
 
-void init_global(void);
+void	init_global	(void);
 
 #endif  // _MISC_H_

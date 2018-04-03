@@ -3,7 +3,6 @@
 #include "builtin.h"
 #include "vm.h"
 #include "compile_vm.h"
-#include "core.h"
 #include "reader.h"
 #include "env.h"
 #include "printer.h"
