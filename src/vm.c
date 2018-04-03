@@ -114,8 +114,6 @@
 #define RERR_TYPE_PC	RERR(ERR_TYPE, cons(RINT(pc), NIL))
 #define RERR_PC(X)	RERR((X), cons(RINT(pc), NIL))
 
-//#define USE_FLATTEN_ENV
-
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
 
@@ -209,35 +207,7 @@ inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 	assert(consp(env));
 	env = UNSAFE_CAR(env);
 
-#ifdef USE_FLATTEN_ENV
-	return local_vref(env, REF_W(ref));
-#else // USE_FLATTEN_ENV
 	return cdr(vref(env, REF_W(ref)));
-#endif // USE_FLATTEN_ENV
-
-}
-
-static value_t flatten_env(value_t env)
-{
-#ifdef USE_FLATTEN_ENV
-	if(nilp(env))
-	{
-		return NIL;
-	}
-	else
-	{
-		value_t cur_env = car(env);
-		value_t new_env = make_vector(INTOF(vsize(cur_env)));
-		for(int i = 0; i < INTOF(vsize(cur_env)); i++)
-		{
-			rplacv(new_env, i, cdr(vref(cur_env, i)));
-		}
-
-		return cons(new_env, flatten_env(cdr(env)));
-	}
-#else // USE_FLATTEN_ENV
-	return env;
-#endif // USE_FLATTEN_ENV
 }
 
 static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
@@ -273,7 +243,7 @@ value_t exec_vm(value_t c, value_t e)
 
 	value_t code  = c;
 	code.type.main = CONS_T;
-	value_t env   = flatten_env(e);
+	value_t env   = e;
 
 	value_t r0    = NIL;
 	value_t r1    = NIL;
@@ -315,11 +285,14 @@ value_t exec_vm(value_t c, value_t e)
 			case IS_NIL_CONS_VPUSH: TRACE("NIL_CONS_VPUSH");
 				r0 = LOCAL_VPOP_RAW;
 				r1 = LOCAL_VPEEK_RAW;
-#ifdef USE_FLATTEN_ENV
-				local_vpush(r0, r1);
-#else // USE_FLATTEN_ENV
 				local_vpush(cons(NIL, r0), r1);
-#endif // USE_FLATTEN_ENV
+				break;
+
+			case IS_CONS_VPUSH: TRACE("CONS_VPUSH");
+				r0 = LOCAL_VPOP_RAW;
+				r1 = LOCAL_VPOP_RAW;
+				r2 = LOCAL_VPEEK_RAW;
+				local_vpush(cons(r0, r1), r2);
 				break;
 
 			case IS_AP:
@@ -468,9 +441,17 @@ value_t exec_vm(value_t c, value_t e)
 				OP_2P1P(concat(2, r0, r1));
 				break;
 
+			case IS_SETSYM: TRACE1("SETSYM %d", op.op.operand);
+				r0 = UNSAFE_CAR(env);
+				r2 = LOCAL_VPOP_RAW;
+				r1 = vref(r0, op.op.operand);
+				rplaca(r1, r2);
+				break;
+
 			case IS_RESTPARAM: TRACE1("RESTPARAM %d", pc + op.op.operand);
 			{
 				r0 = UNSAFE_CAR(env);
+				r2 = LOCAL_VPOP_RAW;
 				int size = INTOF(vsize(r0));
 				r1 = NIL;
 				value_t* cur = &r1;
@@ -479,7 +460,7 @@ value_t exec_vm(value_t c, value_t e)
 				{
 					cur = cons_and_cdr(cdr(vref(r0, i)), cur);
 				}
-				rplacv(r0, op.op.operand, cons(NIL, r1));
+				rplacv(r0, op.op.operand, cons(r2, r1));
 			}
 				break;
 

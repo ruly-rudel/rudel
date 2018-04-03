@@ -156,35 +156,6 @@ static value_t compile_vm_apply_arg(value_t code, value_t ast, value_t env)
 	return code;
 }
 
-#if 0
-static value_t resolv_reference(value_t ast, value_t env)
-{
-	if(symbolp(ast))
-	{
-		value_t key_ref = get_env_ref(ast, env);
-		if(errp(key_ref))
-		{
-			return ast;
-		}
-		else
-		{
-			return key_ref;
-		}
-	}
-	/******** fix it with lambda/macro/let environment
-	else if(consp(ast))
-	{
-		return cons(resolv_reference(car(ast), env),
-			    resolv_reference(cdr(ast), env));
-	}
-	*/
-	else
-	{
-		return ast;
-	}
-}
-#endif
-
 // ****** not applicative order: fix it with eval
 static value_t compile_vm_macro_arg(value_t code, value_t ast, value_t env)
 {
@@ -198,7 +169,6 @@ static value_t compile_vm_macro_arg(value_t code, value_t ast, value_t env)
 	{
 		assert(consp(ast));
 		vpush(ROP(IS_PUSHR), code);		// push unevaluated args
-		//vpush(resolv_reference(car(ast), env), code);
 		vpush(car(ast), code);
 		vpush(ROP(IS_NIL_CONS_VPUSH), code);
 	}
@@ -306,7 +276,9 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 		else
 		{
 			// add let environment.
-			vpush(ROP(IS_NIL_CONS_VPUSH), code);
+			vpush(ROP(IS_PUSHR), code);
+			vpush(sym,           code);
+			vpush(ROP(IS_CONS_VPUSH), code);
 		}
 	}
 
@@ -326,6 +298,7 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 	}
 }
 
+/*
 static value_t	compile_vm_rest(value_t code, value_t key)
 {
 	for(int i = 0; !nilp(key); i++, (key = UNSAFE_CDR(key)))
@@ -343,6 +316,34 @@ static value_t	compile_vm_rest(value_t code, value_t key)
 
 	return code;
 }
+*/
+
+static value_t	compile_vm_arg_symbol(value_t code, value_t key)
+{
+	for(int i = 0; !nilp(key); i++, (key = cdr(key)))
+	{
+		assert(consp(key));
+
+		value_t key_car = car(key);
+
+		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
+		{
+			vpush(ROP (IS_PUSHR),        code);
+			vpush(car(cdr(key)),         code);
+			vpush(ROPD(IS_RESTPARAM, i), code);
+			break;
+		}
+		else
+		{
+			vpush(ROP (IS_PUSHR),        code);
+			vpush(key_car,               code);
+			vpush(ROPD(IS_SETSYM, i),    code);
+		}
+	}
+
+	return code;
+}
+
 static value_t compile_vm_lambda1(value_t ast, value_t env)
 {
 	assert(consp(ast));
@@ -364,11 +365,19 @@ static value_t compile_vm_lambda1(value_t ast, value_t env)
 
 	// compile body
 	value_t lambda_code = make_vector(0);
-	lambda_code = compile_vm_rest(lambda_code, def);	// rest parameter support
+	lambda_code = compile_vm_arg_symbol(lambda_code, def);	// with rest parameter support
 	if(errp(lambda_code))
 	{
 		return lambda_code;
 	}
+
+	/*
+	lambda_code = compile_vm_arg_symbol(lambda_code, def);
+	if(errp(lambda_code))
+	{
+		return lambda_code;
+	}
+	*/
 
 	lambda_code = compile_vm1(lambda_code, car(cdr(ast)), lambda_env);
 	if(errp(lambda_code))
@@ -390,13 +399,8 @@ static value_t compile_vm_macro(value_t code, value_t ast, value_t env)
 	{
 		// macro invokes another VM.
 		vpush(ROP(IS_HALT),     macro_code);	// HALT
-#if 0
-		vpush(ROP(IS_PUSH),           code);
-		vpush(macro(macro_code, env), code);	//**** macro environment?
-#endif
 	}
 
-//	return code;
 	return macro_code;
 }
 
@@ -411,13 +415,8 @@ static value_t compile_vm_lambda(value_t code, value_t ast, value_t env)
 	{
 		// lambda is clojure call
 		vpush(ROP(IS_RET),     lambda_code);	// RET
-#if 0
-		vpush(ROP(IS_PUSH),           code);
-		vpush(cloj(lambda_code, NIL), code);	// clojure environment must be set while exec
-#endif
 	}
 
-	//return code;
 	return lambda_code;
 }
 
@@ -529,13 +528,11 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 				vpush(ROP(IS_PUSH), code);
 				vpush(vmcloj (cdr(ast), env, NIL, NIL), code);
 				return code;
-//				return compile_vm_lambda    (code, cdr(ast), env);
 
 			case SP_MACRO:		// set only s-expression
 				vpush(ROP(IS_PUSH), code);
 				vpush(vmmacro(cdr(ast), env, NIL, NIL), code);
 				return code;
-//				return compile_vm_macro     (code, cdr(ast), env);
 
 			case SP_QUOTE:
 				vpush(ROP(IS_PUSHR), code);

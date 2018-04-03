@@ -50,6 +50,7 @@ typedef enum {
 	IS_VPUSH_ENV,
 	IS_VPOP_ENV,
 	IS_NIL_CONS_VPUSH,
+	IS_CONS_VPUSH,
 	IS_AP,
 	IS_RET,
 	IS_DUP,
@@ -58,6 +59,7 @@ typedef enum {
 	IS_POP,
 	IS_SETENV,
 	IS_CONCAT,
+	IS_SETSYM,
 	IS_RESTPARAM,
 	IS_MACROEXPAND,
 
