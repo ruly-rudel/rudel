@@ -49,25 +49,38 @@
 #define OP_1P0P(X) \
 { \
 	r0 = LOCAL_VPOP_RAW; \
+	r1 = (X); \
+	if(errp(r1)) return r1; \
+}
+
+#define OP_1P0PNE(X) \
+{ \
+	r0 = LOCAL_VPOP_RAW; \
 	X; \
 }
 
 #define OP_0P1P(X) \
 { \
-	LOCAL_VPUSH_RAW(X); \
+	r0 = (X); \
+	if(errp(r0)) return r0; \
+	LOCAL_VPUSH_RAW(r0); \
 }
 
 #define OP_1P1P(X) \
 { \
 	r0 = LOCAL_VPEEK_RAW; \
-	LOCAL_RPLACV_TOP_RAW(X); \
+	r1 = (X); \
+	if(errp(r1)) return r1; \
+	LOCAL_RPLACV_TOP_RAW(r1); \
 }
 
 #define OP_2P1P(X) \
 { \
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = LOCAL_VPEEK_RAW; \
-	LOCAL_RPLACV_TOP_RAW(X); \
+	r2 = (X); \
+	if(errp(r2)) return r2; \
+	LOCAL_RPLACV_TOP_RAW(r2); \
 }
 
 #define OP_3P1P(X) \
@@ -75,7 +88,9 @@
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = LOCAL_VPOP_RAW; \
 	r2 = LOCAL_VPEEK_RAW; \
-	LOCAL_RPLACV_TOP_RAW(X); \
+	r3 = (X); \
+	if(errp(r3)) return r3; \
+	LOCAL_RPLACV_TOP_RAW(r3); \
 }
 
 #define FIRST(X)  (UNSAFE_CAR(X))
@@ -264,6 +279,7 @@ value_t exec_vm(value_t c, value_t e)
 	value_t r0    = NIL;
 	value_t r1    = NIL;
 	value_t r2    = NIL;
+	value_t r3    = NIL;
 
 	for(int pc = 0; true; pc++)
 	{
@@ -281,7 +297,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_BNIL: TRACE1("BNIL %x", pc + op.op.operand);
-				OP_1P0P(pc += nilp(r0) ? op.op.operand - 1: 0);
+				OP_1P0PNE(pc += nilp(r0) ? op.op.operand - 1: 0);
 				break;
 
 			case IS_MKVEC_ENV: TRACE1("MKVEC_ENV %d", op.op.operand);
@@ -412,7 +428,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_POP: TRACE("POP");
-				OP_1P0P();
+				OP_1P0PNE();
 				break;
 
 			case IS_SETENV: TRACE("SETENV");
@@ -577,7 +593,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_ERR: TRACE("ERR");
-				OP_1P1P(rerr(r0, RINT(pc)));
+				OP_1P0P(rerr(r0, RINT(pc)));
 				break;
 
 			case IS_NTH: TRACE("NTH");
