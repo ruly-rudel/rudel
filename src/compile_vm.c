@@ -156,6 +156,7 @@ static value_t compile_vm_apply_arg(value_t code, value_t ast, value_t env)
 	return code;
 }
 
+#if 0
 static value_t resolv_reference(value_t ast, value_t env)
 {
 	if(symbolp(ast))
@@ -182,6 +183,7 @@ static value_t resolv_reference(value_t ast, value_t env)
 		return ast;
 	}
 }
+#endif
 
 // ****** not applicative order: fix it with eval
 static value_t compile_vm_macro_arg(value_t code, value_t ast, value_t env)

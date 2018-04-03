@@ -907,7 +907,8 @@ value_t register_sym(value_t s)
 value_t gensym	(value_t env)
 {
 	value_t r = str_to_rstr("#:G");
-	value_t n = get_env_value(str_to_sym("*gensym-counter*"), env);
+	value_t n = get_env_ref(str_to_sym("*gensym-counter*"), env);
+	n         = get_env_value_ref(n, env);
 	r         = vnconc(r, pr_str(n, NIL, false));
 	r.type.main = SYM_T;
 

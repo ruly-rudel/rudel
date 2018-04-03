@@ -393,7 +393,19 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else if(symbolp(r0))
 				{
-					r1 = get_env_value(r0, env);
+#ifdef TRACE_VM
+					char* sn = rstr_to_str(symbol_string(r0));
+					fprintf(stderr, "%s ", sn);
+					free(sn);
+#endif // TRACE_VM
+					r0 = get_env_ref(r0, env);
+					if(errp(r0))
+					{
+						return r0;
+					}
+					code.vector->data[pc] = r0;	// replace symbol to reference
+					TRACE2N("-> #REF:%d,%d# ", REF_D(r0), REF_W(r0));
+					r1 = local_get_env_value_ref(r0, env);
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{
@@ -438,7 +450,7 @@ value_t exec_vm(value_t c, value_t e)
 					value_t target = find_env_all(r0, env);
 					if(nilp(target))
 					{
-						set_env(r0, r1, env);		// set to current
+						set_env(r0, r1, last(env));	// set to root
 					}
 					else
 					{

@@ -77,13 +77,12 @@
 ;(defun list (& body) body)
 (defun list (& body) (copy-list body))
 
-; ****fix it
-;(defun copy-list (x n)
-;	(if (and n (eq n 0)) nil
-;	   (if x
-;	     (if (consp x)
-;	       (cons (car x) (copy-list (cdr x) (if n (- n 1))))
-;	       x))))
+(defun copy-list-n (x n)
+	(if (and n (eq n 0)) nil
+	   (if x
+	     (if (consp x)
+	       (cons (car x) (copy-list-n (cdr x) (if n (- n 1))))
+	       x))))
 
 (defun copy-list (lst)
   (if lst
@@ -175,7 +174,7 @@
 	(repeat n " " str))
 
 (defun pp-n (lst indent n)
-	(let* ((prec  (copy-list lst (if (equal n 0) nil n)))
+	(let* ((prec  (copy-list-n lst (if (equal n 0) nil n)))
 	       (trail (if (equal n 0) nil (nthcdr (- n 1) lst)))
 	       (next  (+ indent 3)))
 	  (str

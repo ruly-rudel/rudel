@@ -952,17 +952,17 @@ x
 ;=>nil
 (equal x (list 1 2 3 4 5))
 ;=>t
-(copy-list x 3)
+(copy-list-n x 3)
 ;=>(1 2 3)
-(copy-list x 0)
+(copy-list-n x 0)
 ;=>nil
-(copy-list x 10)
+(copy-list-n x 10)
 ;=>(1 2 3 4 5)
-(copy-list)
+(copy-list-n)
 ;=>nil
-(copy-list nil 5)
+(copy-list-n nil 5)
 ;=>nil
-(copy-list 'cond 5)
+(copy-list-n 'cond 5)
 ;=>cond
 x
 ;=>(1 2 3 4 5)

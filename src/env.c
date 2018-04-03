@@ -6,6 +6,39 @@
 /////////////////////////////////////////////////////////////////////
 // private: support functions
 
+static value_t vassoceq(value_t key, value_t avector)
+{
+	assert(symbolp(key));
+	assert(vectorp(avector));
+
+	for(int i = 0; i < INTOF(vsize(avector)); i++)
+	{
+		value_t pair = vref(avector, i);
+		assert(rtypeof(pair) == CONS_T);
+		if(!nilp(pair) && EQ(UNSAFE_CAR(pair), key))
+		{
+			return pair;
+		}
+	}
+	return NIL;
+}
+
+// search only current environment
+static value_t	find_env	(value_t key, value_t env)
+{
+	assert(consp(env));
+	assert(symbolp(key));
+
+	if(nilp(env))
+	{
+		return NIL;
+	}
+	else
+	{
+		return vassoceq(key, car(env));
+	}
+}
+
 
 /////////////////////////////////////////////////////////////////////
 // public: Environment create, search and modify functions
@@ -70,39 +103,6 @@ value_t	set_env		(value_t key, value_t val, value_t env)
 	return r;
 }
 
-static value_t vassoceq(value_t key, value_t avector)
-{
-	assert(symbolp(key));
-	assert(vectorp(avector));
-
-	for(int i = 0; i < INTOF(vsize(avector)); i++)
-	{
-		value_t pair = vref(avector, i);
-		assert(rtypeof(pair) == CONS_T);
-		if(!nilp(pair) && EQ(UNSAFE_CAR(pair), key))
-		{
-			return pair;
-		}
-	}
-	return NIL;
-}
-
-// search only current environment
-value_t	find_env	(value_t key, value_t env)
-{
-	assert(consp(env));
-	assert(symbolp(key));
-
-	if(nilp(env))
-	{
-		return NIL;
-	}
-	else
-	{
-		return vassoceq(key, car(env));
-	}
-}
-
 // search whole environment
 value_t	find_env_all	(value_t key, value_t env)
 {
@@ -134,6 +134,7 @@ value_t	find_env_all	(value_t key, value_t env)
 	}
 }
 
+#if 0
 // search whole environment
 value_t	get_env_value	(value_t key, value_t env)
 {
@@ -157,6 +158,7 @@ value_t	get_env_value	(value_t key, value_t env)
 
 	return rerr(r, NIL);
 }
+#endif
 
 // search whole environment
 value_t	get_env_ref	(value_t key, value_t env)
