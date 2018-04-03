@@ -540,19 +540,19 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_ADD: TRACE("ADD");
-				OP_2P1P(RINT(INTOF(r0) + INTOF(r1)));
+				OP_2P1P(intp(r0) && intp(r1) ? (RINT(INTOF(r0) + INTOF(r1))) : RERR_TYPE_PC);
 				break;
 
 			case IS_SUB: TRACE("SUB");
-				OP_2P1P(RINT(INTOF(r0) - INTOF(r1)));
+				OP_2P1P(intp(r0) && intp(r1) ? (RINT(INTOF(r0) - INTOF(r1))) : RERR_TYPE_PC);
 				break;
 
 			case IS_MUL: TRACE("MUL");
-				OP_2P1P(RINT(INTOF(r0) * INTOF(r1)));
+				OP_2P1P(intp(r0) && intp(r1) ? (RINT(INTOF(r0) * INTOF(r1))) : RERR_TYPE_PC);
 				break;
 
 			case IS_DIV: TRACE("DIV");
-				OP_2P1P(RINT(INTOF(r0) / INTOF(r1)));
+				OP_2P1P(intp(r0) && intp(r1) ? (RINT(INTOF(r0) / INTOF(r1))) : RERR_TYPE_PC);
 				break;
 
 			case IS_LT: TRACE("LT");
@@ -572,7 +572,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_READ_STRING: TRACE("READ_STRING");
-				OP_1P1P(read_str(r0));
+				OP_1P1P(vectorp(r0) ? read_str(r0) : RERR_TYPE_PC);
 				break;
 
 			case IS_EVAL: TRACE("EVAL");
@@ -595,11 +595,11 @@ value_t exec_vm(value_t c, value_t e)
 
 
 			case IS_MAKE_VECTOR: TRACE("MAKE_VECTOR");
-				OP_1P1P(make_vector(INTOF(r0)));
+				OP_1P1P(intp(r0) ? make_vector(INTOF(r0)) : RERR_TYPE_PC);
 				break;
 
 			case IS_VREF: TRACE("VREF");
-				OP_2P1P(vref(r0, INTOF(r1)));
+				OP_2P1P(vectorp(r0) ? vref(r0, INTOF(r1)) : RERR_TYPE_PC);
 				break;
 
 			case IS_RPLACV: TRACE("RPLACV");
@@ -611,15 +611,15 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_VEQ: TRACE("VEQ");
-				OP_2P1P(veq(r0, r1) ? g_t : NIL);
+				OP_2P1P(vectorp(r0) && vectorp(r1) ? (veq(r0, r1) ? g_t : NIL) : RERR_TYPE_PC);
 				break;
 
 			case IS_VPUSH: TRACE("VPUSH");
-				OP_2P1P(vpush(r0, r1));
+				OP_2P1P(vectorp(r1) ? vpush(r0, r1) : RERR_TYPE_PC);
 				break;
 
 			case IS_VPOP: TRACE("VPOP");
-				OP_1P1P(vpop(r0));
+				OP_1P1P(vectorp(r0) ? vpop(r0) : RERR_TYPE_PC);
 				break;
 
 			case IS_COPY_VECTOR: TRACE("COPY_VECTOR");
@@ -647,7 +647,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_PRINTLINE: TRACE("PRINTLINE");
-				OP_1P1P((printline(r0, stdout), NIL));
+				OP_1P1P(vectorp(r0) || nilp(r0) ? (printline(r0, stdout), NIL) : RERR_TYPE_PC);
 				break;
 
 			case IS_SLURP: TRACE("SLURP");
@@ -664,11 +664,11 @@ value_t exec_vm(value_t c, value_t e)
 			break;
 
 			case IS_MVFL: TRACE("MVFL");
-				OP_1P1P(make_vector_from_list(r0));
+				OP_1P1P(consp(r0) || nilp(r0) ? make_vector_from_list(r0) : RERR_TYPE_PC);
 				break;
 
 			case IS_MLFV: TRACE("MLFV");
-				OP_1P1P(make_list_from_vector(r0));
+				OP_1P1P(vectorp(r0) ? make_list_from_vector(r0) : RERR_TYPE_PC);
 				break;
 
 			default:

@@ -456,6 +456,7 @@ static value_t pr_vmis(value_t s)
 		case IS_VPUSH_ENV:	return str_to_rstr("IS_VPUSH_ENV");
 		case IS_VPOP_ENV:	return str_to_rstr("IS_VPOP_ENV");
 		case IS_NIL_CONS_VPUSH:	return str_to_rstr("IS_NIL_CONS_VPUSH");
+		case IS_CONS_VPUSH:	return str_to_rstr("IS_CONS_VPUSH");
 		case IS_AP:		return str_to_rstr("IS_AP");
 		case IS_RET:		return str_to_rstr("IS_RET");
 		case IS_DUP:		return str_to_rstr("IS_DUP");
@@ -463,6 +464,10 @@ static value_t pr_vmis(value_t s)
 		case IS_PUSHR:		return str_to_rstr("IS_PUSHR");
 		case IS_POP:		return str_to_rstr("IS_POP");
 		case IS_SETENV:		return str_to_rstr("IS_SETENV");
+		case IS_NCONC:		return str_to_rstr("IS_NCONC");
+		case IS_SETSYM:		return str_to_rstr("IS_SETSYM");
+		case IS_RESTPARAM:	return str_to_rstr("IS_RESTPARAM");
+		case IS_MACROEXPAND:	return str_to_rstr("IS_MACROEXPAND");
 		case IS_ATOM:		return str_to_rstr("IS_ATOM");
 		case IS_CONSP:		return str_to_rstr("IS_CONSP");
 		case IS_CLOJUREP:	return str_to_rstr("IS_CLOJUREP");
@@ -501,6 +506,10 @@ static value_t pr_vmis(value_t s)
 		case IS_VNCONC:		return str_to_rstr("IS_VNCONC");
 		case IS_COMPILE_VM:	return str_to_rstr("IS_COMPILE_VM");
 		case IS_EXEC_VM:	return str_to_rstr("IS_EXEC_VM");
+		case IS_PR_STR:		return str_to_rstr("IS_PR_STR");
+		case IS_PRINTLINE:	return str_to_rstr("IS_PRINTLINE");
+		case IS_MVFL:		return str_to_rstr("IS_MVFL");
+		case IS_MLFV:		return str_to_rstr("IS_MLFV");
 		default:		return RERR(ERR_NOTIMPL, str_to_rstr("VMIS"));
 	}
 }
