@@ -58,7 +58,7 @@ typedef enum {
 	IS_PUSHR,
 	IS_POP,
 	IS_SETENV,
-	IS_CONCAT,
+	IS_NCONC,
 	IS_SETSYM,
 	IS_RESTPARAM,
 	IS_MACROEXPAND,
@@ -258,14 +258,7 @@ value_t last		(value_t x);
 value_t nth		(int n, value_t x);
 value_t nconc		(value_t a, value_t b);
 value_t list		(int n, ...);
-value_t copy_list	(value_t list);
-value_t	assoc		(value_t key, value_t list, bool (*test)(value_t, value_t));
-value_t assoceq		(value_t key, value_t list);
-value_t acons		(value_t key, value_t val, value_t list);
-value_t pairlis		(value_t key, value_t val);
-value_t concat		(int n, ...);
 value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
-value_t reduce		(value_t (*fn)(value_t, value_t), value_t args);
 int	count		(value_t x);
 value_t symbol_string	(value_t sym);
 

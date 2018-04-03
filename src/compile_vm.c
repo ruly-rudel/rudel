@@ -450,7 +450,7 @@ static value_t compile_vm_quasiquote(value_t code, value_t ast, value_t env)
 			{
 				return code;
 			}
-			vpush(ROP(IS_CONCAT), code);
+			vpush(ROP(IS_NCONC), code);
 		}
 		else
 		{

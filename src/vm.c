@@ -434,8 +434,8 @@ value_t exec_vm(value_t c, value_t e)
 				LOCAL_RPLACV_TOP_RAW(r1);
 				break;
 
-			case IS_CONCAT: TRACE("CONCAT");
-				OP_2P1P(concat(2, r0, r1));
+			case IS_NCONC: TRACE("NCONC");
+				OP_2P1P(nconc(r0, r1));
 				break;
 
 			case IS_SETSYM: TRACE1("SETSYM %d", op.op.operand);

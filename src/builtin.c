@@ -294,106 +294,6 @@ value_t list(int n, ...)
 	return r;
 }
 
-value_t copy_list(value_t list)
-{
-	assert(is_cons_pair_or_nil(list));
-	unsigned int type = list.type.main;
-	list.cons    = aligned_addr(list);
-	value_t    r = NIL;
-	value_t* cur = &r;
-
-	for(; !nilp(list); list = cdr(list))
-		cur = cons_and_cdr(car(list), cur);
-
-	r.type.main = type;
-	return r;
-}
-
-value_t assoc(value_t key, value_t list, bool (*test)(value_t, value_t))
-{
-	assert(rtypeof(list) == CONS_T);
-
-	if(nilp(list))
-	{
-		return NIL;
-	}
-	else
-	{
-		for(value_t v = list; !nilp(v); v = cdr(v))
-		{
-			value_t vcar = car(v);
-			assert(rtypeof(vcar) == CONS_T);
-
-			if(test(car(vcar), key))
-				return vcar;
-		}
-
-		return NIL;
-	}
-}
-
-value_t assoceq(value_t key, value_t list)
-{
-	assert(rtypeof(list) == CONS_T);
-
-	if(nilp(list))
-	{
-		return NIL;
-	}
-	else
-	{
-		for(value_t v = list; !nilp(v); v = cdr(v))
-		{
-			value_t vcar = car(v);
-			assert(rtypeof(vcar) == CONS_T);
-
-			if(car(vcar).raw == key.raw)
-				return vcar;
-		}
-
-		return NIL;
-	}
-}
-
-value_t acons(value_t key, value_t val, value_t list)
-{
-	assert(rtypeof(list) == CONS_T);
-	return cons(cons(key, val), list);
-}
-
-value_t pairlis		(value_t key, value_t val)
-{
-	value_t r = NIL;
-	for(; !nilp(key); key = cdr(key), val = cdr(val))
-	{
-		assert(rtypeof(key) == CONS_T);
-		assert(rtypeof(val) == CONS_T);
-
-		r = cons(cons(car(key), car(val)), r);
-	}
-	return r;
-}
-
-value_t concat(int n, ...)
-{
-	va_list	 arg;
-	value_t r = NIL;
-
-	va_start(arg, n);
-	for(int i = 0; i < n; i++)
-	{
-		value_t arg1 = va_arg(arg, value_t);
-		value_t copy = copy_list(arg1);
-		copy.cons    = aligned_addr(copy);
-
-		r = nconc(r, copy);
-	}
-
-	va_end(arg);
-
-	return r;
-}
-
 value_t find(value_t key, value_t list, bool (*test)(value_t, value_t))
 {
 	assert(is_seq_or_nil(list));
@@ -412,21 +312,6 @@ value_t find(value_t key, value_t list, bool (*test)(value_t, value_t))
 
 		return NIL;
 	}
-}
-
-value_t reduce(value_t (*fn)(value_t, value_t), value_t args)
-{
-	value_t arg1 = car(args);
-	value_t arg2 = car(cdr(args));
-	args = cdr(args);
-
-	do {
-		args = cdr(args);
-		arg1 = fn(arg1, arg2);
-		arg2 = car(args);
-	} while(!nilp(args));
-
-	return arg1;
 }
 
 int	count(value_t x)
@@ -557,7 +442,6 @@ value_t init(value_t env)
 
 	value_t c = vconc(vconc(str_to_rstr("(progn "), slurp("init.rud")), str_to_rstr(")"));
 	return exec_vm(compile_vm(read_str(c), env), env);
-	//return eval(read_str(c), env);
 }
 
 /////////////////////////////////////////////////////////////////////
