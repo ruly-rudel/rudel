@@ -959,7 +959,7 @@ x
 (copy-list-n x 10)
 ;=>(1 2 3 4 5)
 (copy-list-n)
-;=>nil
+; too few argument\..*
 (copy-list-n nil 5)
 ;=>nil
 (copy-list-n 'cond 5)
@@ -970,14 +970,14 @@ x
 (last '(6 7 8 9 10))
 ;=>(10)
 (last)
-;=>nil
+; too few argument\..*
 (last 10)
 ;=>nil
 
 (nthcdr)
-;=>nil
+; too few argument\..*
 (nthcdr 5)
-;=>nil
+; too few argument\..*
 (nthcdr 0 '(a b c d e))
 ;=>(b c d e)
 (nthcdr 3 '(a b c d e))
@@ -988,9 +988,9 @@ x
 ;=>nil
 
 (reduce)
-;=>nil
+; too few argument\..*
 (reduce cons)
-;=>nil
+; too few argument\..*
 (reduce cons 1)
 ; .*\type error\..*
 (reduce cons '(1 2))
@@ -999,9 +999,9 @@ x
 ;=>((((1 . 2) . 3) . 4) . 5)
 
 (mapcar)
-;=>nil
+; too few argument\..*
 (mapcar (lambda (x) (+ 1 x)))
-;=>nil
+; too few argument\..*
 (mapcar (lambda (x) (* 2 x)) '(1))
 ;=>(2)
 (mapcar (lambda (x) (* 2 x)) '(1 2 3 4))
