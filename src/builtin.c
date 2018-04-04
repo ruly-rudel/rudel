@@ -379,33 +379,17 @@ value_t	cfn(value_t car, value_t cdr)
 	return r;
 }
 
-value_t	cloj(value_t car, value_t cdr)
+value_t	cloj(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug)
 {
-	value_t	r	= cons(car, cons(cdr, NIL));
+	value_t	r	= list(5, ast, ast_env, code, vm_env, debug);
 	r.type.main	= CLOJ_T;
 
 	return r;
 }
 
-value_t	macro(value_t car, value_t cdr)
+value_t	macro(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug)
 {
-	value_t	r	= cons(car, cons(cdr, NIL));
-	r.type.main	= MACRO_T;
-
-	return r;
-}
-
-value_t	vmcloj(value_t ast, value_t ast_env, value_t code, value_t vm_env)
-{
-	value_t	r	= list(4, ast, ast_env, code, vm_env);
-	r.type.main	= CLOJ_T;
-
-	return r;
-}
-
-value_t	vmmacro(value_t ast, value_t ast_env, value_t code, value_t vm_env)
-{
-	value_t	r	= list(4, ast, ast_env, code, vm_env);
+	value_t	r	= list(5, ast, ast_env, code, vm_env, debug);
 	r.type.main	= MACRO_T;
 
 	return r;

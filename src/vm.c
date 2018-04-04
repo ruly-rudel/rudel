@@ -16,7 +16,7 @@
 		alloc *= 2; \
 		stack_raw = (value_t*)realloc(stack_raw, alloc * sizeof(value_t)); \
 		if(!stack_raw) { \
-			return RERR(ERR_ALLOC, NIL); \
+			return RERR_PC(ERR_ALLOC); \
 		} \
 	} \
 	stack_raw[++sp] = (X); \
@@ -35,7 +35,7 @@
 		ralloc *= 2; \
 		ret_raw = (value_t*)realloc(ret_raw, ralloc * sizeof(value_t)); \
 		if(!ret_raw) { \
-			return RERR(ERR_ALLOC, NIL); \
+			return RERR_PC(ERR_ALLOC); \
 		} \
 	} \
 	ret_raw[++rsp] = (X); \
@@ -49,7 +49,7 @@
 { \
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = (X); \
-	if(errp(r1)) return r1; \
+	if(errp(r1)) return RERR_OVW_PC(r1); \
 }
 
 #define OP_1P0PNE(X) \
@@ -61,7 +61,7 @@
 #define OP_0P1P(X) \
 { \
 	r0 = (X); \
-	if(errp(r0)) return r0; \
+	if(errp(r0)) return RERR_OVW_PC(r0); \
 	LOCAL_VPUSH_RAW(r0); \
 }
 
@@ -69,7 +69,7 @@
 { \
 	r0 = LOCAL_VPEEK_RAW; \
 	r1 = (X); \
-	if(errp(r1)) return r1; \
+	if(errp(r1)) return RERR_OVW_PC(r1); \
 	LOCAL_RPLACV_TOP_RAW(r1); \
 }
 
@@ -78,7 +78,7 @@
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = LOCAL_VPEEK_RAW; \
 	r2 = (X); \
-	if(errp(r2)) return r2; \
+	if(errp(r2)) return RERR_OVW_PC(r2); \
 	LOCAL_RPLACV_TOP_RAW(r2); \
 }
 
@@ -88,7 +88,7 @@
 	r1 = LOCAL_VPOP_RAW; \
 	r2 = LOCAL_VPEEK_RAW; \
 	r3 = (X); \
-	if(errp(r3)) return r3; \
+	if(errp(r3)) return RERR_OVW_PC(r3); \
 	LOCAL_RPLACV_TOP_RAW(r3); \
 }
 
@@ -111,8 +111,9 @@
 #define TRACE2N(X, Y, Z)
 #endif // TRACE_VM
 
-#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(RINT(pc), NIL))
-#define RERR_PC(X)	RERR((X), cons(RINT(pc), NIL))
+#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(debug.vector->data[pc], NIL))
+#define RERR_PC(X)	RERR((X), cons(debug.vector->data[pc], NIL))
+#define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(debug.vector->data[pc], NIL))
 
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
@@ -246,19 +247,24 @@ static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
 // public: VM
 value_t exec_vm(value_t c, value_t e)
 {
-	assert(vectorp(c));
+	assert(consp(c));
+	assert(vectorp(car(c)));
 	assert(consp(e));
 
-	int alloc = 16;
-	int sp    = -1;
+	int alloc          = 16;
+	int sp             = -1;
 	value_t* stack_raw = (value_t*)malloc(sizeof(value_t) * alloc);
 
-	int ralloc = 16;
-	int rsp    = -1;
-	value_t* ret_raw = (value_t*)malloc(sizeof(value_t) * ralloc);
+	int ralloc         = 16;
+	int rsp            = -1;
+	value_t* ret_raw   = (value_t*)malloc(sizeof(value_t) * ralloc);
 
-	value_t code  = c;
-	code.type.main = CONS_T;
+	value_t code       = car(c);
+	code.type.main     = CONS_T;
+
+	value_t debug      = cdr(c);
+	debug.type.main    = CONS_T;
+
 	value_t env   = e;
 
 	value_t r0    = NIL;
@@ -327,12 +333,15 @@ value_t exec_vm(value_t c, value_t e)
 					}
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
+					LOCAL_VPUSH_RET_RAW(debug);
 					LOCAL_VPUSH_RET_RAW(RINT(pc));
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
-					code = THIRD(r0);	// clojure code
-					code.type.main = CONS_T;
+					code  = UNSAFE_CAR(THIRD(r0));	// clojure code
+					code.type.main  = CONS_T;
+					debug = UNSAFE_CDR(THIRD(r0));	// clojure debug symbols
+					debug.type.main = CONS_T;
 					env  = cons(r1, FOURTH(r0));	// clojure environment + new environment as arguments
 					pc   = -1;
 				}
@@ -363,9 +372,10 @@ value_t exec_vm(value_t c, value_t e)
 			break;
 
 			case IS_RET: TRACE("RET");
-				env  = LOCAL_VPOP_RET_RAW;
-				pc   = INTOF(LOCAL_VPOP_RET_RAW);
-				code = LOCAL_VPOP_RET_RAW;
+				env   = LOCAL_VPOP_RET_RAW;
+				pc    = INTOF(LOCAL_VPOP_RET_RAW);
+				debug = LOCAL_VPOP_RET_RAW;
+				code  = LOCAL_VPOP_RET_RAW;
 				break;
 
 			case IS_DUP: TRACE("DUP");
@@ -390,7 +400,7 @@ value_t exec_vm(value_t c, value_t e)
 					r0 = get_env_ref(r0, env);
 					if(errp(r0))
 					{
-						return r0;
+						return RERR_OVW_PC(r0);
 					}
 					code.vector->data[pc] = r0;	// replace symbol to reference
 					TRACE2N("-> #REF:%d,%d# ", REF_D(r0), REF_W(r0));
@@ -411,7 +421,7 @@ value_t exec_vm(value_t c, value_t e)
 #endif // TRACE_VM
 				if(errp(r1))
 				{
-					return r1;
+					return RERR_OVW_PC(r1);
 				}
 				LOCAL_VPUSH_RAW(r1);
 				break;
@@ -666,7 +676,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_EXEC_VM: TRACE("EXEC_VM");
-				OP_1P1P(vectorp(r0) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
+				OP_1P1P(consp(r0) && vectorp(car(r0)) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");

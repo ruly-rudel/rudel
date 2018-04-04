@@ -1024,7 +1024,7 @@ x
 (vref x 0)
 ;=>1
 (vref x 1)
-;=>range exceeded.
+; range exceeded\..*
 (rplacv x 0 'car)
 ;=>car
 (vref x 0)
@@ -1038,7 +1038,7 @@ x
 (vref x 1)
 ;=>cons
 (vref x 2)
-;=>range exceeded.
+; range exceeded\..*
 
 (setq y (copy-vector x))
 ;=>#<VECTOR>
@@ -1051,7 +1051,7 @@ x
 (vref y 1)
 ;=>cons
 (vref y 2)
-;=>range exceeded.
+; range exceeded\..*
 (setq z (vconc x y))
 ;=>#<VECTOR>
 (vref x 0)
@@ -1059,7 +1059,7 @@ x
 (vref x 1)
 ;=>cons
 (vref x 2)
-;=>range exceeded.
+; range exceeded\..*
 (veq x y)
 ;=>t
 (vref z 0)
@@ -1071,7 +1071,7 @@ x
 (vref z 3)
 ;=>cons
 (vref z 4)
-;=>range exceeded.
+; range exceeded\..*
 (veq z x)
 ;=>nil
 (vpop z)
@@ -1091,7 +1091,7 @@ x
 (vref z 5)
 ;=>6
 (vref z 6)
-;=>range exceeded.
+; range exceeded\..*
 (setq x "hoge")
 ;=>"hoge"
 (vref x 0)
@@ -1103,7 +1103,7 @@ x
 (vref x 3)
 ;=>'e'
 (vref x 4)
-;=>range exceeded.
+; range exceeded\..*
 (make-list-from-vector x)
 ;=>('h' 'o' 'g' 'e')
 
@@ -1149,7 +1149,7 @@ x
 (vref x 0)
 ;=>10
 (vref x 1)
-;=>range exceeded.
+; range exceeded\..*
 (exec-vm (compile-vm '(vpush cons (make-vector 0))))
 ;=>#<VECTOR>
 (exec-vm (compile-vm '(vpop (vpush cons (make-vector 0)))))
