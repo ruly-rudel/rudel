@@ -3,6 +3,7 @@
 #define DEF_EXTERN
 #include "builtin.h"
 #include "misc.h"
+#include "allocator.h"
 #include "env.h"
 
 /////////////////////////////////////////////////////////////////////

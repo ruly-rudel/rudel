@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "builtin.h"
+#include "allocator.h"
 #include "reader.h"
 #include "printer.h"
 #include "env.h"
@@ -74,6 +75,7 @@ value_t parse_arg(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+	init_allocator();
 	init_global();
 
 	value_t env = create_env(NIL, NIL, NIL);

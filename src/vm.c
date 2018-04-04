@@ -251,11 +251,11 @@ value_t exec_vm(value_t c, value_t e)
 	assert(vectorp(car(c)));
 	assert(consp(e));
 
-	int alloc          = 16;
+	int alloc          = 8;
 	int sp             = -1;
 	value_t* stack_raw = (value_t*)malloc(sizeof(value_t) * alloc);
 
-	int ralloc         = 16;
+	int ralloc         = 8;
 	int rsp            = -1;
 	value_t* ret_raw   = (value_t*)malloc(sizeof(value_t) * ralloc);
 
@@ -281,6 +281,9 @@ value_t exec_vm(value_t c, value_t e)
 		{
 			// core functions
 			case IS_HALT: TRACE("HALT");
+#ifdef PRINT_STACK_USAGE
+				fprintf(stderr, "VM stack usage: stack %d, return %d\n", alloc, ralloc);
+#endif // PRINT_STACK_USAGE
 				return LOCAL_VPOP_RAW;
 
 			case IS_BR: TRACE1("BR %x", pc + op.op.operand);

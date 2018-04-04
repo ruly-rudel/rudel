@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "builtin.h"
+#include "allocator.h"
 #include "vm.h"
 #include "compile_vm.h"
 #include "reader.h"
@@ -13,7 +14,7 @@
 static value_t s_symbol_pool = NIL;
 
 /////////////////////////////////////////////////////////////////////
-// private: cons allocator
+// private: support functions
 
 static inline cons_t* aligned_addr(value_t v)
 {
@@ -31,33 +32,6 @@ static inline vector_t* aligned_vaddr(value_t v)
 #else
 	return (vector_t*) (((uint64_t)v.vector) & 0xfffffffffffffff8);
 #endif
-}
-
-static inline cons_t* alloc_cons(void)
-{
-	cons_t* c = (cons_t*)malloc(sizeof(cons_t));
-#if 0
-#if __WORDSIZE == 32
-	fprintf(stderr, "cons: %08x\n", (int)c);
-#else
-	fprintf(stderr, "cons: %016lx\n", (int64_t)c);
-#endif
-#endif
-
-	return c;
-}
-
-static inline vector_t* alloc_vector()
-{
-	vector_t* v = (vector_t*)malloc(sizeof(vector_t));
-#if 0
-#if __WORDSIZE == 32
-	fprintf(stderr, "vector: %08x, size %d\n", (int)v, sizeof(vector_t));
-#else
-	fprintf(stderr, "vector: %016lx, size %ld\n", (int64_t)v, sizeof(vector_t));
-#endif
-#endif
-	return v;
 }
 
 static inline bool is_cons_pair(value_t x)
@@ -436,12 +410,19 @@ value_t make_vector(unsigned n)
 	value_t v = { 0 };
 	v.vector  = alloc_vector();
 
-	v.vector->size  = 0;
-	v.vector->alloc = n;
-	v.vector->type  = CHAR_T;
-	v.vector->data  = (value_t*)malloc(n * sizeof(value_t));
-	v.type.main     = VEC_T;
-	return v;
+	if(v.vector)
+	{
+		v.vector->size  = 0;
+		v.vector->alloc = n;
+		v.vector->type  = CHAR_T;
+		v.vector->data  = (value_t*)malloc(n * sizeof(value_t));
+		v.type.main     = VEC_T;
+		return v;
+	}
+	else
+	{
+		return RERR(ERR_ALLOC, NIL);
+	}
 }
 
 value_t vref(value_t v, unsigned pos)
@@ -495,13 +476,11 @@ value_t vresize(value_t v, int n)
 		// resize allocated area
 		if(va->alloc < n)
 		{
-			for(va->alloc = 1; va->alloc < n; va->alloc *= 2);
-			value_t* np = (value_t*)realloc(va->data, va->alloc * sizeof(value_t));
-			if(np)
-			{
-				va->data = np;
-			}
-			else
+			//for(va->alloc = 1; va->alloc < n; va->alloc *= 2);
+			//value_t* np = (value_t*)realloc(va->data, va->alloc * sizeof(value_t));
+			int new_alloc;
+			for(new_alloc = 1; new_alloc < n; new_alloc *= 2);
+			if(!alloc_vector_data(v, new_alloc))
 			{
 				return RERR(ERR_ALLOC, NIL);
 			}
