@@ -16,7 +16,7 @@
 		alloc *= 2; \
 		stack_raw = (value_t*)realloc(stack_raw, alloc * sizeof(value_t)); \
 		if(!stack_raw) { \
-			return RERR_PC(ERR_ALLOC); \
+			return rerr_alloc(); \
 		} \
 	} \
 	stack_raw[++sp] = (X); \
@@ -35,7 +35,7 @@
 		ralloc *= 2; \
 		ret_raw = (value_t*)realloc(ret_raw, ralloc * sizeof(value_t)); \
 		if(!ret_raw) { \
-			return RERR_PC(ERR_ALLOC); \
+			return rerr_alloc(); \
 		} \
 	} \
 	ret_raw[++rsp] = (X); \
@@ -179,7 +179,7 @@ inline static value_t local_vpush(value_t x, value_t v)
 		}
 		else
 		{
-			return RERR(ERR_ALLOC, NIL);
+			return rerr_alloc();
 		}
 	}
 

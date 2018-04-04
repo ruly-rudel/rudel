@@ -98,7 +98,7 @@ value_t	cons(value_t car, value_t cdr)
 	}
 	else
 	{
-		return RERR(ERR_ALLOC, NIL);
+		return rerr_alloc();
 	}
 }
 
@@ -334,6 +334,16 @@ value_t rerr(value_t cause, value_t pos)
 	return r;
 }
 
+value_t rerr_alloc(void)
+{
+	fprintf(stderr, "memory allocation fails.\n");
+	value_t r = { 0 };
+	r.type.main = ERR_T;
+	abort();		//***** ad-hock
+
+	return r;
+}
+
 value_t rerr_add_pos(value_t pos, value_t e)
 {
 	value_t r = cons(car(e), cons(pos, cdr(e)));
@@ -341,7 +351,6 @@ value_t rerr_add_pos(value_t pos, value_t e)
 #ifdef DEBUG
 	abort();
 #endif
-
 	return r;
 }
 
@@ -421,7 +430,7 @@ value_t make_vector(unsigned n)
 	}
 	else
 	{
-		return RERR(ERR_ALLOC, NIL);
+		return rerr_alloc();
 	}
 }
 
@@ -482,7 +491,7 @@ value_t vresize(value_t v, int n)
 			for(new_alloc = 1; new_alloc < n; new_alloc *= 2);
 			if(!alloc_vector_data(v, new_alloc))
 			{
-				return RERR(ERR_ALLOC, NIL);
+				return rerr_alloc();
 			}
 		}
 
