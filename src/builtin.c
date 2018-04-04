@@ -326,7 +326,7 @@ int	count(value_t x)
 	}
 	else if(rtypeof(x) == VEC_T)
 	{
-		return INTOF(vsize(x));
+		return vsize(x);
 	}
 	else
 	{
@@ -452,9 +452,9 @@ value_t make_vector(unsigned n)
 	value_t v = { 0 };
 	v.vector  = alloc_vector();
 
-	v.vector->size  = RINT(0);
-	v.vector->alloc = RINT(n);
-	v.vector->type  = NIL;
+	v.vector->size  = 0;
+	v.vector->alloc = n;
+	v.vector->type  = CHAR_T;
 	v.vector->data  = (value_t*)malloc(n * sizeof(value_t));
 	v.type.main     = VEC_T;
 	return v;
@@ -465,7 +465,7 @@ value_t vref(value_t v, unsigned pos)
 	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
 
-	if(pos < INTOF(v.vector->size))
+	if(pos < v.vector->size)
 	{
 		return v.vector->data[pos];
 	}
@@ -479,7 +479,7 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 {
 	assert(vectorp(v));
 
-	if(pos >= INTOF(vsize(v)))
+	if(pos >= vsize(v))
 	{
 		vresize(v, pos + 1);
 	}
@@ -490,7 +490,7 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 	return data;
 }
 
-value_t vsize(value_t v)
+int vsize(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
@@ -509,10 +509,10 @@ value_t vresize(value_t v, int n)
 	{
 
 		// resize allocated area
-		if(INTOF(va->alloc) < n)
+		if(va->alloc < n)
 		{
-			for(va->alloc = RINT(1); INTOF(va->alloc) < n; va->alloc = RINT(INTOF(va->alloc) << 1));
-			value_t* np = (value_t*)realloc(va->data, INTOF(va->alloc) * sizeof(value_t));
+			for(va->alloc = 1; va->alloc < n; va->alloc *= 2);
+			value_t* np = (value_t*)realloc(va->data, va->alloc * sizeof(value_t));
 			if(np)
 			{
 				va->data = np;
@@ -524,8 +524,8 @@ value_t vresize(value_t v, int n)
 		}
 
 		// change size and NILify new area
-		int cur_size = INTOF(va->size);
-		va->size = RINT(n);
+		int cur_size = va->size;
+		va->size = n;
 		for(int i = cur_size; i < n; i++)
 		{
 			va->data[i] = NIL;
@@ -542,13 +542,13 @@ bool veq(value_t x, value_t y)
 	x.type.main = VEC_T;
 	y.type.main = VEC_T;
 
-	if(!EQ(vsize(x), vsize(y)))
+	if(vsize(x) != vsize(y))
 	{
 		return false;
 	}
 	else
 	{
-		for(int i = 0; i < INTOF(vsize(x)); i++)
+		for(int i = 0; i < vsize(x); i++)
 		{
 			if(!EQ(vref(x, i), vref(y, i)))
 			{
@@ -564,14 +564,14 @@ value_t vpush(value_t x, value_t v)
 {
 	assert(vectorp(v));
 
-	rplacv(v, INTOF(vsize(v)), x);		//***** assume no error
+	rplacv(v, vsize(v), x);		//***** assume no error
 	return v;
 }
 
 value_t vpop(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
-	int s = INTOF(vsize(v));
+	int s = vsize(v);
 
 	if(s <= 0)
 	{
@@ -589,7 +589,7 @@ value_t vpop(value_t v)
 value_t vpeek(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
-	int s = INTOF(vsize(v));
+	int s = vsize(v);
 
 	if(s <= 0)
 	{
@@ -606,7 +606,7 @@ value_t vpush_front(value_t v, value_t x)
 	assert(vectorp(v) || symbolp(v));
 
 	vpush(NIL, v);
-	for(int i = INTOF(vsize(v)) - 2; i >= 0; i--)
+	for(int i = vsize(v) - 2; i >= 0; i--)
 	{
 		rplacv(v, i + 1, vref(v, i));
 	}
@@ -618,9 +618,9 @@ value_t vpush_front(value_t v, value_t x)
 value_t copy_vector(value_t src)
 {
 	assert(vectorp(src));
-	value_t r = make_vector(INTOF(vsize(src)));
+	value_t r = make_vector(vsize(src));
 
-	for(int i = 0; i < INTOF(vsize(src)); i++)
+	for(int i = 0; i < vsize(src); i++)
 	{
 		rplacv(r, i, vref(src, i));
 	}
@@ -633,8 +633,8 @@ value_t vconc(value_t x, value_t y)
 	assert(vectorp(x));
 	assert(vectorp(y));
 
-	int sx = INTOF(vsize(x));
-	int sy = INTOF(vsize(y));
+	int sx = vsize(x);
+	int sy = vsize(y);
 
 	value_t r = make_vector(sx + sy);
 
@@ -660,7 +660,7 @@ value_t vnconc(value_t x, value_t y)
 	assert(vectorp(y));
 
 	// copy y
-	int sy = INTOF(vsize(y));
+	int sy = vsize(y);
 	for(int i = 0; i < sy; i++)
 	{
 		vpush(vref(y, i), x);
@@ -689,7 +689,7 @@ value_t make_list_from_vector(value_t x)
 	value_t r    = NIL;
 	value_t* cur = &r;
 
-	for(int i = 0; i < INTOF(vsize(x)); i++)
+	for(int i = 0; i < vsize(x); i++)
 	{
 		cur = cons_and_cdr(vref(x, i), cur);
 	}
@@ -734,7 +734,7 @@ value_t str_to_rstr	(const char* s)
 {
 	assert(s != NULL);
 	value_t r = str_to_vec(s);
-	if(INTOF(vsize(r)) == 0)
+	if(vsize(r) == 0)
 	{
 		vpush(RCHAR('\0'), r);
 	}
@@ -754,11 +754,11 @@ char*   rstr_to_str	(value_t s)
 {
 	assert(vectorp(s));
 
-	char* buf = (char*)malloc(INTOF(vsize(s)) + 1);
+	char* buf = (char*)malloc(vsize(s) + 1);
 	if(buf)
 	{
 		char *p = buf;
-		for(int i = 0; i < INTOF(vsize(s)); i++)
+		for(int i = 0; i < vsize(s); i++)
 		{
 			value_t c = vref(s, i);
 			assert(charp(c));
@@ -819,11 +819,11 @@ value_t* nconc_and_last(value_t v, value_t* c)
 bool is_str(value_t v)
 {
 #ifdef STR_EASY_CHECK
-	return vectorp(v) && INTOF(vsize(v)) > 0 && charp(vref(v, 0));
+	return vectorp(v) && vsize(v) > 0 && charp(vref(v, 0));
 #else  // STR_EASY_CHECK
 	if(nilp(v)) return false;	// nil is not strgin
 
-	for(int i = 0; i < INTOF(vsize(v)); i ++)
+	for(int i = 0; i < vsize(v); i ++)
 	{
 		if(!charp(vref(v, i)))
 		{

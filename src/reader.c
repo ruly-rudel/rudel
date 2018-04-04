@@ -41,7 +41,7 @@ static value_t read_int(value_t token)
 
 	// value
 	int val = 0;
-	for(; idx < INTOF(vsize(token)); idx++)
+	for(; idx < vsize(token); idx++)
 	{
 		c = vref(token, idx);
 		assert(charp(c));

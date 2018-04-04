@@ -130,9 +130,9 @@ inline static value_t local_make_vector(unsigned n)
 {
 	value_t v;
 	v.vector        = (vector_t*)malloc(sizeof(vector_t));
-	v.vector->size  = RINT(0);
-	v.vector->alloc = RINT(n);
-	v.vector->type  = NIL;
+	v.vector->size  = 0;
+	v.vector->alloc = n;
+	v.vector->type  = CONS_T;
 	v.vector->data  = (value_t*)malloc(n * sizeof(value_t));
 	v.type.main     = VEC_T;
 	return v;
@@ -145,17 +145,32 @@ inline static value_t local_vref(value_t v, unsigned pos)
 	return v.vector->data[pos];
 }
 
+inline static value_t local_vref_safe(value_t v, unsigned pos)
+{
+	assert(vectorp(v) || symbolp(v));
+	v.vector = local_aligned_vaddr(v);
+
+	if(pos < v.vector->size)
+	{
+		return v.vector->data[pos];
+	}
+	else
+	{
+		return RERR(ERR_RANGE, NIL);
+	}
+}
+
 inline static value_t local_vpush(value_t x, value_t v)
 {
 	assert(vectorp(v));
 
 	v.vector = local_aligned_vaddr(v);
-	int s = INTOF(v.vector->size);
-	int a = INTOF(v.vector->alloc);
+	int s = v.vector->size;
+	int a = v.vector->alloc;
 	if(s + 1 >= a)
 	{
 		a = a * 2;
-		v.vector->alloc = RINT(a);
+		v.vector->alloc = a;
 		value_t* np = (value_t*)realloc(v.vector->data, a * sizeof(value_t));
 		if(np)
 		{
@@ -168,7 +183,7 @@ inline static value_t local_vpush(value_t x, value_t v)
 	}
 
 	v.vector->data[s] = x;
-	v.vector->size = RINT(s + 1);
+	v.vector->size = s + 1;
 
 	return v;
 }
@@ -177,8 +192,8 @@ inline static value_t local_vpop(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
-	int s = INTOF(v.vector->size) - 1;
-	v.vector->size = RINT(s);
+	int s = v.vector->size - 1;
+	v.vector->size = s;
 	return v.vector->data[s];
 }
 
@@ -186,14 +201,14 @@ inline static value_t local_vpeek(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
-	return v.vector->data[INTOF(v.vector->size) - 1];
+	return v.vector->data[v.vector->size - 1];
 }
 
 inline static value_t local_rplacv_top(value_t x, value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
-	return v.vector->data[INTOF(v.vector->size) - 1] = x;
+	return v.vector->data[v.vector->size - 1] = x;
 }
 
 inline static value_t local_get_env_value_ref(value_t ref, value_t env)
@@ -207,7 +222,8 @@ inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 	assert(consp(env));
 	env = UNSAFE_CAR(env);
 
-	return cdr(vref(env, REF_W(ref)));
+	value_t pair = local_vref_safe(env, REF_W(ref));
+	return errp(pair) ? pair : UNSAFE_CDR(pair);
 }
 
 static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
@@ -221,8 +237,8 @@ static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
 	assert(consp(env));
 	env = UNSAFE_CAR(env);
 
-
-	return rplacd(vref(env, REF_W(ref)), val);
+	value_t pair = local_vref_safe(env, REF_W(ref));
+	return errp(pair) ? pair : rplacd(pair, val);
 }
 
 
@@ -384,7 +400,7 @@ value_t exec_vm(value_t c, value_t e)
 				{
 					r1 = r0;
 					r0.type.main = CONS_T;
-					rplaca(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0))), env);	// set current environment
+					UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0))).cons->car = env;	// set current environment
 				}
 				else
 				{
@@ -441,23 +457,34 @@ value_t exec_vm(value_t c, value_t e)
 			case IS_SETSYM: TRACE1("SETSYM %d", op.op.operand);
 				r0 = UNSAFE_CAR(env);
 				r2 = LOCAL_VPOP_RAW;
-				r1 = vref(r0, op.op.operand);
-				rplaca(r1, r2);
+				r1 = local_vref_safe(r0, op.op.operand);
+				if(errp(r1))
+				{
+					return RERR_PC(ERR_ARG);
+				}
+				else
+				{
+					r1.cons->car = r2;
+				}
 				break;
 
 			case IS_RESTPARAM: TRACE1("RESTPARAM %d", pc + op.op.operand);
 			{
 				r0 = UNSAFE_CAR(env);
 				r2 = LOCAL_VPOP_RAW;
-				int size = INTOF(vsize(r0));
+				int size = vsize(r0);
 				r1 = NIL;
 				value_t* cur = &r1;
 
 				for(int i = op.op.operand; i < size; i++)
 				{
-					cur = cons_and_cdr(cdr(vref(r0, i)), cur);
+					cur = cons_and_cdr(UNSAFE_CDR(local_vref(r0, i)), cur);
 				}
-				rplacv(r0, op.op.operand, cons(r2, r1));
+				r3 = rplacv(r0, op.op.operand, cons(r2, r1));
+				if(errp(r3))
+				{
+					return RERR_PC(ERR_ARG);
+				}
 			}
 				break;
 
@@ -607,7 +634,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_VSIZE: TRACE("VSIZE");
-				OP_1P1P(vectorp(r0) ? vsize(r0) : RERR_TYPE_PC);
+				OP_1P1P(vectorp(r0) ? RINT(vsize(r0)) : RERR_TYPE_PC);
 				break;
 
 			case IS_VEQ: TRACE("VEQ");
@@ -674,6 +701,9 @@ value_t exec_vm(value_t c, value_t e)
 			default:
 				return RERR_PC(ERR_INVALID_IS);
 		}
+
+		// clear temporal registers for safe
+		r0 = r1 = r2 = r3 = NIL;
 	}
 
 	return NIL;	// not reached

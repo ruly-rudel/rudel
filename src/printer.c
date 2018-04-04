@@ -50,7 +50,7 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 	{
 		do
 		{
-			vpush(RCHAR(INTOF(vsize(r)) == 0 ? '(' : ' '), r);
+			vpush(RCHAR(vsize(r) == 0 ? '(' : ' '), r);
 
 			if(rtypeof(x) == CONS_T)
 			{
@@ -200,7 +200,7 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		vpush(RCHAR('"'), r);
 	}
 
-	for(int i = 0; i < INTOF(vsize(s)); i++)
+	for(int i = 0; i < vsize(s); i++)
 	{
 		value_t c = vref(s, i);
 		assert(charp(c));
@@ -249,7 +249,7 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		vpush(RCHAR('"'), r);
 	}
 
-	if(INTOF(vsize(r)) == 0)
+	if(vsize(r) == 0)
 	{
 		vpush(RCHAR('\0'), r);
 	}
@@ -521,7 +521,7 @@ void printline(value_t s, FILE* fp)
 	assert(vectorp(s) || nilp(s));
 	if(!nilp(s))
 	{
-		for(int i = 0; i < INTOF(vsize(s)); i++)
+		for(int i = 0; i < vsize(s); i++)
 		{
 			value_t c = vref(s, i);
 			assert(charp(c));

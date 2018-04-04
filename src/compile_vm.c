@@ -191,33 +191,33 @@ static value_t compile_vm_if(value_t code, value_t ast, value_t env)
 	}
 
 	// eval condition
-	code = compile_vm1(code, car(ast), env);
+	code = compile_vm1(code, first(ast), env);
 	if(errp(code))
 	{
 		return code;
 	}
 
-	int cond_br = INTOF(vsize(code));
+	int cond_br = vsize(code);
 	vpush(ROP(IS_BNIL), code);	// dummy operand(0)
 
 	// true situation
-	code = compile_vm1(code, car(cdr(ast)), env);
+	code = compile_vm1(code, second(ast), env);
 	if(errp(code))
 	{
 		return code;
 	}
 
-	int true_br = INTOF(vsize(code));
+	int true_br = vsize(code);
 	vpush(ROP(IS_BR), code);	// dummy operand(0)
 
 	// false situation
-	code = compile_vm1(code, car(cdr(cdr(ast))), env);
+	code = compile_vm1(code, third(ast), env);
 	if(errp(code))
 	{
 		return code;
 	}
 
-	int next_addr = INTOF(vsize(code));
+	int next_addr = vsize(code);
 
 	// fix branch address: relative to pc
 	rplacv(code, cond_br, ROPD(IS_BNIL, true_br + 1 - cond_br));
@@ -257,7 +257,7 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 
 	for(; !nilp(def); def = cdr(def))
 	{
-		value_t bind = car(def);
+		value_t bind = first(def);
 
 		// symbol
 		value_t sym = car(bind);
@@ -285,7 +285,7 @@ static value_t compile_vm_let(value_t code, value_t ast, value_t env)
 	vpush(ROP(IS_POP), code);	// pop environment
 
 	// let body
-	code = compile_vm1(code, car(cdr(ast)), let_env);
+	code = compile_vm1(code, second(ast), let_env);
 	if(errp(code))
 	{
 		return code;
@@ -329,7 +329,7 @@ static value_t	compile_vm_arg_symbol(value_t code, value_t key)
 		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
 		{
 			vpush(ROP (IS_PUSHR),        code);
-			vpush(car(cdr(key)),         code);
+			vpush(second(key),           code);
 			vpush(ROPD(IS_RESTPARAM, i), code);
 			break;
 		}
@@ -355,7 +355,7 @@ static value_t compile_vm_lambda1(value_t ast, value_t env)
 	}
 
 	// allocate new environment for compilation
-	value_t def = car(ast);
+	value_t def = first(ast);
 	if(rtypeof(def) != CONS_T)
 	{
 		return RERR(ERR_ARG, ast);
@@ -379,7 +379,7 @@ static value_t compile_vm_lambda1(value_t ast, value_t env)
 	}
 	*/
 
-	lambda_code = compile_vm1(lambda_code, car(cdr(ast)), lambda_env);
+	lambda_code = compile_vm1(lambda_code, second(ast), lambda_env);
 	if(errp(lambda_code))
 	{
 		return lambda_code;
@@ -432,20 +432,20 @@ static value_t compile_vm_quasiquote(value_t code, value_t ast, value_t env)
 	}
 	else
 	{
-		value_t arg1 = car(ast);
+		value_t arg1 = first(ast);
 		if(EQ(arg1, RSPECIAL(SP_UNQUOTE)))	// (unquote x)
 		{
-			value_t arg2 = car(cdr(ast));
+			value_t arg2 = second(ast);
 			return compile_vm1(code, arg2, env);	  // -> add evaluation code
 		}
-		else if(consp(arg1) && EQ(car(arg1), RSPECIAL(SP_SPLICE_UNQUOTE)))	// ((splice-unquote x) ...)
+		else if(consp(arg1) && EQ(first(arg1), RSPECIAL(SP_SPLICE_UNQUOTE)))	// ((splice-unquote x) ...)
 		{
 			code = compile_vm_quasiquote(code, cdr(ast), env);
 			if(errp(code))
 			{
 				return code;
 			}
-			code = compile_vm1(code, car(cdr(arg1)), env);
+			code = compile_vm1(code, second(arg1), env);
 			if(errp(code))
 			{
 				return code;
@@ -479,7 +479,7 @@ static value_t compile_vm_macroexpand(value_t code, value_t ast, value_t env)
 
 	if(consp(ast))
 	{
-		code = compile_vm1(code, car(ast), env);
+		code = compile_vm1(code, first(ast), env);
 		if(errp(code))
 		{
 			return code;
@@ -506,7 +506,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	assert(consp(ast));
 	assert(consp(env));
 
-	value_t fn = car(ast);
+	value_t fn = first(ast);
 
 	if(specialp(fn))
 	{
@@ -536,13 +536,13 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 
 			case SP_QUOTE:
 				vpush(ROP(IS_PUSHR), code);
-				return vpush(car(cdr(ast)), code);
+				return vpush(second(ast), code);
 
 			case SP_QUASIQUOTE:
-				return compile_vm_quasiquote(code, car(cdr(ast)), env);
+				return compile_vm_quasiquote (code, second(ast), env);
 
 			case SP_MACROEXPAND:
-				return compile_vm_macroexpand(code, car(cdr(ast)), env);
+				return compile_vm_macroexpand(code, second(ast), env);
 
 			case SP_AMP:	//******* ad-hock: ignore it
 				return code;
@@ -553,7 +553,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	}
 	else if(symbolp(fn))
 	{
-		value_t bfn = compile_vm_check_builtin(car(ast), env);
+		value_t bfn = compile_vm_check_builtin(first(ast), env);
 		if(!nilp(bfn))			// apply builtin
 		{
 			code = compile_vm_list(code, cdr(ast), env);		// arguments
@@ -567,7 +567,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	}
 
 	// evaluate 1st element of apply list
-	code = compile_vm1_fn(code, car(ast), env);
+	code = compile_vm1_fn(code, first(ast), env);
 	if(errp(code))
 	{
 		return code;
@@ -577,7 +577,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 	vpush(ROP(IS_DUP), code);
 	vpush(ROP(IS_CLOJUREP), code);
 
-	int cond_br = INTOF(vsize(code));
+	int cond_br = vsize(code);
 	vpush(ROP(IS_BNIL), code);	// dummy operand(0)
 
 	// true situation: clojure call
@@ -587,7 +587,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 		return code;
 	}
 
-	int true_br = INTOF(vsize(code));
+	int true_br = vsize(code);
 	vpush(ROP(IS_BR), code);	// dummy operand(0)
 
 	// false situation: macro call
@@ -597,7 +597,7 @@ static value_t compile_vm_apply(value_t code, value_t ast, value_t env)
 		return code;
 	}
 
-	int next_addr = INTOF(vsize(code));
+	int next_addr = vsize(code);
 
 	// fix branch address: relative to pc
 	rplacv(code, cond_br, ROPD(IS_BNIL, true_br + 1 - cond_br));
@@ -661,11 +661,11 @@ static value_t compile_vm1_fn(value_t code, value_t ast, value_t env)
 		case CLOJ_T:
 		case MACRO_T:
 			// compile lambda or macro body
-			if(nilp(car(cdr(cdr(ast)))))
+			if(nilp(third(ast)))
 			{
 				value_t lambda_code = clojurep(ast) ?
-							compile_vm_lambda(code, car(ast), car(cdr(ast))) :
-							compile_vm_macro (code, car(ast), car(cdr(ast)));
+							compile_vm_lambda(code, first(ast), second(ast)):
+							compile_vm_macro (code, first(ast), second(ast));
 				if(errp(lambda_code))
 				{
 					return lambda_code;

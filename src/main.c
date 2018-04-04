@@ -20,7 +20,7 @@ void repl(value_t env)
 		r = READ("user> ", stdin);
 		if(errp(r))
 		{
-			if(rtypeof(car(r)) == INT_T && INTOF(car(r)) == ERR_EOF)
+			if(intp(car(r)) && INTOF(car(r)) == ERR_EOF)
 			{
 				break;
 			}

@@ -186,9 +186,14 @@ typedef struct _cons_t
 
 typedef struct _vector_t
 {
-	value_t		size;
-	value_t		alloc;
-	value_t		type;
+#if __WORDSIZE == 32
+	int32_t		size;
+	int32_t		alloc;
+#else
+	int64_t		size;
+	int64_t		alloc;
+#endif
+	rtype_t		type;
 	value_t*	data;
 } vector_t;
 
@@ -248,6 +253,10 @@ INLINE(bool    specialp(value_t x), x.type.main == OTH_T  &&  x.type.sub == SPEC
 
 value_t car		(value_t x);
 value_t cdr		(value_t x);
+INLINE(value_t	first	(value_t x), car(x));
+INLINE(value_t	second	(value_t x), car(cdr(x)));
+INLINE(value_t	third	(value_t x), car(cdr(cdr(x))));
+INLINE(value_t	fourth	(value_t x), car(cdr(cdr(cdr(x)))));
 value_t	cons		(value_t car, value_t cdr);
 bool	atom		(value_t x);
 bool	eq		(value_t x, value_t y);
@@ -275,7 +284,7 @@ value_t init		(value_t env);
 value_t make_vector	(unsigned n);
 value_t vref		(value_t v, unsigned pos);
 value_t rplacv		(value_t v, unsigned pos, value_t data);
-value_t vsize		(value_t v);
+int	vsize		(value_t v);
 value_t vresize		(value_t v, int n);
 bool	veq		(value_t x, value_t y);
 value_t vpush		(value_t x, value_t v);

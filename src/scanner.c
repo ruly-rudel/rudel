@@ -9,7 +9,7 @@
 static int scan_pch(scan_t* s)
 {
 	assert(s);
-	if(s->rptr >= INTOF(vsize(s->buf)))
+	if(s->rptr >= vsize(s->buf))
 	{
 		return -1;
 	}
@@ -24,9 +24,9 @@ static int scan_pch(scan_t* s)
 static int scan_nch(scan_t* s)
 {
 	assert(s);
-	if(s->rptr >= INTOF(vsize(s->buf)) - 1)
+	if(s->rptr >= vsize(s->buf) - 1)
 	{
-		s->rptr = INTOF(vsize(s->buf));
+		s->rptr = vsize(s->buf);
 		return -1;
 	}
 	else
@@ -62,7 +62,7 @@ static value_t scan_to_whitespace(scan_t* s)
 	{
 		if(c == ' ' || c == '\t' || c == '\n' || c == '('  || c == ')' || c == ';')
 		{
-			if(INTOF(vsize(r)) == 0)
+			if(vsize(r) == 0)
 			{
 				vpush(RCHAR('\0'), r);
 			}
@@ -100,7 +100,7 @@ static value_t scan_to_doublequote(scan_t* s)
 			else if(c == '"')
 			{
 				scan_nch(s);
-				if(INTOF(vsize(r)) == 0)
+				if(vsize(r) == 0)
 				{
 					vpush(RCHAR('\0'), r);	// null string
 				}

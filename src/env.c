@@ -11,7 +11,7 @@ static value_t vassoceq(value_t key, value_t avector)
 	assert(symbolp(key));
 	assert(vectorp(avector));
 
-	for(int i = 0; i < INTOF(vsize(avector)); i++)
+	for(int i = 0; i < vsize(avector); i++)
 	{
 		value_t pair = vref(avector, i);
 		assert(rtypeof(pair) == CONS_T);
@@ -58,7 +58,7 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 
 		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
 		{
-			key_car = car(cdr(key));
+			key_car = second(key);
 			rplacv(alist, i++, cons(key_car, val));		// for resolv order.
 			break;
 		}
@@ -92,7 +92,7 @@ value_t	set_env		(value_t key, value_t val, value_t env)
 		{
 			value_t alist = UNSAFE_CAR(env);
 			assert(vectorp(alist));
-			rplacv(alist, INTOF(vsize(alist)), r);
+			rplacv(alist, vsize(alist), r);
 		}
 	}
 	else
@@ -172,7 +172,7 @@ value_t	get_env_ref	(value_t key, value_t env)
 		value_t alist = car(env);
 		assert(vectorp(alist));
 
-		for(int width = 0; width < INTOF(vsize(alist)); width++)
+		for(int width = 0; width < vsize(alist); width++)
 		{
 			value_t pair = vref(alist, width);
 			assert(consp(pair));
