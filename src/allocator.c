@@ -6,15 +6,33 @@
 /////////////////////////////////////////////////////////////////////
 // private: support functions
 
+static value_t* exec_gc(void)
+{
+#ifdef NOGC
+	return 0;
+#else  // NOGC
+
+	// swap buffer
+	value_t* tmp       = g_memory_pool;
+	g_memory_pool      = g_memory_top = g_memory_pool_back;
+	g_memory_max       = g_memory_top + INITIAL_ALLOC_SIZE;
+	g_memory_pool_back = tmp;
+
+	return g_memory_pool;
+#endif // NOGC
+}
 
 /////////////////////////////////////////////////////////////////////
 // public: memory allocator
 
 void init_allocator(void)
 {
-	g_memory_pool = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
-	g_memory_top  = g_memory_pool;
-	g_memory_max  = g_memory_pool + INITIAL_ALLOC_SIZE;
+	g_memory_pool      = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
+#ifndef NOGC
+	g_memory_pool_back = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
+#endif  // NOGC
+	g_memory_top       = g_memory_pool;
+	g_memory_max       = g_memory_pool + INITIAL_ALLOC_SIZE;
 }
 
 cons_t* alloc_cons(void)
@@ -30,7 +48,23 @@ cons_t* alloc_cons(void)
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	return g_memory_top >= g_memory_max ? 0 : c;
+	if(g_memory_top >= g_memory_max)
+	{
+		if(exec_gc())
+		{
+			c = (cons_t*)g_memory_top;
+			g_memory_top += 2;
+			return c;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else
+	{
+		return c;
+	}
 }
 
 vector_t* alloc_vector()
@@ -46,7 +80,23 @@ vector_t* alloc_vector()
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	return g_memory_top >= g_memory_max ? 0 : v;
+	if(g_memory_top >= g_memory_max)
+	{
+		if(exec_gc())
+		{
+			v = (vector_t*)g_memory_top;
+			g_memory_top += 4;
+			return v;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else
+	{
+		return v;
+	}
 }
 
 value_t* alloc_vector_data(value_t v, size_t size)
@@ -58,22 +108,23 @@ value_t* alloc_vector_data(value_t v, size_t size)
 
 	if(g_memory_top + size >= g_memory_max)
 	{
-		return 0;
-	}
-	else
-	{
-		if(v.vector->data)
+		if(!exec_gc())
 		{
-			for(int i = 0; i < v.vector->size; i++)
-				g_memory_top[i] = v.vector->data[i];
+			return 0;
 		}
-
-		v.vector->data  = g_memory_top;
-		v.vector->alloc = size;
-		g_memory_top += size;
-
-		return v.vector->data;
 	}
+
+	if(v.vector->data)
+	{
+		for(int i = 0; i < v.vector->size; i++)
+			g_memory_top[i] = v.vector->data[i];
+	}
+
+	v.vector->data  = g_memory_top;
+	v.vector->alloc = size;
+	g_memory_top += size;
+
+	return v.vector->data;
 }
 
 // End of File

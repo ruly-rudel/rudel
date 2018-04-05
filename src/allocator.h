@@ -4,6 +4,9 @@
 #define INITIAL_ALLOC_SIZE	(16 * 1024 * 1024)
 
 EXTERN value_t* g_memory_pool;
+#ifndef NOGC
+EXTERN value_t* g_memory_pool_back;
+#endif  // NOGC
 EXTERN value_t* g_memory_top;
 EXTERN value_t* g_memory_max;
 
