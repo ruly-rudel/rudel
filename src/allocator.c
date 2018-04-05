@@ -6,6 +6,16 @@
 /////////////////////////////////////////////////////////////////////
 // private: support functions
 
+typedef struct
+{
+	value_t*	data;
+	int*		size;
+} root_t;
+
+static root_t s_root[ROOT_SIZE]   = { 0 };
+static int s_root_ptr             =   0;
+static int s_lock_cnt             =   0;
+
 static value_t* exec_gc(void)
 {
 #ifdef NOGC
@@ -33,6 +43,41 @@ void init_allocator(void)
 #endif  // NOGC
 	g_memory_top       = g_memory_pool;
 	g_memory_max       = g_memory_pool + INITIAL_ALLOC_SIZE;
+}
+
+void push_root(value_t* v)
+{
+	s_root[s_root_ptr  ].data = v;
+	s_root[s_root_ptr++].size = 0;
+	assert(s_root_ptr < ROOT_SIZE);
+	return;
+}
+
+void push_root_raw_vec(value_t *v, int* sp)
+{
+	s_root[s_root_ptr  ].data = v;
+	s_root[s_root_ptr++].size = sp;
+	assert(s_root_ptr < ROOT_SIZE);
+	return;
+}
+
+void pop_root(void)
+{
+	s_root[s_root_ptr  ].data = 0;
+	s_root[s_root_ptr--].size = 0;
+	return;
+}
+
+void lock_gc(void)
+{
+	s_lock_cnt++;
+	assert(s_lock_cnt >= 0);
+}
+
+void unlock_gc(void)
+{
+	s_lock_cnt--;
+	assert(s_lock_cnt >= 0);
 }
 
 cons_t* alloc_cons(void)

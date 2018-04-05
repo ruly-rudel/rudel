@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "builtin.h"
 #include "vm.h"
+#include "allocator.h"
 #include "env.h"
 #include "reader.h"
 #include "printer.h"
@@ -111,9 +112,9 @@
 #define TRACE2N(X, Y, Z)
 #endif // TRACE_VM
 
-#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(debug.vector->data[pc], NIL))
-#define RERR_PC(X)	RERR((X), cons(debug.vector->data[pc], NIL))
-#define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(debug.vector->data[pc], NIL))
+#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(vref(debug, pc), NIL))
+#define RERR_PC(X)	RERR((X), cons(vref(debug, pc), NIL))
+#define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(vref(debug, pc), NIL))
 
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
@@ -260,21 +261,34 @@ value_t exec_vm(value_t c, value_t e)
 	value_t* ret_raw   = (value_t*)malloc(sizeof(value_t) * ralloc);
 
 	value_t code       = car(c);
-	code.type.main     = CONS_T;
+	value_t code_raw   = code;
+	code_raw.type.main = CONS_T;
 
 	value_t debug      = cdr(c);
-	debug.type.main    = CONS_T;
 
-	value_t env   = e;
+	value_t env	   = e;
 
 	value_t r0    = NIL;
 	value_t r1    = NIL;
 	value_t r2    = NIL;
 	value_t r3    = NIL;
 
+	value_t r0raw = NIL;
+
+	// register stack, ret, code, env, reg to root
+	push_root_raw_vec(stack_raw, &sp);
+	push_root_raw_vec(ret_raw,   &rsp);
+	push_root        (&code);
+	push_root        (&debug);
+	push_root        (&env);
+	push_root        (&r0);
+	push_root        (&r1);
+	push_root        (&r2);
+	push_root        (&r3);
+
 	for(int pc = 0; true; pc++)
 	{
-		value_t op = code.vector->data[pc];
+		value_t op = code_raw.vector->data[pc];
 		assert(rtypeof(op) == VMIS_T);
 
 		switch(op.op.mnem)
@@ -284,6 +298,9 @@ value_t exec_vm(value_t c, value_t e)
 #ifdef PRINT_STACK_USAGE
 				fprintf(stderr, "VM stack usage: stack %d, return %d\n", alloc, ralloc);
 #endif // PRINT_STACK_USAGE
+				// pop root
+				for(int i = 0; i < 9; i++)
+					pop_root();
 				return LOCAL_VPOP_RAW;
 
 			case IS_BR: TRACE1("BR %x", pc + op.op.operand);
@@ -327,12 +344,14 @@ value_t exec_vm(value_t c, value_t e)
 				if(clojurep(r0))	// compiled function
 				{
 					TRACE("AP(Clojure)");
-					r0.type.main = CONS_T;
-					if(nilp(THIRD(r0)))
+					r0raw = r0;
+					r0raw.type.main = CONS_T;
+					if(nilp(THIRD(r0raw)))
 					{
-						r0.type.main = CLOJ_T;
-						compile_vm(r0, env);
-						r0.type.main = CONS_T;
+						lock_gc();
+						r2 = compile_vm(r0, env);
+						unlock_gc();
+						if(errp(r2)) return r2;
 					}
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
@@ -341,29 +360,36 @@ value_t exec_vm(value_t c, value_t e)
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
-					code  = UNSAFE_CAR(THIRD(r0));	// clojure code
-					code.type.main  = CONS_T;
-					debug = UNSAFE_CDR(THIRD(r0));	// clojure debug symbols
-					debug.type.main = CONS_T;
-					env  = cons(r1, FOURTH(r0));	// clojure environment + new environment as arguments
+					code  = UNSAFE_CAR(THIRD(r0raw));	// clojure code
+					code_raw = code;
+					code_raw.type.main  = CONS_T;
+					debug = UNSAFE_CDR(THIRD(r0raw));	// clojure debug symbols
+					env  = cons(r1, FOURTH(r0raw));	// clojure environment + new environment as arguments
 					pc   = -1;
 				}
 				else if(macrop(r0))	// compiled macro
 				{
 					TRACE("AP(Macro)");
-					r0.type.main = CONS_T;
-					if(nilp(THIRD(r0)))
+					r0raw = r0;
+					r0raw.type.main = CONS_T;
+					if(nilp(THIRD(r0raw)))
 					{
-						r0.type.main = MACRO_T;
-						compile_vm(r0, env);
-						r0.type.main = CONS_T;
+						lock_gc();
+						r2 = compile_vm(r0, env);
+						unlock_gc();
+						if(errp(r2)) return r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
+					value_t ext = exec_vm(THIRD(r0raw), cons(r1, FOURTH(r0raw)));
+					if(errp(ext)) return ext;
 					TRACE("  Compiling the result on-the-fly.");
+					lock_gc();
 					value_t new_code = compile_vm(ext, env);
+					unlock_gc();
+					if(errp(new_code)) return new_code;
 					TRACE("  Evaluate it, invoking another VM.");
 					value_t res = exec_vm(new_code, env);
+					if(errp(res)) return res;
 					TRACE("AP(Macro) Done.");
 					LOCAL_VPUSH_RAW(res);
 				}
@@ -379,6 +405,8 @@ value_t exec_vm(value_t c, value_t e)
 				pc    = INTOF(LOCAL_VPOP_RET_RAW);
 				debug = LOCAL_VPOP_RET_RAW;
 				code  = LOCAL_VPOP_RET_RAW;
+				code_raw = code;
+				code_raw.type.main = CONS_T;
 				break;
 
 			case IS_DUP: TRACE("DUP");
@@ -387,52 +415,54 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_PUSH: TRACEN("PUSH: ");
-				r0 = code.vector->data[++pc];	// next code is entity
+				r0 = code_raw.vector->data[++pc];	// next code is entity
 				if(refp(r0))
 				{
 					TRACE2N("#REF:%d,%d# ", REF_D(r0), REF_W(r0));
-					r1 = local_get_env_value_ref(r0, env);
+					r0 = local_get_env_value_ref(r0, env);
 				}
 				else if(symbolp(r0))
 				{
 #ifdef TRACE_VM
+					lock_gc();
 					char* sn = rstr_to_str(symbol_string(r0));
 					fprintf(stderr, "%s ", sn);
 					free(sn);
+					unlock_gc();
 #endif // TRACE_VM
 					r0 = get_env_ref(r0, env);
 					if(errp(r0))
 					{
 						return RERR_OVW_PC(r0);
 					}
-					code.vector->data[pc] = r0;	// replace symbol to reference
+					code_raw.vector->data[pc] = r0;	// replace symbol to reference
 					TRACE2N("-> #REF:%d,%d# ", REF_D(r0), REF_W(r0));
-					r1 = local_get_env_value_ref(r0, env);
+					r0 = local_get_env_value_ref(r0, env);
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{
-					r1 = r0;
-					r0.type.main = CONS_T;
-					UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0))).cons->car = env;	// set current environment
-				}
-				else
-				{
-					r1 = r0;
+					r0raw = r0;
+					r0raw.type.main = CONS_T;
+					UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0raw))).cons->car = env;	// set current environment
 				}
 #ifdef TRACE_VM
-				      print(pr_str(r1, NIL, true), stderr);
+				lock_gc();
+				print(pr_str(r0, NIL, true), stderr);
+				unlock_gc();
 #endif // TRACE_VM
-				if(errp(r1))
+				if(errp(r0))
 				{
-					return RERR_OVW_PC(r1);
+					return RERR_OVW_PC(r0);
 				}
-				LOCAL_VPUSH_RAW(r1);
+				LOCAL_VPUSH_RAW(r0);
 				break;
 
 			case IS_PUSHR: TRACEN("PUSHR: ");
-				r0 = code.vector->data[++pc];	// next code is entity
+				r0 = code_raw.vector->data[++pc];	// next code is entity
 #ifdef TRACE_VM
-				      print(pr_str(r0, NIL, true), stderr);
+				lock_gc();
+				print(pr_str(r0, NIL, true), stderr);
+				unlock_gc();
 #endif // TRACE_VM
 				LOCAL_VPUSH_RAW(r0);
 				break;
@@ -508,15 +538,16 @@ value_t exec_vm(value_t c, value_t e)
 				if(macrop(r0))	// compiled macro
 				{
 					TRACE("MACROEXPAND");
-					r0.type.main = CONS_T;
-					if(nilp(THIRD(r0)))
+					r0raw = r0;
+					r0raw.type.main = CONS_T;
+					if(nilp(THIRD(r0raw)))
 					{
-						r0.type.main = MACRO_T;
-						compile_vm(r0, env);
-						r0.type.main = CONS_T;
+						r2 = compile_vm(r0, env);
+						if(errp(r2)) return r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
+					value_t ext = exec_vm(THIRD(r0raw), cons(r1, FOURTH(r0raw)));
+					if(errp(ext)) return ext;
 					TRACE("MACROEXPAND Done.");
 					LOCAL_VPUSH_RAW(ext);
 				}
@@ -576,7 +607,9 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_GENSYM: TRACE("GENSYM");
+				lock_gc();
 				OP_0P1P(gensym(last(env)));
+				unlock_gc();
 				break;
 
 			case IS_ADD: TRACE("ADD");
@@ -612,13 +645,17 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_READ_STRING: TRACE("READ_STRING");
+				lock_gc();
 				OP_1P1P(vectorp(r0) ? read_str(r0) : RERR_TYPE_PC);
+				unlock_gc();
 				break;
 
 			case IS_EVAL: TRACE("EVAL");
+				lock_gc();
 				r0 = LOCAL_VPEEK_RAW;
 				r1 = compile_vm(r0, last(env));
 				LOCAL_RPLACV_TOP_RAW(exec_vm(r1, last(env)));
+				unlock_gc();
 				break;
 
 			case IS_ERR: TRACE("ERR");
@@ -630,7 +667,9 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_INIT: TRACE("INIT");
+				lock_gc();
 				OP_0P1P(init(env));
+				unlock_gc();
 				break;
 
 
@@ -663,11 +702,15 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_COPY_VECTOR: TRACE("COPY_VECTOR");
+				lock_gc();
 				OP_1P1P(vectorp(r0) ? copy_vector(r0) : RERR_TYPE_PC);
+				unlock_gc();
 				break;
 
 			case IS_VCONC: TRACE("VCONC");
+				lock_gc();
 				OP_2P1P(vectorp(r0) && vectorp(r1) ? vconc(r0, r1) : RERR_TYPE_PC);
+				unlock_gc();
 				break;
 
 			case IS_VNCONC: TRACE("VNCONC");
@@ -675,15 +718,21 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_COMPILE_VM: TRACE("COMPILE_VM");
+				lock_gc();
 				OP_1P1P(compile_vm(r0, last(env)));
+				unlock_gc();
 				break;
 
 			case IS_EXEC_VM: TRACE("EXEC_VM");
+				lock_gc();
 				OP_1P1P(consp(r0) && vectorp(car(r0)) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
+				unlock_gc();
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
+				lock_gc();
 				OP_2P1P(pr_str(r0, NIL, !nilp(r1)));
+				unlock_gc();
 				break;
 
 			case IS_PRINTLINE: TRACE("PRINTLINE");
@@ -692,6 +741,7 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_SLURP: TRACE("SLURP");
 			{
+				lock_gc();
 				r0 = LOCAL_VPEEK_RAW;
 				if(!vectorp(r0))
 				{
@@ -700,15 +750,20 @@ value_t exec_vm(value_t c, value_t e)
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));
 				free(fn);
+				unlock_gc();
 			}
 			break;
 
 			case IS_MVFL: TRACE("MVFL");
+				lock_gc();
 				OP_1P1P(consp(r0) || nilp(r0) ? make_vector_from_list(r0) : RERR_TYPE_PC);
+				unlock_gc();
 				break;
 
 			case IS_MLFV: TRACE("MLFV");
+				lock_gc();
 				OP_1P1P(vectorp(r0) ? make_list_from_vector(r0) : RERR_TYPE_PC);
+				unlock_gc();
 				break;
 
 			default:
