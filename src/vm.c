@@ -550,7 +550,9 @@ value_t exec_vm(value_t c, value_t e)
 					r0raw.type.main = CONS_T;
 					if(nilp(THIRD(r0raw)))
 					{
+						lock_gc();
 						r2 = compile_vm(r0, env);
+						unlock_gc();
 						if(errp(r2)) return r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
@@ -659,11 +661,11 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_EVAL: TRACE("EVAL");
-				lock_gc();
 				r0 = LOCAL_VPEEK_RAW;
+				lock_gc();
 				r1 = compile_vm(r0, last(env));
-				LOCAL_RPLACV_TOP_RAW(exec_vm(r1, last(env)));
 				unlock_gc();
+				LOCAL_RPLACV_TOP_RAW(exec_vm(r1, last(env)));
 				break;
 
 			case IS_ERR: TRACE("ERR");
@@ -732,9 +734,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_EXEC_VM: TRACE("EXEC_VM");
-				lock_gc();
 				OP_1P1P(consp(r0) && vectorp(car(r0)) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
-				unlock_gc();
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");

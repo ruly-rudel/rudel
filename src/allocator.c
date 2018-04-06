@@ -85,7 +85,7 @@ inline static value_t* copy1(value_t* v)
 
 		case VEC_T:
 		case SYM_T:
-			if(nilp(cur)) return 0;	//****** nil is not vector(but it is not ocuured?)
+			//if(nilp(cur)) return 0;	//****** nil is not vector(but it is not ocuured?)
 
 			if(gcp(cur.vector->type))	// target vector is already copied
 			{
@@ -154,7 +154,7 @@ static value_t* exec_gc(void)
 	{
 		if(s_root[i].size)
 		{
-			for(int j = 0; j < *s_root[i].size; j++)
+			for(int j = 0; j <= *s_root[i].size; j++)
 			{
 				copy1(s_root[i].data + j);
 			}
@@ -370,6 +370,11 @@ value_t register_sym(value_t s)
 	{
 		return sym;
 	}
+}
+
+void force_gc(void)
+{
+	exec_gc();
 }
 
 // End of File

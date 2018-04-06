@@ -29,4 +29,6 @@ value_t*	alloc_vector_data	(value_t v, size_t size);
 void		clear_symtbl		(void);
 value_t		register_sym		(value_t s);
 
+void		force_gc		(void);
+
 #endif // _ALLOCATOR_H_

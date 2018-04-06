@@ -34,6 +34,8 @@ prof:	all
 fast:	OPT=$(FAST_OPT)
 fast:	all
 
+alloc:	OPT=$(DEBUG_OPT)
+
 .deps: *.c *.h
 	$(CC) $(CFLAGS) -MM *.c > .deps
 
@@ -46,11 +48,14 @@ librudel.a: $(LIBOBJS)
 test:	$(TARGET)
 	../scr/runtest.py ../tests/tests.rud ./$(TARGET)
 
+alloc: test_allocator.o librudel.a
+	$(LD) $^ -lcunit -o $@ $(OPT) $(LDFLAGS)
+
 .c.o:
 	$(CC) $(OPT) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags ../tags gmon.out
+	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags ../tags alloc gmon.out
 
 -include .deps
 
