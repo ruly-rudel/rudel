@@ -4,7 +4,8 @@
 
 
 /////////////////////////////////////////////////////////////////////
-// private: support functions
+// private: memory and symbol pool
+
 
 typedef struct
 {
@@ -12,23 +13,165 @@ typedef struct
 	int*		size;
 } root_t;
 
-static root_t s_root[ROOT_SIZE]   = { 0 };
-static int s_root_ptr             =   0;
-static int s_lock_cnt             =   0;
+static value_t	s_symbol_pool		= NIL;
+static root_t	s_root[ROOT_SIZE]	= { 0 };
+static int	s_root_ptr		=   0;
+static int	s_lock_cnt		=   0;
+
+/////////////////////////////////////////////////////////////////////
+// private: support functions
+
+#ifndef NDEBUG
+inline static bool is_from(value_t v)
+{
+	return ((value_t*)v.cons >= g_memory_pool_from && (value_t*)v.cons < g_memory_pool_from + INITIAL_ALLOC_SIZE);
+}
+
+inline static bool is_to(value_t v)
+{
+	return ((value_t*)v.cons >= g_memory_pool && (value_t*)v.cons < g_memory_max);
+}
+#endif // NDEBUG
+inline static bool gcp(value_t v)
+{
+	return rtypeof(v) == GC_T;
+}
+
+inline static value_t* copy1(value_t* v)
+{
+	rtype_t type = rtypeof(*v);
+	value_t cur  = *v;
+	cur.type.main = CONS_T;
+	value_t alloc;
+
+	switch(type)
+	{
+		case CONS_T:
+		case ERR_T:
+		case CLOJ_T:
+		case MACRO_T:
+			if(nilp(cur)) return 0;	// nil is not cons cell
+
+			if(gcp(cur.cons->car))	// target cons is already copied
+			{
+				// replace value itself to copyed to-space address
+				alloc = cur.cons->car;
+				assert(is_to(alloc));
+				alloc.type.main = type;
+				*v = alloc;
+			}
+			else
+			{
+				//assert(is_from(cur));
+				if(is_to(cur)) return 0;	//*** ad-hock
+				// allocate memory and copy car/cdr of current cons in from-space to to-space
+				alloc.cons      = (cons_t*)g_memory_top;
+				*g_memory_top++ = UNSAFE_CAR(cur);
+				*g_memory_top++ = UNSAFE_CDR(cur);
+
+				// write to-space address to car of current cons in from-space
+				alloc.type.main = GC_T;
+				cur.cons->car   = alloc;
+
+				// replace value itself to copyed to-space address
+				alloc.type.main = type;
+				*v = alloc;
+
+				// invoke copy1 to car/cdr of current cons
+				copy1(&cur.cons->car);
+				copy1(&cur.cons->cdr);
+			}
+			return 0;
+
+		case VEC_T:
+		case SYM_T:
+			if(nilp(cur)) return 0;	//****** nil is not vector(but it is not ocuured?)
+
+			if(gcp(cur.vector->type))	// target vector is already copied
+			{
+				// replace value itself to copyed to-space address
+				alloc = cur.vector->type;
+				assert(is_to(alloc));
+				alloc.type.main = type;
+				*v = alloc;
+			}
+			else
+			{
+				//assert(is_from(cur));
+				if(is_to(cur)) return 0;	//*** ad-hock
+				// allocate memory and copy vector in from-space to to-space
+				alloc.vector        = (vector_t*)g_memory_top;
+				g_memory_top       += 4;
+				alloc.vector->size  = cur.vector->size;
+				alloc.vector->alloc = cur.vector->alloc;
+				alloc.vector->type  = cur.vector->type;
+				alloc.vector->data  = g_memory_top;
+				for(int i = 0; i < cur.vector->alloc; i++)
+					*g_memory_top++ = cur.vector->data[i];
+
+				// write to-space address to car of current cons in from-space
+				alloc.type.main     = GC_T;
+				cur.vector->type    = alloc;
+
+				// replace value itself to copyed to-space address
+				alloc.type.main = type;
+				*v = alloc;
+
+				// invoke copy1 to current vector data
+				for(int i = 0; i < alloc.vector->size; i++)
+					copy1(cur.vector->data + i);
+			}
+			return 0;
+
+		case GC_T:
+			abort();
+
+		default:
+			break;
+	}
+
+	return v + 1;
+}
 
 static value_t* exec_gc(void)
 {
+#ifdef TRACE_VM
+	fprintf(stderr, "Executing GC...\n");
+#endif
 #ifdef NOGC
 	return 0;
 #else  // NOGC
 
 	// swap buffer
 	value_t* tmp       = g_memory_pool;
-	g_memory_pool      = g_memory_top = g_memory_pool_back;
+	g_memory_pool      = g_memory_top = g_memory_pool_from;
 	g_memory_max       = g_memory_top + INITIAL_ALLOC_SIZE;
-	g_memory_pool_back = tmp;
+	g_memory_pool_from = tmp;
 
-	return g_memory_pool;
+	// copy root to memory pool
+	for(int i = 0; i < s_root_ptr; i++)
+	{
+		if(s_root[i].size)
+		{
+			for(int j = 0; j < *s_root[i].size; j++)
+			{
+				copy1(s_root[i].data + j);
+			}
+		}
+		else
+		{
+			copy1(s_root[i].data);
+		}
+	}
+
+	// copy symbol pool to memory pool
+	copy1(&s_symbol_pool);
+	init_global();
+
+#ifdef TRACE_VM
+	fprintf(stderr, "Executing GC Done.\n");
+#endif
+	return g_memory_top;
 #endif // NOGC
 }
 
@@ -39,7 +182,7 @@ void init_allocator(void)
 {
 	g_memory_pool      = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
 #ifndef NOGC
-	g_memory_pool_back = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
+	g_memory_pool_from = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
 #endif  // NOGC
 	g_memory_top       = g_memory_pool;
 	g_memory_max       = g_memory_pool + INITIAL_ALLOC_SIZE;
@@ -157,6 +300,10 @@ value_t* alloc_vector_data(value_t v, size_t size)
 		{
 			return 0;
 		}
+		else if(g_memory_top + size >= g_memory_max)
+		{
+			return 0;
+		}
 	}
 
 	if(v.vector->data)
@@ -170,6 +317,25 @@ value_t* alloc_vector_data(value_t v, size_t size)
 	g_memory_top += size;
 
 	return v.vector->data;
+}
+
+void clear_symtbl(void)
+{
+	s_symbol_pool = NIL;
+}
+
+value_t register_sym(value_t s)
+{
+	value_t sym = find(s, s_symbol_pool, veq);
+	if(nilp(sym))
+	{
+		s_symbol_pool = cons(s, s_symbol_pool);
+		return s;
+	}
+	else
+	{
+		return sym;
+	}
 }
 
 // End of File

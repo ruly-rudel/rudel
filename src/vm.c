@@ -130,14 +130,23 @@ static inline vector_t* local_aligned_vaddr(value_t v)
 
 inline static value_t local_make_vector(unsigned n)
 {
-	value_t v;
-	v.vector        = (vector_t*)malloc(sizeof(vector_t));
-	v.vector->size  = 0;
-	v.vector->alloc = n;
-	v.vector->type  = CONS_T;
-	v.vector->data  = (value_t*)malloc(n * sizeof(value_t));
-	v.type.main     = VEC_T;
-	return v;
+	value_t v = { 0 };
+	v.vector  = alloc_vector();
+
+	if(v.vector)
+	{
+		v.vector->size  = 0;
+		v.vector->alloc = n;
+		v.vector->type  = NIL;
+		v.vector->data  = 0;
+		v.type.main     = VEC_T;
+		alloc_vector_data(v, n);
+		return v;
+	}
+	else
+	{
+		return rerr_alloc();
+	}
 }
 
 inline static value_t local_vref(value_t v, unsigned pos)
@@ -166,26 +175,24 @@ inline static value_t local_vpush(value_t x, value_t v)
 {
 	assert(vectorp(v));
 
-	v.vector = local_aligned_vaddr(v);
-	int s = v.vector->size;
-	int a = v.vector->alloc;
+	value_t va;
+	va.vector = local_aligned_vaddr(v);
+	int s = va.vector->size;
+	int a = va.vector->alloc;
 	if(s + 1 >= a)
 	{
 		a = a * 2;
-		v.vector->alloc = a;
-		value_t* np = (value_t*)realloc(v.vector->data, a * sizeof(value_t));
-		if(np)
-		{
-			v.vector->data = np;
-		}
-		else
+		//va.vector->alloc = a;
+		//value_t* np = (value_t*)realloc(v.vector->data, a * sizeof(value_t));
+		value_t* np = alloc_vector_data(v, a);
+		if(!np)
 		{
 			return rerr_alloc();
 		}
 	}
 
-	v.vector->data[s] = x;
-	v.vector->size = s + 1;
+	va.vector->data[s] = x;
+	va.vector->size = s + 1;
 
 	return v;
 }

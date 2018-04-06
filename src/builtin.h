@@ -10,13 +10,13 @@
 
 typedef enum _rtype_t {
 	// main 8types (content is address)
-	CONS_T = 0,	// sequence
+	CONS_T = 0,
 	ERR_T,
 	SYM_T,
-	CFN_T,		// dotted
-	CLOJ_T,		// dotted
-	MACRO_T,	// dotted
-	VEC_T,		// sequence
+	GC_T,
+	CLOJ_T,
+	MACRO_T,
+	VEC_T,
 	OTH_T,
 
 	// sub types (content is value)
@@ -193,7 +193,7 @@ typedef struct _vector_t
 	int64_t		size;
 	int64_t		alloc;
 #endif
-	rtype_t		type;
+	value_t		type;
 	value_t*	data;
 } vector_t;
 
@@ -244,7 +244,6 @@ INLINE(bool    charp(value_t x),    x.type.main == OTH_T  &&  x.type.sub == CHAR
 INLINE(bool    consp(value_t x),    x.type.main == CONS_T && (x.type.sub != 0 || x.type.val != 0))
 INLINE(bool    vectorp(value_t x),  x.type.main == VEC_T  && (x.type.sub != 0 || x.type.val != 0))
 INLINE(bool    symbolp(value_t x),  x.type.main == SYM_T  && (x.type.sub != 0 || x.type.val != 0))
-INLINE(bool    cfnp(value_t x),     x.type.main == CFN_T  && (x.type.sub != 0 || x.type.val != 0))
 INLINE(bool    clojurep(value_t x), x.type.main == CLOJ_T && (x.type.sub != 0 || x.type.val != 0))
 INLINE(bool    macrop(value_t x),   x.type.main == MACRO_T&& (x.type.sub != 0 || x.type.val != 0))
 INLINE(bool    errp(value_t x),     x.type.main == ERR_T)
@@ -284,6 +283,9 @@ value_t make_vector	(unsigned n);
 value_t vref		(value_t v, unsigned pos);
 value_t rplacv		(value_t v, unsigned pos, value_t data);
 int	vsize		(value_t v);
+int	vallocsize	(value_t v);
+value_t vtype		(value_t v);
+value_t*	vdata	(value_t v);
 value_t vresize		(value_t v, int n);
 bool	veq		(value_t x, value_t y);
 value_t vpush		(value_t x, value_t v);
@@ -302,7 +304,6 @@ value_t str_to_rstr	(const char* s);
 value_t str_to_sym	(const char* s);
 char*   rstr_to_str	(value_t s);
 
-value_t register_sym	(value_t s);
 value_t gensym		(value_t env);
 
 value_t* cons_and_cdr	(value_t v, value_t* c);

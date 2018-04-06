@@ -257,21 +257,6 @@ static value_t pr_str_str(value_t s, bool print_readably)
 	return r;
 }
 
-static value_t pr_str_cfn(value_t s, value_t annotate)
-{
-	assert(cfnp(s));
-
-#ifdef PRINT_CLOS_ENV
-	value_t r = str_to_rstr("(#<COMPILED-FUNCTION> . ");
-	vnconc(r, pr_str(cdr(s), annotate));
-	vnconc(r, str_to_rstr(")"));
-
-	return r;
-#else  // PRINT_CLOS_ENV
-	return str_to_rstr("#<COMPILED-FUNCTION>");
-#endif // PRINT_CLOS_ENV
-}
-
 static value_t pr_str_cloj(value_t s, value_t annotate)
 {
 	assert(clojurep(s));
@@ -552,9 +537,6 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 
 	    case INT_T:
 		return pr_str_int(INTOF(s));
-
-	    case CFN_T:
-		return pr_str_cfn(s, annotate);
 
 	    case CLOJ_T:
 		return pr_str_cloj(s, annotate);

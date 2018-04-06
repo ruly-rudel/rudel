@@ -9,11 +9,6 @@
 #include "printer.h"
 
 /////////////////////////////////////////////////////////////////////
-// private: symbol pool
-
-static value_t s_symbol_pool = NIL;
-
-/////////////////////////////////////////////////////////////////////
 // private: support functions
 
 static inline cons_t* aligned_addr(value_t v)
@@ -354,14 +349,6 @@ value_t rerr_add_pos(value_t pos, value_t e)
 	return r;
 }
 
-value_t	cfn(value_t car, value_t cdr)
-{
-	value_t	r	= cons(car, cdr);
-	r.type.main	= CFN_T;
-
-	return r;
-}
-
 value_t	cloj(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug)
 {
 	value_t	r	= list(5, ast, ast_env, code, vm_env, debug);
@@ -423,9 +410,10 @@ value_t make_vector(unsigned n)
 	{
 		v.vector->size  = 0;
 		v.vector->alloc = n;
-		v.vector->type  = CHAR_T;
-		v.vector->data  = (value_t*)malloc(n * sizeof(value_t));
+		v.vector->type  = NIL;
+		v.vector->data  = 0;
 		v.type.main     = VEC_T;
+		alloc_vector_data(v, n);
 		return v;
 	}
 	else
@@ -437,6 +425,7 @@ value_t make_vector(unsigned n)
 value_t vref(value_t v, unsigned pos)
 {
 	assert(vectorp(v) || symbolp(v));
+	assert(vsize(v) <= vallocsize(v));
 	v.vector = aligned_vaddr(v);
 
 	if(pos < v.vector->size)
@@ -452,6 +441,7 @@ value_t vref(value_t v, unsigned pos)
 value_t rplacv(value_t v, unsigned pos, value_t data)
 {
 	assert(vectorp(v));
+	assert(vsize(v) <= vallocsize(v));
 
 	if(pos >= vsize(v))
 	{
@@ -468,12 +458,38 @@ int vsize(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
+	assert(v.vector->size <= v.vector->alloc);
 	return v.vector->size;
+}
+
+int vallocsize(value_t v)
+{
+	assert(vectorp(v) || symbolp(v));
+	v.vector = aligned_vaddr(v);
+	assert(v.vector->size <= v.vector->alloc);
+	return v.vector->alloc;
+}
+
+value_t vtype(value_t v)
+{
+	assert(vectorp(v) || symbolp(v));
+	assert(vsize(v) <= vallocsize(v));
+	v.vector = aligned_vaddr(v);
+	return v.vector->type;
+}
+
+value_t* vdata(value_t v)
+{
+	assert(vectorp(v) || symbolp(v));
+	assert(vsize(v) <= vallocsize(v));
+	v.vector = aligned_vaddr(v);
+	return v.vector->data;
 }
 
 value_t vresize(value_t v, int n)
 {
 	assert(vectorp(v));
+	assert(vsize(v) <= vallocsize(v));
 	vector_t* va = aligned_vaddr(v);
 	if(n < 0)
 	{
@@ -511,6 +527,8 @@ bool veq(value_t x, value_t y)
 {
 	assert(vectorp(x) || symbolp(x));
 	assert(vectorp(y) || symbolp(y));
+	assert(vsize(x) <= vallocsize(x));
+	assert(vsize(y) <= vallocsize(y));
 	x.type.main = VEC_T;
 	y.type.main = VEC_T;
 
@@ -535,6 +553,7 @@ bool veq(value_t x, value_t y)
 value_t vpush(value_t x, value_t v)
 {
 	assert(vectorp(v));
+	assert(vsize(v) <= vallocsize(v));
 
 	rplacv(v, vsize(v), x);		//***** assume no error
 	return v;
@@ -543,6 +562,7 @@ value_t vpush(value_t x, value_t v)
 value_t vpop(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
+	assert(vsize(v) <= vallocsize(v));
 	int s = vsize(v);
 
 	if(s <= 0)
@@ -561,6 +581,7 @@ value_t vpop(value_t v)
 value_t vpeek(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
+	assert(vsize(v) <= vallocsize(v));
 	int s = vsize(v);
 
 	if(s <= 0)
@@ -576,6 +597,7 @@ value_t vpeek(value_t v)
 value_t vpush_front(value_t v, value_t x)
 {
 	assert(vectorp(v) || symbolp(v));
+	assert(vsize(v) <= vallocsize(v));
 
 	vpush(NIL, v);
 	for(int i = vsize(v) - 2; i >= 0; i--)
@@ -590,6 +612,7 @@ value_t vpush_front(value_t v, value_t x)
 value_t copy_vector(value_t src)
 {
 	assert(vectorp(src));
+	assert(vsize(src) <= vallocsize(src));
 	value_t r = make_vector(vsize(src));
 
 	for(int i = 0; i < vsize(src); i++)
@@ -604,6 +627,8 @@ value_t vconc(value_t x, value_t y)
 {
 	assert(vectorp(x));
 	assert(vectorp(y));
+	assert(vsize(x) <= vallocsize(x));
+	assert(vsize(y) <= vallocsize(y));
 
 	int sx = vsize(x);
 	int sy = vsize(y);
@@ -630,6 +655,8 @@ value_t vnconc(value_t x, value_t y)
 {
 	assert(vectorp(x));
 	assert(vectorp(y));
+	assert(vsize(x) <= vallocsize(x));
+	assert(vsize(y) <= vallocsize(y));
 
 	// copy y
 	int sy = vsize(y);
@@ -657,6 +684,7 @@ value_t make_vector_from_list(value_t x)
 value_t make_list_from_vector(value_t x)
 {
 	assert(vectorp(x));
+	assert(vsize(x) <= vallocsize(x));
 
 	value_t r    = NIL;
 	value_t* cur = &r;
@@ -696,7 +724,8 @@ value_t str_to_vec	(const char* s)
 	int c;
 	while((c = *s++) != '\0')
 	{
-		vpush(RCHAR(c), r);
+		value_t result = vpush(RCHAR(c), r);
+		if(errp(result)) return result;
 	}
 
 	return r;
@@ -706,9 +735,12 @@ value_t str_to_rstr	(const char* s)
 {
 	assert(s != NULL);
 	value_t r = str_to_vec(s);
-	if(vsize(r) == 0)
+	if(!errp(r))
 	{
-		vpush(RCHAR('\0'), r);
+		if(vsize(r) == 0)
+		{
+			vpush(RCHAR('\0'), r);
+		}
 	}
 
 	return r;
@@ -717,9 +749,16 @@ value_t str_to_rstr	(const char* s)
 value_t str_to_sym	(const char* s)
 {
 	value_t r = str_to_rstr(s);
-	r.type.main = SYM_T;
+	if(errp(r))
+	{
+		return r;
+	}
+	else
+	{
+		r.type.main = SYM_T;
 
-	return register_sym(r);
+		return register_sym(r);
+	}
 }
 
 char*   rstr_to_str	(value_t s)
@@ -744,20 +783,6 @@ char*   rstr_to_str	(value_t s)
 
 /////////////////////////////////////////////////////////////////////
 // public: symbol functions
-
-value_t register_sym(value_t s)
-{
-	value_t sym = find(s, s_symbol_pool, veq);
-	if(nilp(sym))
-	{
-		s_symbol_pool = cons(s, s_symbol_pool);
-		return s;
-	}
-	else
-	{
-		return sym;
-	}
-}
 
 value_t gensym	(value_t env)
 {

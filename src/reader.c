@@ -2,6 +2,7 @@
 #include "builtin.h"
 #include "reader.h"
 #include "scanner.h"
+#include "allocator.h"
 #include "../linenoise/linenoise.h"
 
 
