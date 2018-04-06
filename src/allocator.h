@@ -12,6 +12,7 @@ EXTERN value_t* g_memory_pool_from;
 #endif  // NOGC
 EXTERN value_t* g_memory_top;
 EXTERN value_t* g_memory_max;
+EXTERN value_t* g_memory_gc;
 
 void		init_allocator		(void);
 void		push_root		(value_t* v);

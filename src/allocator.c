@@ -62,8 +62,7 @@ inline static value_t* copy1(value_t* v)
 			}
 			else
 			{
-				//assert(is_from(cur));
-				if(is_to(cur)) return 0;	//*** ad-hock
+				assert(is_from(cur));
 				// allocate memory and copy car/cdr of current cons in from-space to to-space
 				alloc.cons      = (cons_t*)g_memory_top;
 				*g_memory_top++ = UNSAFE_CAR(cur);
@@ -78,8 +77,9 @@ inline static value_t* copy1(value_t* v)
 				*v = alloc;
 
 				// invoke copy1 to car/cdr of current cons
-				copy1(&cur.cons->car);
-				copy1(&cur.cons->cdr);
+				alloc.type.main = CONS_T;
+				copy1(&alloc.cons->car);
+				copy1(&alloc.cons->cdr);
 			}
 			return 0;
 
@@ -97,8 +97,7 @@ inline static value_t* copy1(value_t* v)
 			}
 			else
 			{
-				//assert(is_from(cur));
-				if(is_to(cur)) return 0;	//*** ad-hock
+				assert(is_from(cur));
 				// allocate memory and copy vector in from-space to to-space
 				alloc.vector        = (vector_t*)g_memory_top;
 				g_memory_top       += 4;
@@ -118,8 +117,9 @@ inline static value_t* copy1(value_t* v)
 				*v = alloc;
 
 				// invoke copy1 to current vector data
+				alloc.type.main = CONS_T;
 				for(int i = 0; i < alloc.vector->size; i++)
-					copy1(cur.vector->data + i);
+					copy1(alloc.vector->data + i);
 			}
 			return 0;
 
@@ -146,6 +146,7 @@ static value_t* exec_gc(void)
 	value_t* tmp       = g_memory_pool;
 	g_memory_pool      = g_memory_top = g_memory_pool_from;
 	g_memory_max       = g_memory_top + INITIAL_ALLOC_SIZE;
+	g_memory_gc        = g_memory_top + INITIAL_ALLOC_SIZE / 2;
 	g_memory_pool_from = tmp;
 
 	// copy root to memory pool
@@ -186,6 +187,7 @@ void init_allocator(void)
 #endif  // NOGC
 	g_memory_top       = g_memory_pool;
 	g_memory_max       = g_memory_pool + INITIAL_ALLOC_SIZE;
+	g_memory_gc        = g_memory_pool + INITIAL_ALLOC_SIZE / 2;
 }
 
 void push_root(value_t* v)
@@ -236,13 +238,20 @@ cons_t* alloc_cons(void)
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	if(g_memory_top >= g_memory_max)
+	if(g_memory_top >= g_memory_gc && s_lock_cnt == 0)
 	{
 		if(exec_gc())
 		{
 			c = (cons_t*)g_memory_top;
 			g_memory_top += 2;
-			return c;
+			if(g_memory_top >= g_memory_max)
+			{
+				return 0;
+			}
+			else
+			{
+				return c;
+			}
 		}
 		else
 		{
@@ -251,7 +260,14 @@ cons_t* alloc_cons(void)
 	}
 	else
 	{
-		return c;
+		if(g_memory_top >= g_memory_max)
+		{
+			return 0;
+		}
+		else
+		{
+			return c;
+		}
 	}
 }
 
@@ -268,13 +284,20 @@ vector_t* alloc_vector()
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	if(g_memory_top >= g_memory_max)
+	if(g_memory_top >= g_memory_gc && s_lock_cnt == 0)
 	{
 		if(exec_gc())
 		{
 			v = (vector_t*)g_memory_top;
 			g_memory_top += 4;
-			return v;
+			if(g_memory_top >= g_memory_max)
+			{
+				return 0;
+			}
+			else
+			{
+				return v;
+			}
 		}
 		else
 		{
@@ -283,7 +306,14 @@ vector_t* alloc_vector()
 	}
 	else
 	{
-		return v;
+		if(g_memory_top >= g_memory_max)
+		{
+			return 0;
+		}
+		else
+		{
+			return v;
+		}
 	}
 }
 
@@ -294,7 +324,7 @@ value_t* alloc_vector_data(value_t v, size_t size)
 
 	size = size + (size % 2);	// align
 
-	if(g_memory_top + size >= g_memory_max)
+	if(g_memory_top + size >= g_memory_gc && s_lock_cnt == 0)
 	{
 		if(!exec_gc())
 		{
@@ -304,6 +334,10 @@ value_t* alloc_vector_data(value_t v, size_t size)
 		{
 			return 0;
 		}
+	}
+	else if(g_memory_top + size >= g_memory_max)
+	{
+		return 0;
 	}
 
 	if(v.vector->data)

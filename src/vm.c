@@ -220,6 +220,13 @@ inline static value_t local_rplacv_top(value_t x, value_t v)
 	return v.vector->data[v.vector->size - 1] = x;
 }
 
+inline static value_t local_rplacv(value_t v, int i, value_t x)
+{
+	assert(vectorp(v) || symbolp(v));
+	v.vector = local_aligned_vaddr(v);
+	return v.vector->data[i] = x;
+}
+
 inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 {
 	assert(consp(env));
@@ -268,8 +275,6 @@ value_t exec_vm(value_t c, value_t e)
 	value_t* ret_raw   = (value_t*)malloc(sizeof(value_t) * ralloc);
 
 	value_t code       = car(c);
-	value_t code_raw   = code;
-	code_raw.type.main = CONS_T;
 
 	value_t debug      = cdr(c);
 
@@ -295,7 +300,7 @@ value_t exec_vm(value_t c, value_t e)
 
 	for(int pc = 0; true; pc++)
 	{
-		value_t op = code_raw.vector->data[pc];
+		value_t op = local_vref(code, pc);
 		assert(rtypeof(op) == VMIS_T);
 
 		switch(op.op.mnem)
@@ -368,8 +373,6 @@ value_t exec_vm(value_t c, value_t e)
 
 					// set new execute contexts
 					code  = UNSAFE_CAR(THIRD(r0raw));	// clojure code
-					code_raw = code;
-					code_raw.type.main  = CONS_T;
 					debug = UNSAFE_CDR(THIRD(r0raw));	// clojure debug symbols
 					env  = cons(r1, FOURTH(r0raw));	// clojure environment + new environment as arguments
 					pc   = -1;
@@ -412,8 +415,6 @@ value_t exec_vm(value_t c, value_t e)
 				pc    = INTOF(LOCAL_VPOP_RET_RAW);
 				debug = LOCAL_VPOP_RET_RAW;
 				code  = LOCAL_VPOP_RET_RAW;
-				code_raw = code;
-				code_raw.type.main = CONS_T;
 				break;
 
 			case IS_DUP: TRACE("DUP");
@@ -422,7 +423,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_PUSH: TRACEN("PUSH: ");
-				r0 = code_raw.vector->data[++pc];	// next code is entity
+				r0 = local_vref(code, ++pc);	// next code is entity
 				if(refp(r0))
 				{
 					TRACE2N("#REF:%d,%d# ", REF_D(r0), REF_W(r0));
@@ -442,7 +443,7 @@ value_t exec_vm(value_t c, value_t e)
 					{
 						return RERR_OVW_PC(r0);
 					}
-					code_raw.vector->data[pc] = r0;	// replace symbol to reference
+					local_rplacv(code, pc, r0);		// replace symbol to reference
 					TRACE2N("-> #REF:%d,%d# ", REF_D(r0), REF_W(r0));
 					r0 = local_get_env_value_ref(r0, env);
 				}
@@ -465,7 +466,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_PUSHR: TRACEN("PUSHR: ");
-				r0 = code_raw.vector->data[++pc];	// next code is entity
+				r0 = local_vref(code, ++pc);	// next code is entity
 #ifdef TRACE_VM
 				lock_gc();
 				print(pr_str(r0, NIL, true), stderr);
