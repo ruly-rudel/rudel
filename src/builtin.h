@@ -249,6 +249,7 @@ INLINE(bool    macrop(value_t x),   x.type.main == MACRO_T&& (x.type.sub != 0 ||
 INLINE(bool    errp(value_t x),     x.type.main == ERR_T)
 INLINE(bool    refp(value_t x),     x.type.main == OTH_T  &&  x.type.sub == REF_T)
 INLINE(bool    specialp(value_t x), x.type.main == OTH_T  &&  x.type.sub == SPECIAL_T)
+INLINE(bool    gcp(value_t x),      x.type.main == GC_T)
 
 value_t car		(value_t x);
 value_t cdr		(value_t x);

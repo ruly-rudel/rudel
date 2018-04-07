@@ -521,6 +521,7 @@ value_t vresize(value_t v, int n)
 		}
 
 		// change size and NILify new area
+		va = aligned_vaddr(v);
 		int cur_size = va->size;
 		va->size = n;
 		for(int i = cur_size; i < n; i++)
@@ -624,9 +625,12 @@ value_t copy_vector(value_t src)
 	assert(vsize(src) <= vallocsize(src));
 	value_t r = make_vector(vsize(src));
 
-	for(int i = 0; i < vsize(src); i++)
+	if(!errp(r))
 	{
-		rplacv(r, i, vref(src, i));
+		for(int i = 0; i < vsize(src); i++)
+		{
+			rplacv(r, i, vref(src, i));
+		}
 	}
 
 	return r;
@@ -657,7 +661,6 @@ value_t vconc(value_t x, value_t y)
 	}
 
 	return r;
-
 }
 
 value_t vnconc(value_t x, value_t y)
@@ -682,6 +685,7 @@ value_t make_vector_from_list(value_t x)
 	assert(is_cons_pair_or_nil(x));
 
 	value_t r = make_vector(0);
+
 	for(; !nilp(x); x = cdr(x))
 	{
 		vpush(car(x), r);

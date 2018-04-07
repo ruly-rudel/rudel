@@ -1,6 +1,5 @@
-(exec-vm (compile-vm
-	   '(let* ((fib (lambda (n)
-			 (if (< n 2) n
-			   (+ (fib (- n 1)) (fib (- n 2)))))))
-	      (fib (car (cdr *ARGV*))))))
+(let* ((fib (lambda (n)
+	      (if (< n 2) n
+		(+ (fib (- n 1)) (fib (- n 2)))))))
+  (fib (car (cdr *ARGV*))))
 

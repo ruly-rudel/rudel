@@ -297,13 +297,46 @@ void test_alloc_011(void)
 	CU_ASSERT(equal(str_to_sym("hogehoge"),   str_hogehoge));
 }
 
+void test_alloc_012(void)
+{
+	force_gc();
+	value_t r = make_vector(0);
+	vpush(str_to_sym("nil"), r);
+	vpush(str_to_sym("t"),   r);
+	vpush(str_to_sym("hogehoge"),   r);
+
+	value_t str_nil = str_to_sym("nil");
+	value_t str_t = str_to_sym("t");
+	value_t str_hogehoge = str_to_sym("hogehoge");
+
+	push_root(&r);
+	value_t r2 = r;
+	force_gc();
+	force_gc();
+	pop_root();
+
+	CU_ASSERT(!EQ(r, r2));
+	CU_ASSERT(vectorp(r));
+	CU_ASSERT(vectorp(r2));
+
+	CU_ASSERT(EQ(str_to_sym("nil"),        vref (r, 0)));
+	CU_ASSERT(EQ(str_to_sym("t"),          vref (r, 1)));
+	CU_ASSERT(EQ(str_to_sym("hogehoge"),   vref (r, 2)));
+	CU_ASSERT(!EQ(str_to_sym("nil"),        str_nil));
+	CU_ASSERT(!EQ(str_to_sym("t"),          str_t));
+	CU_ASSERT(!EQ(str_to_sym("hogehoge"),   str_hogehoge));
+	CU_ASSERT(equal(str_to_sym("nil"),        str_nil));
+	CU_ASSERT(equal(str_to_sym("t"),          str_t));
+	CU_ASSERT(equal(str_to_sym("hogehoge"),   str_hogehoge));
+}
+
 int main(int argc, char* argv[])
 {
 	init_allocator();
 	init_global();
 
 	CU_pSuite alloc_suite;
-	
+
 	CU_initialize_registry();
 	alloc_suite = CU_add_suite("Allocator", NULL, NULL);
 	CU_add_test(alloc_suite, "test_alloc_000", test_alloc_000);
@@ -318,6 +351,7 @@ int main(int argc, char* argv[])
 	CU_add_test(alloc_suite, "test_alloc_009", test_alloc_009);
 	CU_add_test(alloc_suite, "test_alloc_010", test_alloc_010);
 	CU_add_test(alloc_suite, "test_alloc_011", test_alloc_011);
+	CU_add_test(alloc_suite, "test_alloc_012", test_alloc_012);
 	CU_console_run_tests();
 	CU_cleanup_registry();
 	return 0;

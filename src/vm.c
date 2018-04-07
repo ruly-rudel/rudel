@@ -17,7 +17,7 @@
 		alloc *= 2; \
 		stack_raw = (value_t*)realloc(stack_raw, alloc * sizeof(value_t)); \
 		if(!stack_raw) { \
-			return rerr_alloc(); \
+			return unlock_gc(), rerr_alloc(); \
 		} \
 	} \
 	stack_raw[++sp] = (X); \
@@ -36,7 +36,7 @@
 		ralloc *= 2; \
 		ret_raw = (value_t*)realloc(ret_raw, ralloc * sizeof(value_t)); \
 		if(!ret_raw) { \
-			return rerr_alloc(); \
+			return unlock_gc(), rerr_alloc(); \
 		} \
 	} \
 	ret_raw[++rsp] = (X); \
@@ -112,9 +112,9 @@
 #define TRACE2N(X, Y, Z)
 #endif // TRACE_VM
 
-#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(vref(debug, pc), NIL))
-#define RERR_PC(X)	RERR((X), cons(vref(debug, pc), NIL))
-#define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(vref(debug, pc), NIL))
+#define RERR_TYPE_PC	(unlock_gc(), RERR(ERR_TYPE, cons(vref(debug, pc), NIL)))
+#define RERR_PC(X)	(unlock_gc(), RERR((X), cons(vref(debug, pc), NIL)))
+#define RERR_OVW_PC(X)	(unlock_gc(), rerr(RERR_CAUSE(X), cons(vref(debug, pc), NIL)))
 
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
@@ -303,6 +303,7 @@ value_t exec_vm(value_t c, value_t e)
 		value_t op = local_vref(code, pc);
 		assert(rtypeof(op) == VMIS_T);
 
+		lock_gc();
 		switch(op.op.mnem)
 		{
 			// core functions
@@ -313,6 +314,7 @@ value_t exec_vm(value_t c, value_t e)
 				// pop root
 				for(int i = 0; i < 9; i++)
 					pop_root();
+				unlock_gc();
 				return LOCAL_VPOP_RAW;
 
 			case IS_BR: TRACE1("BR %x", pc + op.op.operand);
@@ -360,10 +362,8 @@ value_t exec_vm(value_t c, value_t e)
 					r0raw.type.main = CONS_T;
 					if(nilp(THIRD(r0raw)))
 					{
-						lock_gc();
 						r2 = compile_vm(r0, env);
-						unlock_gc();
-						if(errp(r2)) return r2;
+						if(errp(r2)) return unlock_gc(), r2;
 					}
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
@@ -384,22 +384,20 @@ value_t exec_vm(value_t c, value_t e)
 					r0raw.type.main = CONS_T;
 					if(nilp(THIRD(r0raw)))
 					{
-						lock_gc();
 						r2 = compile_vm(r0, env);
-						unlock_gc();
-						if(errp(r2)) return r2;
+						if(errp(r2)) return unlock_gc(), r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					value_t ext = exec_vm(THIRD(r0raw), cons(r1, FOURTH(r0raw)));
-					if(errp(ext)) return ext;
+					r2 = THIRD(r0raw);
+					r3 = FOURTH(r0raw);
+					value_t ext = exec_vm(r2, cons(r1, r3));
+					if(errp(ext)) return unlock_gc(), ext;
 					TRACE("  Compiling the result on-the-fly.");
-					lock_gc();
 					value_t new_code = compile_vm(ext, env);
-					unlock_gc();
-					if(errp(new_code)) return new_code;
+					if(errp(new_code)) return unlock_gc(), new_code;
 					TRACE("  Evaluate it, invoking another VM.");
 					value_t res = exec_vm(new_code, env);
-					if(errp(res)) return res;
+					if(errp(res)) return unlock_gc(), res;
 					TRACE("AP(Macro) Done.");
 					LOCAL_VPUSH_RAW(res);
 				}
@@ -432,11 +430,9 @@ value_t exec_vm(value_t c, value_t e)
 				else if(symbolp(r0))
 				{
 #ifdef TRACE_VM
-					lock_gc();
 					char* sn = rstr_to_str(symbol_string(r0));
 					fprintf(stderr, "%s ", sn);
 					free(sn);
-					unlock_gc();
 #endif // TRACE_VM
 					r0 = get_env_ref(r0, env);
 					if(errp(r0))
@@ -454,9 +450,7 @@ value_t exec_vm(value_t c, value_t e)
 					UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0raw))).cons->car = env;	// set current environment
 				}
 #ifdef TRACE_VM
-				lock_gc();
 				print(pr_str(r0, NIL, true), stderr);
-				unlock_gc();
 #endif // TRACE_VM
 				if(errp(r0))
 				{
@@ -468,9 +462,7 @@ value_t exec_vm(value_t c, value_t e)
 			case IS_PUSHR: TRACEN("PUSHR: ");
 				r0 = local_vref(code, ++pc);	// next code is entity
 #ifdef TRACE_VM
-				lock_gc();
 				print(pr_str(r0, NIL, true), stderr);
-				unlock_gc();
 #endif // TRACE_VM
 				LOCAL_VPUSH_RAW(r0);
 				break;
@@ -550,14 +542,14 @@ value_t exec_vm(value_t c, value_t e)
 					r0raw.type.main = CONS_T;
 					if(nilp(THIRD(r0raw)))
 					{
-						lock_gc();
 						r2 = compile_vm(r0, env);
-						unlock_gc();
-						if(errp(r2)) return r2;
+						if(errp(r2)) return unlock_gc(), r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					value_t ext = exec_vm(THIRD(r0raw), cons(r1, FOURTH(r0raw)));
-					if(errp(ext)) return ext;
+					r2 = THIRD(r0raw);
+					r3 = FOURTH(r0raw);
+					value_t ext = exec_vm(r2, cons(r1, r3));
+					if(errp(ext)) return unlock_gc(), ext;
 					TRACE("MACROEXPAND Done.");
 					LOCAL_VPUSH_RAW(ext);
 				}
@@ -617,9 +609,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_GENSYM: TRACE("GENSYM");
-				lock_gc();
 				OP_0P1P(gensym(last(env)));
-				unlock_gc();
 				break;
 
 			case IS_ADD: TRACE("ADD");
@@ -655,16 +645,12 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_READ_STRING: TRACE("READ_STRING");
-				lock_gc();
 				OP_1P1P(vectorp(r0) ? read_str(r0) : RERR_TYPE_PC);
-				unlock_gc();
 				break;
 
 			case IS_EVAL: TRACE("EVAL");
 				r0 = LOCAL_VPEEK_RAW;
-				lock_gc();
 				r1 = compile_vm(r0, last(env));
-				unlock_gc();
 				LOCAL_RPLACV_TOP_RAW(exec_vm(r1, last(env)));
 				break;
 
@@ -677,9 +663,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_INIT: TRACE("INIT");
-				lock_gc();
 				OP_0P1P(init(env));
-				unlock_gc();
 				break;
 
 
@@ -712,15 +696,11 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_COPY_VECTOR: TRACE("COPY_VECTOR");
-				lock_gc();
 				OP_1P1P(vectorp(r0) ? copy_vector(r0) : RERR_TYPE_PC);
-				unlock_gc();
 				break;
 
 			case IS_VCONC: TRACE("VCONC");
-				lock_gc();
 				OP_2P1P(vectorp(r0) && vectorp(r1) ? vconc(r0, r1) : RERR_TYPE_PC);
-				unlock_gc();
 				break;
 
 			case IS_VNCONC: TRACE("VNCONC");
@@ -728,9 +708,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_COMPILE_VM: TRACE("COMPILE_VM");
-				lock_gc();
 				OP_1P1P(compile_vm(r0, last(env)));
-				unlock_gc();
 				break;
 
 			case IS_EXEC_VM: TRACE("EXEC_VM");
@@ -738,9 +716,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
-				lock_gc();
 				OP_2P1P(pr_str(r0, NIL, !nilp(r1)));
-				unlock_gc();
 				break;
 
 			case IS_PRINTLINE: TRACE("PRINTLINE");
@@ -749,37 +725,33 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_SLURP: TRACE("SLURP");
 			{
-				lock_gc();
 				r0 = LOCAL_VPEEK_RAW;
 				if(!vectorp(r0))
 				{
-					return RERR(ERR_TYPE, NIL);
+					return RERR_TYPE_PC;
 				}
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));
 				free(fn);
-				unlock_gc();
 			}
 			break;
 
 			case IS_MVFL: TRACE("MVFL");
-				lock_gc();
 				OP_1P1P(consp(r0) || nilp(r0) ? make_vector_from_list(r0) : RERR_TYPE_PC);
-				unlock_gc();
 				break;
 
 			case IS_MLFV: TRACE("MLFV");
-				lock_gc();
 				OP_1P1P(vectorp(r0) ? make_list_from_vector(r0) : RERR_TYPE_PC);
-				unlock_gc();
 				break;
 
 			default:
 				return RERR_PC(ERR_INVALID_IS);
 		}
+		unlock_gc();
 
 		// clear temporal registers for safe
 		r0 = r1 = r2 = r3 = NIL;
+		check_gc();
 	}
 
 	return NIL;	// not reached

@@ -1,7 +1,7 @@
 #ifndef _ALLOCATOR_H_
 #define _ALLOCATOR_H_
 
-#define INITIAL_ALLOC_SIZE	(16 * 1024 * 1024)
+#define INITIAL_ALLOC_SIZE	(32 * 1024 * 1024)
 //#define INITIAL_ALLOC_SIZE	(256 * 1024)
 //#define INITIAL_ALLOC_SIZE	(5 * 1024)
 #define ROOT_SIZE		512
@@ -29,6 +29,7 @@ value_t*	alloc_vector_data	(value_t v, size_t size);
 void		clear_symtbl		(void);
 value_t		register_sym		(value_t s);
 
+void		check_gc		(void);
 void		force_gc		(void);
 
 #endif // _ALLOCATOR_H_

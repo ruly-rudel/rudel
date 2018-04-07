@@ -32,10 +32,6 @@ inline static bool is_to(value_t v)
 	return ((value_t*)v.cons >= g_memory_pool && (value_t*)v.cons < g_memory_max);
 }
 #endif // NDEBUG
-inline static bool gcp(value_t v)
-{
-	return rtypeof(v) == GC_T;
-}
 
 inline static value_t* copy1(value_t* v)
 {
@@ -167,6 +163,9 @@ static value_t* exec_gc(void)
 
 	// copy symbol pool to memory pool
 	copy1(&s_symbol_pool);
+#ifdef TRACE_VM
+	fprintf(stderr, " Replacing symbols...\n");
+#endif
 	init_global();
 
 #ifdef TRACE_VM
@@ -278,9 +277,9 @@ vector_t* alloc_vector()
 
 #ifdef DUMP_ALLOC_ADDR
 #if __WORDSIZE == 32
-	fprintf(stderr, "vector: %08x, size %d\n", (int)v, sizeof(vector_t));
+	fprintf(stderr, "vect: %08x\n", (int)v);
 #else
-	fprintf(stderr, "vector: %016lx, size %ld\n", (int64_t)v, sizeof(vector_t));
+	fprintf(stderr, "vect: %016lx\n", (int64_t)v);
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
@@ -350,6 +349,14 @@ value_t* alloc_vector_data(value_t v, size_t size)
 	v.vector->alloc = size;
 	g_memory_top += size;
 
+#ifdef DUMP_ALLOC_ADDR
+#if __WORDSIZE == 32
+	fprintf(stderr, "vdat: %08x, size %d\n", (int)v.vector->data, size);
+#else
+	fprintf(stderr, "vdat: %016lx, size %ld\n", (int64_t)v.vector->data, size);
+#endif
+#endif	// DUMP_ALLOC_ADDR
+
 	return v.vector->data;
 }
 
@@ -369,6 +376,17 @@ value_t register_sym(value_t s)
 	else
 	{
 		return sym;
+	}
+}
+
+void check_gc(void)
+{
+	if(g_memory_top >= g_memory_gc && s_lock_cnt == 0)
+	{
+#ifdef TRACE_VM
+		fprintf(stderr, "Checking memory pool that requires GC.\n");
+#endif // TRACE_VM
+		exec_gc();
 	}
 }
 
