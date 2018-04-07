@@ -3,7 +3,7 @@
 
 #define INITIAL_ALLOC_SIZE	(16 * 1024 * 1024)
 //#define INITIAL_ALLOC_SIZE	(256 * 1024)
-//#define INITIAL_ALLOC_SIZE	(64 * 1024)
+//#define INITIAL_ALLOC_SIZE	(5 * 1024)
 #define ROOT_SIZE		512
 
 EXTERN value_t* g_memory_pool;

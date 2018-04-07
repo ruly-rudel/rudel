@@ -15,9 +15,10 @@ void repl(value_t env)
 	init_linenoise();
 #endif // USE_LINENOISE
 
-	value_t r, e;
+	value_t r, c, e;
 	for(;;)
 	{
+		lock_gc();
 		r = READ("user> ", stdin);
 		if(errp(r))
 		{
@@ -32,21 +33,27 @@ void repl(value_t env)
 		}
 		else
 		{
-			e = exec_vm(compile_vm(r, env), env);
-			if(!errp(e))
+			c = compile_vm(r, env);
+			if(errp(c))
 			{
-				print(e, stdout);
+				print(c, stderr);
 			}
 			else
 			{
-				print(e, stderr);
+				unlock_gc();
+				e = exec_vm(c, env);
+				lock_gc();
+
+				print(e, errp(e) ? stderr : stdout);
 			}
 		}
+		unlock_gc();
 	}
 }
 
 void rep_file(char* fn, value_t env)
 {
+	lock_gc();
 	value_t fstr = slurp(fn);
 	if(errp(fstr))
 	{
@@ -54,9 +61,23 @@ void rep_file(char* fn, value_t env)
 	}
 	else
 	{
-		value_t c = vnconc(vnconc(str_to_rstr("(progn "), fstr), str_to_rstr(")"));
-		print(exec_vm(compile_vm(read_str(c), env), env), stdout);
+		value_t s = vnconc(vnconc(str_to_rstr("(progn "), fstr), str_to_rstr(")"));
+
+		value_t c = compile_vm(read_str(s), env);
+		if(errp(c))
+		{
+			print(c, stderr);
+		}
+		else
+		{
+			unlock_gc();
+			value_t e = exec_vm(c, env);
+			lock_gc();
+
+			print(e, errp(e) ? stderr : stdout);
+		}
 	}
+	unlock_gc();
 
 	return ;
 }
@@ -79,7 +100,10 @@ int main(int argc, char* argv[])
 	init_global();
 
 	value_t env = create_env(NIL, NIL, NIL);
-	print(init(env), stdout);
+	value_t ini = init(env);
+	lock_gc();
+	print(ini, stdout);
+	unlock_gc();
 
 	if(argc == 1)
 	{
@@ -87,7 +111,9 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
+		lock_gc();
 		set_env(str_to_sym("*ARGV*"), cdr(parse_arg(argc, argv)), env);
+		unlock_gc();
 		rep_file(argv[1], env);
 	}
 

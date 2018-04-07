@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "builtin.h"
 #include "allocator.h"
 #include "vm.h"
@@ -394,8 +395,16 @@ value_t init(value_t env)
 	env = last(env);
 	rplaca(env, car(create_root_env()));
 
-	value_t c = vconc(vconc(str_to_rstr("(progn "), slurp("init.rud")), str_to_rstr(")"));
-	return exec_vm(compile_vm(read_str(c), env), env);
+#ifndef NOINIT
+	lock_gc();
+	value_t s = vconc(vconc(str_to_rstr("(progn "), slurp("init.rud")), str_to_rstr(")"));
+	value_t c = compile_vm(read_str(s), env);
+	unlock_gc();
+
+	return errp(c) ? c : exec_vm(c, env);
+#else // NOINIT
+	return NIL;
+#endif // NOINIT
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -719,7 +728,7 @@ value_t str_to_cons	(const char* s)
 value_t str_to_vec	(const char* s)
 {
 	assert(s != NULL);
-	value_t    r = make_vector(0);
+	value_t    r = make_vector(strlen(s));
 
 	int c;
 	while((c = *s++) != '\0')
