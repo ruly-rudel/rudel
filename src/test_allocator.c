@@ -305,13 +305,13 @@ void test_alloc_012(void)
 	vpush(str_to_sym("t"),   r);
 	vpush(str_to_sym("hogehoge"),   r);
 
-	value_t str_nil = str_to_sym("nil");
-	value_t str_t = str_to_sym("t");
-	value_t str_hogehoge = str_to_sym("hogehoge");
 
 	push_root(&r);
 	value_t r2 = r;
 	force_gc();
+	value_t str_nil = str_to_sym("nil");
+	value_t str_t = str_to_sym("t");
+	value_t str_hogehoge = str_to_sym("hogehoge");
 	force_gc();
 	pop_root();
 

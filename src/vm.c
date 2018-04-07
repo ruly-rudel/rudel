@@ -19,6 +19,10 @@
 		if(!stack_raw) { \
 			return unlock_gc(), rerr_alloc(); \
 		} \
+		pop_root(); \
+		pop_root(); \
+		push_root_raw_vec(stack_raw, &sp); \
+		push_root_raw_vec(ret_raw,   &rsp); \
 	} \
 	stack_raw[++sp] = (X); \
 }
@@ -38,6 +42,8 @@
 		if(!ret_raw) { \
 			return unlock_gc(), rerr_alloc(); \
 		} \
+		pop_root(); \
+		push_root_raw_vec(ret_raw,   &rsp); \
 	} \
 	ret_raw[++rsp] = (X); \
 }
@@ -288,8 +294,6 @@ value_t exec_vm(value_t c, value_t e)
 	value_t r0raw = NIL;
 
 	// register stack, ret, code, env, reg to root
-	push_root_raw_vec(stack_raw, &sp);
-	push_root_raw_vec(ret_raw,   &rsp);
 	push_root        (&code);
 	push_root        (&debug);
 	push_root        (&env);
@@ -297,6 +301,8 @@ value_t exec_vm(value_t c, value_t e)
 	push_root        (&r1);
 	push_root        (&r2);
 	push_root        (&r3);
+	push_root_raw_vec(stack_raw, &sp);
+	push_root_raw_vec(ret_raw,   &rsp);
 
 	for(int pc = 0; true; pc++)
 	{
