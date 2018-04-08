@@ -672,6 +672,9 @@ value_t exec_vm(value_t c, value_t e)
 				OP_0P1P(init(env));
 				break;
 
+			case IS_SAVECORE: TRACE("SAVECORE");
+				OP_1P1P(is_str(r0) ? save_core(r0, last(env)) : RERR_TYPE_PC);
+				break;
 
 			case IS_MAKE_VECTOR: TRACE("MAKE_VECTOR");
 				OP_1P1P(intp(r0) ? make_vector(INTOF(r0)) : RERR_TYPE_PC);

@@ -129,22 +129,17 @@ inline static value_t* copy1(value_t* v)
 	return v + 1;
 }
 
-static value_t* exec_gc(void)
+static void swap_buffer(void)
 {
-#ifdef TRACE_VM
-	fprintf(stderr, "Executing GC...\n");
-#endif
-#ifdef NOGC
-	return 0;
-#else  // NOGC
-
-	// swap buffer
 	value_t* tmp       = g_memory_pool;
 	g_memory_pool      = g_memory_top = g_memory_pool_from;
 	g_memory_max       = g_memory_top + INITIAL_ALLOC_SIZE;
 	g_memory_gc        = g_memory_top + INITIAL_ALLOC_SIZE / 2;
 	g_memory_pool_from = tmp;
+}
 
+static void exec_gc_root(void)
+{
 	// copy root to memory pool
 	for(int i = 0; i < s_root_ptr; i++)
 	{
@@ -163,12 +158,26 @@ static value_t* exec_gc(void)
 
 	// copy symbol pool to memory pool
 	copy1(&s_symbol_pool);
-#ifdef TRACE_VM
+#ifdef TRACE_GC
 	fprintf(stderr, " Replacing symbols...\n");
 #endif
 	init_global();
+}
 
-#ifdef TRACE_VM
+static value_t* exec_gc(void)
+{
+#ifdef NOGC
+	return 0;
+#else  // NOGC
+
+#ifdef TRACE_GC
+	fprintf(stderr, "Executing GC...\n");
+#endif
+	swap_buffer();
+	exec_gc_root();
+
+
+#ifdef TRACE_GC
 	fprintf(stderr, "Executing GC Done.\n");
 #endif
 	return g_memory_top;
@@ -176,18 +185,7 @@ static value_t* exec_gc(void)
 }
 
 /////////////////////////////////////////////////////////////////////
-// public: memory allocator
-
-void init_allocator(void)
-{
-	g_memory_pool      = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
-#ifndef NOGC
-	g_memory_pool_from = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
-#endif  // NOGC
-	g_memory_top       = g_memory_pool;
-	g_memory_max       = g_memory_pool + INITIAL_ALLOC_SIZE;
-	g_memory_gc        = g_memory_pool + INITIAL_ALLOC_SIZE / 2;
-}
+// public: Control GC
 
 void push_root(value_t* v)
 {
@@ -222,6 +220,147 @@ void unlock_gc(void)
 {
 	s_lock_cnt--;
 	assert(s_lock_cnt >= 0);
+}
+
+void check_gc(void)
+{
+	if(g_memory_top >= g_memory_gc && s_lock_cnt == 0)
+	{
+#ifdef TRACE_GC
+		fprintf(stderr, "Found heap almost full, execute GC.\n");
+#endif // TRACE_GC
+		exec_gc();
+	}
+}
+
+void force_gc(void)
+{
+	exec_gc();
+}
+
+/////////////////////////////////////////////////////////////////////
+// public: symbol pool
+
+void clear_symtbl(void)
+{
+	s_symbol_pool = NIL;
+}
+
+value_t register_sym(value_t s)
+{
+	value_t sym = find(s, s_symbol_pool, veq);
+	if(nilp(sym))
+	{
+		s_symbol_pool = cons(s, s_symbol_pool);
+		return s;
+	}
+	else
+	{
+		return sym;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////
+// public: core image functions
+
+value_t save_core(value_t fn, value_t root)
+{
+	assert(is_str(fn));
+
+	// exec partial GC for compaction of root.
+#ifdef NOGC
+	return 0;
+#else  // NOGC
+
+#ifdef TRACE_GC
+	fprintf(stderr, "Executing partial GC for env-compaction...\n");
+#endif
+
+	// swap buffer and gc partial root
+	swap_buffer();
+	copy1(&root);
+
+#ifdef TRACE_GC
+	fprintf(stderr, "Executing GC Done, saving core image...\n");
+#endif
+	char* s = rstr_to_str(fn);
+	if(s)
+	{
+		FILE* fp = fopen(s, "w");
+		free(s);
+		if(fp)
+		{
+			for(value_t* p = g_memory_pool; p < g_memory_top; p++)
+			{
+				value_t w = *p;
+				switch(rtypeof(w))
+				{
+					case CONS_T:
+					case VEC_T:
+					case SYM_T:
+					case CLOJ_T:
+					case MACRO_T:
+					case ERR_T:
+						// address translation, g_memory_pool based.
+						w.type.main = CONS_T;
+						if(w.raw != 0)
+						{
+							w.cons = (cons_t*)((value_t*)w.cons - g_memory_pool);
+							w.type.main = p->type.main;
+						}
+						break;
+
+					case GC_T:
+						abort();
+
+					default:
+						break;
+				}
+
+				if(fwrite(&w, sizeof(value_t), 1, fp) != 1)
+				{
+					fclose(fp);
+					return RERR(ERR_FWRITE, NIL);
+				}
+			}
+			fclose(fp);
+		}
+		else
+		{
+			return RERR(ERR_CANTOPEN, NIL);
+		}
+	}
+	else
+	{
+		return RERR(ERR_TYPE, NIL);
+	}
+
+#ifdef TRACE_GC
+	fprintf(stderr, "Saving core image done, execute rest GC...\n");
+#endif
+
+	exec_gc_root();
+
+#ifdef TRACE_GC
+	fprintf(stderr, "Executing GC Done.\n");
+#endif
+
+	return g_t;
+#endif // NOGC
+}
+
+/////////////////////////////////////////////////////////////////////
+// public: memory allocator
+
+void init_allocator(void)
+{
+	g_memory_pool      = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
+#ifndef NOGC
+	g_memory_pool_from = (value_t*)malloc(sizeof(value_t) * INITIAL_ALLOC_SIZE);
+#endif  // NOGC
+	g_memory_top       = g_memory_pool;
+	g_memory_max       = g_memory_pool + INITIAL_ALLOC_SIZE;
+	g_memory_gc        = g_memory_pool + INITIAL_ALLOC_SIZE / 2;
 }
 
 cons_t* alloc_cons(void)
@@ -358,41 +497,6 @@ value_t* alloc_vector_data(value_t v, size_t size)
 #endif	// DUMP_ALLOC_ADDR
 
 	return v.vector->data;
-}
-
-void clear_symtbl(void)
-{
-	s_symbol_pool = NIL;
-}
-
-value_t register_sym(value_t s)
-{
-	value_t sym = find(s, s_symbol_pool, veq);
-	if(nilp(sym))
-	{
-		s_symbol_pool = cons(s, s_symbol_pool);
-		return s;
-	}
-	else
-	{
-		return sym;
-	}
-}
-
-void check_gc(void)
-{
-	if(g_memory_top >= g_memory_gc && s_lock_cnt == 0)
-	{
-#ifdef TRACE_VM
-		fprintf(stderr, "Checking memory pool that requires GC.\n");
-#endif // TRACE_VM
-		exec_gc();
-	}
-}
-
-void force_gc(void)
-{
-	exec_gc();
 }
 
 // End of File

@@ -90,6 +90,7 @@ typedef enum {
 	IS_ERR,
 	IS_NTH,
 	IS_INIT,
+	IS_SAVECORE,
 	IS_MAKE_VECTOR,
 	IS_VREF,
 	IS_RPLACV,
@@ -233,6 +234,8 @@ typedef struct _vector_t
 #define ERR_INVALID_IS		13
 #define ERR_ARG_BUILTIN		14
 #define ERR_INVALID_AP		15
+#define ERR_CANTOPEN		16
+#define ERR_FWRITE		17
 
 #define UNSAFE_CAR(X)	(X).cons->car
 #define UNSAFE_CDR(X)	(X).cons->cdr

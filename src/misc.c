@@ -55,6 +55,7 @@ void init_global(void)
 		str_to_sym("err"),		ROP(IS_ERR),		RINT(1),
 		str_to_sym("nth"),		ROP(IS_NTH),		RINT(2),
 		str_to_sym("init"),		ROP(IS_INIT),		RINT(0),
+		str_to_sym("save-core"),	ROP(IS_SAVECORE),	RINT(1),
 		str_to_sym("make-vector"),	ROP(IS_MAKE_VECTOR),	RINT(1),
 		str_to_sym("vref"),		ROP(IS_VREF),		RINT(2),
 		str_to_sym("rplacv"),		ROP(IS_RPLACV),		RINT(3),

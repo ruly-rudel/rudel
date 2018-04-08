@@ -347,6 +347,12 @@ static value_t pr_err_cause(value_t e)
 		    case ERR_INVALID_AP:
 			return str_to_rstr("try to AP other than  clojure or macro.");
 
+		    case ERR_CANTOPEN:
+			return str_to_rstr("cannot open file.");
+
+		    case ERR_FWRITE:
+			return str_to_rstr("cannot write data to file.");
+
 		    default:
 			return str_to_rstr("unknown error.");
 		}
