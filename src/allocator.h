@@ -29,6 +29,6 @@ value_t		save_core		(value_t fn, value_t root);
 void		init_allocator		(void);
 cons_t*		alloc_cons		(void);
 vector_t*	alloc_vector		(void);
-value_t*	alloc_vector_data	(value_t v, size_t size);
+value_t		alloc_vector_data	(value_t v, size_t size);
 
 #endif // _ALLOCATOR_H_

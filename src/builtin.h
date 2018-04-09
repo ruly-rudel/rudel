@@ -13,7 +13,7 @@ typedef enum _rtype_t {
 	CONS_T = 0,
 	ERR_T,
 	SYM_T,
-	GC_T,
+	PTR_T,
 	CLOJ_T,
 	MACRO_T,
 	VEC_T,
@@ -157,9 +157,6 @@ typedef struct
 } opcode_t;
 #endif
 
-union _value_t;
-typedef union _value_t (*rfn_t)(union _value_t, union _value_t);
-
 struct _cons_t;
 struct _vector_t;
 typedef union _value_t
@@ -168,14 +165,8 @@ typedef union _value_t
 	struct _cons_t*		cons;
 	struct _vector_t*	vector;
 	ref_t			ref;
-	rfn_t			rfn;
 	opcode_t		op;
-	void*			ptr;
-#if __WORDSIZE == 32
-	int32_t			raw;
-#else
-	int64_t			raw;
-#endif
+	uintptr_t		raw;
 } value_t;
 
 
@@ -187,18 +178,22 @@ typedef struct _cons_t
 
 typedef struct _vector_t
 {
-#if __WORDSIZE == 32
-	int32_t		size;
-	int32_t		alloc;
-#else
-	int64_t		size;
-	int64_t		alloc;
-#endif
+	value_t		size;
+	value_t		alloc;
 	value_t		type;
-	value_t*	data;
+	value_t		data;
 } vector_t;
 
-#define NIL         ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   =  0  })
+#define NIL          ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   =  0  })
+#define RPTR(X)      ((value_t){ .raw         = PTR_T | (uintptr_t)(X) })
+
+#if __WORDSIZE == 32
+	#define PTROF(X)    (void*)((X).raw & 0xfffffff8)
+#else
+	#define PTROF(X)    (void*)((X).raw & 0xfffffffffffffff8)
+#endif
+
+#define VPTROF(X)    ((value_t*)PTROF(X))
 
 #define RCHAR(X)     ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T,    .type.val   = (X) })
 #define RINT(X)      ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,     .type.val   = (X) })
@@ -206,10 +201,9 @@ typedef struct _vector_t
 #define ROP(X)       ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand =  0  })
 #define ROPD(X, Y)   ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand = (Y) })
 #define RREF(X, Y)   ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width  = (Y) })
-#define RFN(X)       ((value_t){ .rfn = (X) })
 #define RERR(X, Y)   rerr(RINT(X), (Y))
 
-#define INTOF(X)        ((X).raw >> 8)
+#define INTOF(X)        (((intptr_t)(X).raw) >> 8)
 #define REF_D(X)        ((X).ref.depth)
 #define REF_W(X)        ((X).ref.width)
 #define SPECIAL(X)      ((X).type.val)
@@ -252,7 +246,7 @@ INLINE(bool    macrop(value_t x),   x.type.main == MACRO_T&& (x.type.sub != 0 ||
 INLINE(bool    errp(value_t x),     x.type.main == ERR_T)
 INLINE(bool    refp(value_t x),     x.type.main == OTH_T  &&  x.type.sub == REF_T)
 INLINE(bool    specialp(value_t x), x.type.main == OTH_T  &&  x.type.sub == SPECIAL_T)
-INLINE(bool    gcp(value_t x),      x.type.main == GC_T)
+INLINE(bool    ptrp(value_t x),     x.type.main == PTR_T)
 
 value_t car		(value_t x);
 value_t cdr		(value_t x);

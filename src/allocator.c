@@ -33,7 +33,7 @@ inline static bool is_to(value_t v)
 }
 #endif // NDEBUG
 
-inline static value_t* copy1(value_t* v)
+inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 {
 	rtype_t type = rtypeof(*v);
 	value_t cur  = *v;
@@ -48,11 +48,12 @@ inline static value_t* copy1(value_t* v)
 		case MACRO_T:
 			if(nilp(cur)) return 0;	// nil is not cons cell
 
-			if(gcp(cur.cons->car))	// target cons is already copied
+			if(ptrp(cur.cons->car))	// target cons is already copied
 			{
 				// replace value itself to copyed to-space address
 				alloc = cur.cons->car;
-				assert(is_to(alloc));
+				alloc.raw += ofs;
+				assert(ofs || is_to(alloc));
 				alloc.type.main = type;
 				*v = alloc;
 			}
@@ -60,22 +61,23 @@ inline static value_t* copy1(value_t* v)
 			{
 				assert(is_from(cur));
 				// allocate memory and copy car/cdr of current cons in from-space to to-space
-				alloc.cons      = (cons_t*)g_memory_top;
-				*g_memory_top++ = UNSAFE_CAR(cur);
-				*g_memory_top++ = UNSAFE_CDR(cur);
+				alloc.raw      = (uintptr_t)*top;
+				*(*top)++ = UNSAFE_CAR(cur);
+				*(*top)++ = UNSAFE_CDR(cur);
 
 				// write to-space address to car of current cons in from-space
-				alloc.type.main = GC_T;
+				alloc.type.main = PTR_T;
 				cur.cons->car   = alloc;
-
-				// replace value itself to copyed to-space address
-				alloc.type.main = type;
-				*v = alloc;
 
 				// invoke copy1 to car/cdr of current cons
 				alloc.type.main = CONS_T;
-				copy1(&alloc.cons->car);
-				copy1(&alloc.cons->cdr);
+				copy1(top, ofs, &alloc.cons->car);
+				copy1(top, ofs, &alloc.cons->cdr);
+
+				// replace value itself to copyed to-space address
+				alloc.raw += ofs;
+				alloc.type.main = type;
+				*v = alloc;
 			}
 			return 0;
 
@@ -83,11 +85,12 @@ inline static value_t* copy1(value_t* v)
 		case SYM_T:
 			//if(nilp(cur)) return 0;	//****** nil is not vector(but it is not ocuured?)
 
-			if(gcp(cur.vector->type))	// target vector is already copied
+			if(ptrp(cur.vector->type))	// target vector is already copied
 			{
 				// replace value itself to copyed to-space address
 				alloc = cur.vector->type;
-				assert(is_to(alloc));
+				alloc.raw += ofs;
+				assert(ofs || is_to(alloc));
 				alloc.type.main = type;
 				*v = alloc;
 			}
@@ -95,31 +98,32 @@ inline static value_t* copy1(value_t* v)
 			{
 				assert(is_from(cur));
 				// allocate memory and copy vector in from-space to to-space
-				alloc.vector        = (vector_t*)g_memory_top;
-				g_memory_top       += 4;
+				alloc.raw           = (uintptr_t)*top;
+				*top               += 4;
 				alloc.vector->size  = cur.vector->size;
 				alloc.vector->alloc = cur.vector->alloc;
 				alloc.vector->type  = cur.vector->type;
-				alloc.vector->data  = g_memory_top;
-				for(int i = 0; i < cur.vector->alloc; i++)
-					*g_memory_top++ = cur.vector->data[i];
+				alloc.vector->data  = RPTR(*top);
+				for(int i = 0; i < INTOF(cur.vector->alloc); i++)
+					*(*top)++ = VPTROF(cur.vector->data)[i];
 
 				// write to-space address to car of current cons in from-space
-				alloc.type.main     = GC_T;
+				alloc.type.main     = PTR_T;
 				cur.vector->type    = alloc;
-
-				// replace value itself to copyed to-space address
-				alloc.type.main = type;
-				*v = alloc;
 
 				// invoke copy1 to current vector data
 				alloc.type.main = CONS_T;
-				for(int i = 0; i < alloc.vector->size; i++)
-					copy1(alloc.vector->data + i);
+				for(int i = 0; i < INTOF(alloc.vector->size); i++)
+					copy1(top, ofs, VPTROF(alloc.vector->data) + i);
+
+				// replace value itself to copyed to-space address
+				alloc.raw += ofs;
+				alloc.type.main = type;
+				*v = alloc;
 			}
 			return 0;
 
-		case GC_T:
+		case PTR_T:
 			abort();
 
 		default:
@@ -147,17 +151,17 @@ static void exec_gc_root(void)
 		{
 			for(int j = 0; j <= *s_root[i].size; j++)
 			{
-				copy1(s_root[i].data + j);
+				copy1(&g_memory_top, 0, s_root[i].data + j);
 			}
 		}
 		else
 		{
-			copy1(s_root[i].data);
+			copy1(&g_memory_top, 0, s_root[i].data);
 		}
 	}
 
 	// copy symbol pool to memory pool
-	copy1(&s_symbol_pool);
+	copy1(&g_memory_top, 0, &s_symbol_pool);
 #ifdef TRACE_GC
 	fprintf(stderr, " Replacing symbols...\n");
 #endif
@@ -278,7 +282,7 @@ value_t save_core(value_t fn, value_t root)
 
 	// swap buffer and gc partial root
 	swap_buffer();
-	copy1(&root);
+	copy1(&g_memory_top, (intptr_t)g_memory_pool, &root);
 
 #ifdef TRACE_GC
 	fprintf(stderr, "Executing GC Done, saving core image...\n");
@@ -310,7 +314,7 @@ value_t save_core(value_t fn, value_t root)
 						}
 						break;
 
-					case GC_T:
+					case PTR_T:
 						abort();
 
 					default:
@@ -455,7 +459,7 @@ vector_t* alloc_vector()
 	}
 }
 
-value_t* alloc_vector_data(value_t v, size_t size)
+value_t alloc_vector_data(value_t v, size_t size)
 {
 	assert(vectorp(v));
 	v.type.main = CONS_T;
@@ -466,26 +470,26 @@ value_t* alloc_vector_data(value_t v, size_t size)
 	{
 		if(!exec_gc())
 		{
-			return 0;
+			return NIL;
 		}
 		else if(g_memory_top + size >= g_memory_max)
 		{
-			return 0;
+			return NIL;
 		}
 	}
 	else if(g_memory_top + size >= g_memory_max)
 	{
-		return 0;
+		return NIL;
 	}
 
-	if(v.vector->data)
+	if(VPTROF(v.vector->data))
 	{
-		for(int i = 0; i < v.vector->size; i++)
-			g_memory_top[i] = v.vector->data[i];
+		for(int i = 0; i < INTOF(v.vector->size); i++)
+			g_memory_top[i] = VPTROF(v.vector->data)[i];
 	}
 
-	v.vector->data  = g_memory_top;
-	v.vector->alloc = size;
+	v.vector->data  = RPTR(g_memory_top);
+	v.vector->alloc = RINT(size);
 	g_memory_top += size;
 
 #ifdef DUMP_ALLOC_ADDR

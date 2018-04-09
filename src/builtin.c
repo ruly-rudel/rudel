@@ -417,10 +417,10 @@ value_t make_vector(unsigned n)
 
 	if(v.vector)
 	{
-		v.vector->size  = 0;
-		v.vector->alloc = n;
+		v.vector->size  = RINT(0);
+		v.vector->alloc = RINT(n);
 		v.vector->type  = NIL;
-		v.vector->data  = 0;
+		v.vector->data  = RPTR(0);
 		v.type.main     = VEC_T;
 		alloc_vector_data(v, n);
 		return v;
@@ -437,9 +437,9 @@ value_t vref(value_t v, unsigned pos)
 	assert(vsize(v) <= vallocsize(v));
 	v.vector = aligned_vaddr(v);
 
-	if(pos < v.vector->size)
+	if(pos < INTOF(v.vector->size))
 	{
-		return v.vector->data[pos];
+		return VPTROF(v.vector->data)[pos];
 	}
 	else
 	{
@@ -458,7 +458,7 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 	}
 
 	v.vector = aligned_vaddr(v);
-	v.vector->data[pos] = data;
+	VPTROF(v.vector->data)[pos] = data;
 
 	return data;
 }
@@ -467,16 +467,16 @@ int vsize(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
-	assert(v.vector->size <= v.vector->alloc);
-	return v.vector->size;
+	assert(INTOF(v.vector->size) <= INTOF(v.vector->alloc));
+	return INTOF(v.vector->size);
 }
 
 int vallocsize(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = aligned_vaddr(v);
-	assert(v.vector->size <= v.vector->alloc);
-	return v.vector->alloc;
+	assert(INTOF(v.vector->size) <= INTOF(v.vector->alloc));
+	return INTOF(v.vector->alloc);
 }
 
 value_t vtype(value_t v)
@@ -492,7 +492,7 @@ value_t* vdata(value_t v)
 	assert(vectorp(v) || symbolp(v));
 	assert(vsize(v) <= vallocsize(v));
 	v.vector = aligned_vaddr(v);
-	return v.vector->data;
+	return PTROF(v.vector->data);
 }
 
 value_t vresize(value_t v, int n)
@@ -508,13 +508,13 @@ value_t vresize(value_t v, int n)
 	{
 
 		// resize allocated area
-		if(va->alloc < n)
+		if(INTOF(va->alloc) < n)
 		{
 			//for(va->alloc = 1; va->alloc < n; va->alloc *= 2);
 			//value_t* np = (value_t*)realloc(va->data, va->alloc * sizeof(value_t));
 			int new_alloc;
 			for(new_alloc = 1; new_alloc < n; new_alloc *= 2);
-			if(!alloc_vector_data(v, new_alloc))
+			if(nilp(alloc_vector_data(v, new_alloc)))
 			{
 				return rerr_alloc();
 			}
@@ -522,11 +522,11 @@ value_t vresize(value_t v, int n)
 
 		// change size and NILify new area
 		va = aligned_vaddr(v);
-		int cur_size = va->size;
-		va->size = n;
+		int cur_size = INTOF(va->size);
+		va->size = RINT(n);
 		for(int i = cur_size; i < n; i++)
 		{
-			va->data[i] = NIL;
+			VPTROF(va->data)[i] = NIL;
 		}
 	}
 

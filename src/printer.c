@@ -287,11 +287,11 @@ static value_t pr_str_macro(value_t s, value_t annotate)
 #endif // PRINT_CLOS_ENV
 }
 
-static value_t pr_str_gc(value_t s, value_t annotate)
+static value_t pr_str_ptr(value_t s, value_t annotate)
 {
-	assert(gcp(s));
+	assert(ptrp(s));
 
-	return str_to_rstr("#<GCREF>");
+	return str_to_rstr("#<PTR>");
 }
 
 static value_t pr_err_cause(value_t e)
@@ -557,8 +557,8 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 	    case MACRO_T:
 		return pr_str_macro(s, annotate);
 
-	    case GC_T:
-		return pr_str_gc(s, annotate);
+	    case PTR_T:
+		return pr_str_ptr(s, annotate);
 
 	    case CHAR_T:
 		return pr_str_char(s);

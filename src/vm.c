@@ -141,10 +141,10 @@ inline static value_t local_make_vector(unsigned n)
 
 	if(v.vector)
 	{
-		v.vector->size  = 0;
-		v.vector->alloc = n;
+		v.vector->size  = RINT(0);
+		v.vector->alloc = RINT(n);
 		v.vector->type  = NIL;
-		v.vector->data  = 0;
+		v.vector->data  = RPTR(0);
 		v.type.main     = VEC_T;
 		alloc_vector_data(v, n);
 		return v;
@@ -159,7 +159,7 @@ inline static value_t local_vref(value_t v, unsigned pos)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
-	return v.vector->data[pos];
+	return VPTROF(v.vector->data)[pos];
 }
 
 inline static value_t local_vref_safe(value_t v, unsigned pos)
@@ -167,9 +167,9 @@ inline static value_t local_vref_safe(value_t v, unsigned pos)
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
 
-	if(pos < v.vector->size)
+	if(pos < INTOF(v.vector->size))
 	{
-		return v.vector->data[pos];
+		return VPTROF(v.vector->data)[pos];
 	}
 	else
 	{
@@ -183,22 +183,22 @@ inline static value_t local_vpush(value_t x, value_t v)
 
 	value_t va;
 	va.vector = local_aligned_vaddr(v);
-	int s = va.vector->size;
-	int a = va.vector->alloc;
+	int s = INTOF(va.vector->size);
+	int a = INTOF(va.vector->alloc);
 	if(s + 1 >= a)
 	{
 		a = a * 2;
 		//va.vector->alloc = a;
 		//value_t* np = (value_t*)realloc(v.vector->data, a * sizeof(value_t));
-		value_t* np = alloc_vector_data(v, a);
-		if(!np)
+		value_t np = alloc_vector_data(v, a);
+		if(nilp(np))
 		{
 			return rerr_alloc();
 		}
 	}
 
-	va.vector->data[s] = x;
-	va.vector->size = s + 1;
+	VPTROF(va.vector->data)[s] = x;
+	va.vector->size = RINT(s + 1);
 
 	return v;
 }
@@ -207,30 +207,30 @@ inline static value_t local_vpop(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
-	int s = v.vector->size - 1;
-	v.vector->size = s;
-	return v.vector->data[s];
+	int s = INTOF(v.vector->size) - 1;
+	v.vector->size = RINT(s);
+	return VPTROF(v.vector->data)[s];
 }
 
 inline static value_t local_vpeek(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
-	return v.vector->data[v.vector->size - 1];
+	return VPTROF(v.vector->data)[INTOF(v.vector->size) - 1];
 }
 
 inline static value_t local_rplacv_top(value_t x, value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
-	return v.vector->data[v.vector->size - 1] = x;
+	return VPTROF(v.vector->data)[INTOF(v.vector->size) - 1] = x;
 }
 
 inline static value_t local_rplacv(value_t v, int i, value_t x)
 {
 	assert(vectorp(v) || symbolp(v));
 	v.vector = local_aligned_vaddr(v);
-	return v.vector->data[i] = x;
+	return VPTROF(v.vector->data)[i] = x;
 }
 
 inline static value_t local_get_env_value_ref(value_t ref, value_t env)
