@@ -353,6 +353,9 @@ static value_t pr_err_cause(value_t e)
 		    case ERR_FWRITE:
 			return str_to_rstr("cannot write data to file.");
 
+		    case ERR_FREAD:
+			return str_to_rstr("cannot read data from file.");
+
 		    default:
 			return str_to_rstr("unknown error.");
 		}

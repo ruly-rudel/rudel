@@ -25,6 +25,7 @@ void		force_gc		(void);
 void		clear_symtbl		(void);
 value_t		register_sym		(value_t s);
 value_t		save_core		(value_t fn, value_t root);
+value_t		load_core		(const char* fn);
 
 void		init_allocator		(void);
 cons_t*		alloc_cons		(void);

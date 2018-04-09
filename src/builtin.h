@@ -231,6 +231,7 @@ typedef struct _vector_t
 #define ERR_INVALID_AP		15
 #define ERR_CANTOPEN		16
 #define ERR_FWRITE		17
+#define ERR_FREAD		18
 
 #define UNSAFE_CAR(X)	AVALUE(X).cons->car
 #define UNSAFE_CDR(X)	AVALUE(X).cons->cdr

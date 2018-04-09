@@ -33,7 +33,7 @@ inline static bool is_to(value_t v)
 }
 #endif // NDEBUG
 
-inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
+inline static void copy1(value_t** top, intptr_t ofs, value_t* v)
 {
 	rtype_t type = rtypeof(*v);
 	value_t cur  = AVALUE(*v);
@@ -45,7 +45,7 @@ inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 		case ERR_T:
 		case CLOJ_T:
 		case MACRO_T:
-			if(cur.raw == 0) return 0;	// null value
+			if(cur.raw == 0) break;	// null value
 			if(ptrp(cur.cons->car))	// target cons is already copied
 			{
 				// replace value itself to copyed to-space address
@@ -67,17 +67,12 @@ inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 				alloc.type.main = PTR_T;
 				cur.cons->car   = alloc;
 
-				// invoke copy1 to car/cdr of current cons
-				alloc = AVALUE(alloc);
-				copy1(top, ofs, &alloc.cons->car);
-				copy1(top, ofs, &alloc.cons->cdr);
-
 				// replace value itself to copyed to-space address
 				alloc.raw += ofs;
 				alloc.type.main = type;
 				*v = alloc;
 			}
-			return 0;
+			break;
 
 		case VEC_T:
 		case SYM_T:
@@ -107,27 +102,18 @@ inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 				alloc.type.main     = PTR_T;
 				cur.vector->size    = alloc;
 
-				// invoke copy1 to current vector data
-				alloc = AVALUE(alloc);
-				for(int i = 0; i < INTOF(alloc.vector->size); i++)
-					copy1(top, ofs, VPTROF(alloc.vector->data) + i);
-
 				// replace value itself to copyed to-space address
 				alloc.raw += ofs;
 				alloc.type.main = type;
 				*v = alloc;
 			}
-			return 0;
-
-		case PTR_T:
-			abort();
 			break;
 
 		default:
 			break;
 	}
 
-	return v + 1;
+	return ;
 }
 
 static void swap_buffer(void)
@@ -159,6 +145,14 @@ static void exec_gc_root(void)
 
 	// copy symbol pool to memory pool
 	copy1(&g_memory_top, 0, &s_symbol_pool);
+
+	// scan and copy rest
+	value_t* scanned = g_memory_pool;
+	while(scanned != g_memory_top)
+	{
+		copy1(&g_memory_top, 0, scanned++);
+	}
+
 #ifdef TRACE_GC
 	fprintf(stderr, " Replacing symbols...\n");
 #endif
@@ -279,7 +273,15 @@ value_t save_core(value_t fn, value_t root)
 
 	// swap buffer and gc partial root
 	swap_buffer();
-	copy1(&g_memory_top, (intptr_t)g_memory_pool, &root);
+	copy1(&g_memory_top, 0, &root);
+	copy1(&g_memory_top, 0, &s_symbol_pool);
+
+	// scan and copy rest
+	value_t* scanned = g_memory_pool;
+	while(scanned != g_memory_top)
+	{
+		copy1(&g_memory_top, 0, scanned++);
+	}
 
 #ifdef TRACE_GC
 	fprintf(stderr, "Executing GC Done, saving core image...\n");
@@ -287,35 +289,18 @@ value_t save_core(value_t fn, value_t root)
 	char* s = rstr_to_str(fn);
 	if(s)
 	{
-		FILE* fp = fopen(s, "w");
+		FILE* fp = fopen(s, "wb");
 		free(s);
 		if(fp)
 		{
 			for(value_t* p = g_memory_pool; p < g_memory_top; p++)
 			{
 				value_t w = *p;
-				switch(rtypeof(w))
+
+				// address translation, g_memory_pool based.
+				if(rtypeof(w) < OTH_T && AVALUE(w).raw != 0)
 				{
-					case CONS_T:
-					case VEC_T:
-					case SYM_T:
-					case CLOJ_T:
-					case MACRO_T:
-					case ERR_T:
-						// address translation, g_memory_pool based.
-						w.type.main = CONS_T;
-						if(w.raw != 0)
-						{
-							w.cons = (cons_t*)((value_t*)w.cons - g_memory_pool);
-							w.type.main = p->type.main;
-						}
-						break;
-
-					case PTR_T:
-						abort();
-
-					default:
-						break;
+					w.raw -= (uintptr_t)g_memory_pool;
 				}
 
 				if(fwrite(&w, sizeof(value_t), 1, fp) != 1)
@@ -340,7 +325,32 @@ value_t save_core(value_t fn, value_t root)
 	fprintf(stderr, "Saving core image done, execute rest GC...\n");
 #endif
 
-	exec_gc_root();
+	// copy root to memory pool
+	for(int i = 0; i < s_root_ptr; i++)
+	{
+		if(s_root[i].size)
+		{
+			for(int j = 0; j <= *s_root[i].size; j++)
+			{
+				copy1(&g_memory_top, 0, s_root[i].data + j);
+			}
+		}
+		else
+		{
+			copy1(&g_memory_top, 0, s_root[i].data);
+		}
+	}
+
+	// scan and copy rest
+	while(scanned != g_memory_top)
+	{
+		copy1(&g_memory_top, 0, scanned++);
+	}
+
+#ifdef TRACE_GC
+	fprintf(stderr, " Replacing symbols...\n");
+#endif
+	init_global();
 
 #ifdef TRACE_GC
 	fprintf(stderr, "Executing GC Done.\n");
@@ -348,6 +358,60 @@ value_t save_core(value_t fn, value_t root)
 
 	return g_t;
 #endif // NOGC
+}
+
+value_t load_core(const char* fn)
+{
+	// load all heap
+	FILE* fp = fopen(fn, "rb");
+	if(fp)
+	{
+		fseek(fp, 0, SEEK_END);
+		long size = ftell(fp);
+		rewind(fp);
+		if(size > 0 && size < INITIAL_ALLOC_SIZE * sizeof(value_t))
+		{
+			// read core file to heap
+			size_t cnt = size / sizeof(value_t);
+			long r = fread(g_memory_pool, sizeof(value_t), cnt, fp);
+			fclose(fp);
+			if(r == cnt)
+			{
+				// fix address
+				for(g_memory_top = g_memory_pool; g_memory_top < g_memory_pool + cnt; g_memory_top++)
+				{
+					// address translation, g_memory_pool based.
+					if(rtypeof(*g_memory_top) < OTH_T && AVALUE(*g_memory_top).raw != 0)
+					{
+						g_memory_top->raw += (uintptr_t)g_memory_pool;
+					}
+				}
+
+				// restore env
+				value_t env;
+				env.raw                 = (uintptr_t) g_memory_pool;
+				env.type.main           = CONS_T;
+				s_symbol_pool.raw       = (uintptr_t)(g_memory_pool + 2);
+				s_symbol_pool.type.main = CONS_T;
+
+				init_global();
+				return env;
+			}
+			else
+			{
+				return RERR(ERR_FREAD, NIL);
+			}
+		}
+		else
+		{
+			return RERR(ERR_FREAD, NIL);
+		}
+	}
+	else
+	{
+		return RERR(ERR_CANTOPEN, NIL);
+	}
+	// not reached
 }
 
 /////////////////////////////////////////////////////////////////////

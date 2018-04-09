@@ -565,11 +565,11 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_CAR: TRACE("CAR");
-				OP_1P1P(consp(r0) || nilp(r0) ? car(r0) : RERR_TYPE_PC);
+				OP_1P1P(rtypeof(r0) >= CONS_T && rtypeof(r0) <= ERR_T ? car(r0) : RERR_TYPE_PC);
 				break;
 
 			case IS_CDR: TRACE("CDR");
-				OP_1P1P(consp(r0) || nilp(r0) ? cdr(r0) : RERR_TYPE_PC);
+				OP_1P1P(rtypeof(r0) >= CONS_T && rtypeof(r0) <= ERR_T ? cdr(r0) : RERR_TYPE_PC);
 				break;
 
 			case IS_EQ: TRACE("EQ");

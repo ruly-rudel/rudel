@@ -97,13 +97,23 @@ value_t parse_arg(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	init_allocator();
-	init_global();
+	value_t env = load_core("init.rudc");
+	if(errp(env))
+	{
+		init_global();
+		env = create_env(NIL, NIL, NIL);
+		value_t ini = init(env);
 
-	value_t env = create_env(NIL, NIL, NIL);
-	value_t ini = init(env);
-	lock_gc();
-	print(ini, stdout);
-	unlock_gc();
+		lock_gc();
+		print(ini, stdout);
+		unlock_gc();
+	}
+	else
+	{
+		lock_gc();
+		print(env, stdout);
+		unlock_gc();
+	}
 
 	if(argc == 1)
 	{
