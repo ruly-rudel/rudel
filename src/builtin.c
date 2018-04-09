@@ -32,22 +32,22 @@ static inline vector_t* aligned_vaddr(value_t v)
 
 static inline bool is_cons_pair(value_t x)
 {
-	return rtypeof(x) <= MACRO_T && (x.type.sub != 0 || x.type.val != 0);
+	return rtypeof(x) >= CONS_T && rtypeof(x) <= ERR_T;
 }
 
 static inline bool is_cons_pair_or_nil(value_t x)
 {
-	return rtypeof(x) <= MACRO_T;
+	return (rtypeof(x) >= CONS_T && rtypeof(x) <= ERR_T) || nilp(x);
 }
 
 static inline bool is_seq(value_t x)
 {
-	return rtypeof(x) == CONS_T && (x.type.sub != 0 || x.type.val != 0);
+	return rtypeof(x) == CONS_T;
 }
 
 static inline bool is_seq_or_nil(value_t x)
 {
-	return rtypeof(x) == CONS_T;
+	return (rtypeof(x) == CONS_T) || nilp(x);
 }
 
 
@@ -83,13 +83,12 @@ value_t cdr(value_t x)
 value_t	cons(value_t car, value_t cdr)
 {
 	value_t	r	= { 0 };
-	// r.type.main is always 0 (=CONS_T) because malloc returns ptr aligned to 8byte.
-	// r.type.main	= CONS_T;
 	r.cons		= alloc_cons();
 	if(r.cons)
 	{
 		r.cons->car	= car;
 		r.cons->cdr	= cdr;
+		r.type.main	= CONS_T;
 		return r;
 	}
 	else
@@ -120,8 +119,6 @@ bool equal(value_t x, value_t y)
 	}
 	else if(is_cons_pair_or_nil(x))
 	{
-		x.cons = aligned_addr(x);
-		y.cons = aligned_addr(y);
 		if(nilp(x))
 		{
 			return nilp(y);
@@ -177,20 +174,18 @@ value_t rplacd(value_t x, value_t v)
 
 value_t last(value_t x)
 {
-	if(is_seq_or_nil(x))
+	if(is_cons_pair_or_nil(x))
 	{
-		value_t i;
-		i.cons = aligned_addr(x);
-		if(nilp(i))
+		if(nilp(x))
 		{
 			return x;
 		}
 		else
 		{
-			for(; !nilp(cdr(i)); i = cdr(i))
-				assert(is_seq_or_nil(i));
+			for(; !nilp(cdr(x)); x = cdr(x))
+				assert(is_seq_or_nil(x));
 
-			return i;
+			return x;
 		}
 	}
 	else
@@ -201,9 +196,8 @@ value_t last(value_t x)
 
 value_t nth(int n, value_t x)
 {
-	if(is_seq_or_nil(x))
+	if(is_cons_pair_or_nil(x))
 	{
-		x.cons = aligned_addr(x);
 		if(nilp(x))
 		{
 			return RERR(ERR_RANGE, NIL);
@@ -229,7 +223,7 @@ value_t nth(int n, value_t x)
 
 value_t nconc(value_t a, value_t b)
 {
-	assert(is_seq_or_nil(a));
+	assert(is_cons_pair_or_nil(a));
 
 	value_t l = last(a);
 	if(nilp(l))
@@ -266,7 +260,7 @@ value_t list(int n, ...)
 
 value_t find(value_t key, value_t list, bool (*test)(value_t, value_t))
 {
-	assert(is_seq_or_nil(list));
+	assert(is_cons_pair_or_nil(list));
 
 	if(nilp(list))
 	{
@@ -286,7 +280,7 @@ value_t find(value_t key, value_t list, bool (*test)(value_t, value_t))
 
 int	count(value_t x)
 {
-	if(rtypeof(x) == CONS_T)
+	if(is_cons_pair_or_nil(x))
 	{
 		int i;
 		for(i = 0; !nilp(x); x = cdr(x), i++)
@@ -294,7 +288,7 @@ int	count(value_t x)
 
 		return i;
 	}
-	else if(rtypeof(x) == VEC_T)
+	else if(vectorp(x))
 	{
 		return vsize(x);
 	}
@@ -492,7 +486,7 @@ value_t* vdata(value_t v)
 	assert(vectorp(v) || symbolp(v));
 	assert(vsize(v) <= vallocsize(v));
 	v.vector = aligned_vaddr(v);
-	return PTROF(v.vector->data);
+	return VPTROF(v.vector->data);
 }
 
 value_t vresize(value_t v, int n)
@@ -510,8 +504,6 @@ value_t vresize(value_t v, int n)
 		// resize allocated area
 		if(INTOF(va->alloc) < n)
 		{
-			//for(va->alloc = 1; va->alloc < n; va->alloc *= 2);
-			//value_t* np = (value_t*)realloc(va->data, va->alloc * sizeof(value_t));
 			int new_alloc;
 			for(new_alloc = 1; new_alloc < n; new_alloc *= 2);
 			if(nilp(alloc_vector_data(v, new_alloc)))
@@ -815,15 +807,13 @@ value_t gensym	(value_t env)
 value_t* cons_and_cdr(value_t v, value_t* c)
 {
 	*c = cons(v, NIL);
-	return &c->cons->cdr;
+	return &AVALUE(*c).cons->cdr;
 }
 
 value_t* nconc_and_last(value_t v, value_t* c)
 {
 	*c = v;
-	value_t l = last(v);
-	c->type.main = CONS_T;
-	return &l.cons->cdr;
+	return &AVALUE(last(v)).cons->cdr;
 }
 
 bool is_str(value_t v)

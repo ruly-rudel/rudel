@@ -108,7 +108,7 @@ static value_t compile_vm_progn(value_t code, value_t debug, value_t ast, value_
 static value_t compile_vm_list(value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
-	assert(rtypeof(ast) == CONS_T);
+	assert(consp(ast) || nilp(ast));
 	assert(consp(env));
 
 	if(!nilp(ast))
@@ -132,7 +132,7 @@ static value_t compile_vm_list(value_t code, value_t debug, value_t ast, value_t
 static value_t compile_vm_apply_arg(value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
-	assert(rtypeof(ast) == CONS_T);
+	assert(consp(ast) || nilp(ast));
 	assert(consp(env));
 
 	vpush(ROPD(IS_MKVEC_ENV, count(ast)), code);		vpush(ast, debug);
@@ -160,7 +160,7 @@ static value_t compile_vm_apply_arg(value_t code, value_t debug, value_t ast, va
 static value_t compile_vm_macro_arg(value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
-	assert(rtypeof(ast) == CONS_T);
+	assert(consp(ast) || nilp(ast));
 	assert(consp(env));
 
 	vpush(ROPD(IS_MKVEC_ENV, count(ast)), code);	vpush(ast, debug);
@@ -628,6 +628,10 @@ static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t 
 			{
 				code = compile_vm_apply(code, debug, ast, env);
 			}
+			break;
+
+		case PTR_T:
+			return RERR(ERR_TYPE, ast);
 			break;
 
 		case CLOJ_T:

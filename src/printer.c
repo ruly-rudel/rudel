@@ -44,7 +44,7 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 
 	if(nilp(x))
 	{
-		r = str_to_rstr("nil");
+		return str_to_rstr("nil");
 	}
 	else
 	{
@@ -68,9 +68,9 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 		} while(!nilp(x));
 
 		vpush(RCHAR(')'), r);
-	}
 
-	return r;
+		return r;
+	}
 }
 
 #if 0

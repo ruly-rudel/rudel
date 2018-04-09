@@ -51,7 +51,7 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 	for(; !nilp(key); key = UNSAFE_CDR(key), val = cdr(val))
 	{
 		assert(consp(key));
-		assert(rtypeof(val) == CONS_T);	// nil is acceptable
+		assert(consp(val) || nilp(val));	// nil is acceptable
 
 		value_t key_car = UNSAFE_CAR(key);
 		value_t val_car = car(val);

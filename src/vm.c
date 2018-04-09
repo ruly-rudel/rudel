@@ -453,7 +453,7 @@ value_t exec_vm(value_t c, value_t e)
 				{
 					r0raw = r0;
 					r0raw.type.main = CONS_T;
-					UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0raw))).cons->car = env;	// set current environment
+					AVALUE(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0raw)))).cons->car = env;	// set current environment
 				}
 #ifdef TRACE_VM
 				print(pr_str(r0, NIL, true), stderr);
@@ -513,7 +513,7 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else
 				{
-					r1.cons->car = r2;
+					AVALUE(r1).cons->car = r2;
 				}
 				break;
 

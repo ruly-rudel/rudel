@@ -10,13 +10,13 @@
 
 typedef enum _rtype_t {
 	// main 8types (content is address)
-	CONS_T = 0,
-	ERR_T,
-	SYM_T,
-	PTR_T,
+	PTR_T = 0,
+	CONS_T,
 	CLOJ_T,
 	MACRO_T,
+	ERR_T,
 	VEC_T,
+	SYM_T,
 	OTH_T,
 
 	// sub types (content is value)
@@ -184,16 +184,17 @@ typedef struct _vector_t
 	value_t		data;
 } vector_t;
 
-#define NIL          ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   =  0  })
-#define RPTR(X)      ((value_t){ .raw         = PTR_T | (uintptr_t)(X) })
+#define NIL          ((value_t){ .type.main   = CONS_T, .type.sub = 0,         .type.val   = 0 })
+#define RPTR(X)      ((value_t){ .raw = PTR_T | (uintptr_t)(X) })
 
 #if __WORDSIZE == 32
-	#define PTROF(X)    (void*)((X).raw & 0xfffffff8)
+	#define ALIGN(X)    ((X).raw & 0xfffffff8)
 #else
-	#define PTROF(X)    (void*)((X).raw & 0xfffffffffffffff8)
+	#define ALIGN(X)    ((X).raw & 0xfffffffffffffff8)
 #endif
 
-#define VPTROF(X)    ((value_t*)PTROF(X))
+#define AVALUE(X)    ((value_t){ .raw = ALIGN(X) })
+#define VPTROF(X)    ((value_t*)ALIGN(X))
 
 #define RCHAR(X)     ((value_t){ .type.main   = OTH_T,  .type.sub = CHAR_T,    .type.val   = (X) })
 #define RINT(X)      ((value_t){ .type.main   = OTH_T,  .type.sub = INT_T,     .type.val   = (X) })
@@ -231,8 +232,8 @@ typedef struct _vector_t
 #define ERR_CANTOPEN		16
 #define ERR_FWRITE		17
 
-#define UNSAFE_CAR(X)	(X).cons->car
-#define UNSAFE_CDR(X)	(X).cons->cdr
+#define UNSAFE_CAR(X)	AVALUE(X).cons->car
+#define UNSAFE_CDR(X)	AVALUE(X).cons->cdr
 
 INLINE(rtype_t rtypeof(value_t v),  v.type.main == OTH_T ? v.type.sub : v.type.main)
 INLINE(bool    nilp(value_t x),     x.type.main == CONS_T &&  x.type.sub == 0 && x.type.val == 0)

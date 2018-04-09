@@ -36,8 +36,7 @@ inline static bool is_to(value_t v)
 inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 {
 	rtype_t type = rtypeof(*v);
-	value_t cur  = *v;
-	cur.type.main = CONS_T;
+	value_t cur  = AVALUE(*v);
 	value_t alloc;
 
 	switch(type)
@@ -46,8 +45,7 @@ inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 		case ERR_T:
 		case CLOJ_T:
 		case MACRO_T:
-			if(nilp(cur)) return 0;	// nil is not cons cell
-
+			if(cur.raw == 0) return 0;	// null value
 			if(ptrp(cur.cons->car))	// target cons is already copied
 			{
 				// replace value itself to copyed to-space address
@@ -70,7 +68,7 @@ inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 				cur.cons->car   = alloc;
 
 				// invoke copy1 to car/cdr of current cons
-				alloc.type.main = CONS_T;
+				alloc = AVALUE(alloc);
 				copy1(top, ofs, &alloc.cons->car);
 				copy1(top, ofs, &alloc.cons->cdr);
 
@@ -83,12 +81,10 @@ inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 
 		case VEC_T:
 		case SYM_T:
-			//if(nilp(cur)) return 0;	//****** nil is not vector(but it is not ocuured?)
-
-			if(ptrp(cur.vector->type))	// target vector is already copied
+			if(ptrp(cur.vector->size))	// target vector is already copied
 			{
 				// replace value itself to copyed to-space address
-				alloc = cur.vector->type;
+				alloc = cur.vector->size;
 				alloc.raw += ofs;
 				assert(ofs || is_to(alloc));
 				alloc.type.main = type;
@@ -109,10 +105,10 @@ inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 
 				// write to-space address to car of current cons in from-space
 				alloc.type.main     = PTR_T;
-				cur.vector->type    = alloc;
+				cur.vector->size    = alloc;
 
 				// invoke copy1 to current vector data
-				alloc.type.main = CONS_T;
+				alloc = AVALUE(alloc);
 				for(int i = 0; i < INTOF(alloc.vector->size); i++)
 					copy1(top, ofs, VPTROF(alloc.vector->data) + i);
 
@@ -125,6 +121,7 @@ inline static value_t* copy1(value_t** top, intptr_t ofs, value_t* v)
 
 		case PTR_T:
 			abort();
+			break;
 
 		default:
 			break;
@@ -462,7 +459,7 @@ vector_t* alloc_vector()
 value_t alloc_vector_data(value_t v, size_t size)
 {
 	assert(vectorp(v));
-	v.type.main = CONS_T;
+	v = AVALUE(v);
 
 	size = size + (size % 2);	// align
 
