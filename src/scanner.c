@@ -6,6 +6,7 @@
 /////////////////////////////////////////////////////////////////////
 // private: scanner
 
+// return current pointed char
 static int scan_pch(scan_t* s)
 {
 	assert(s);
@@ -21,6 +22,7 @@ static int scan_pch(scan_t* s)
 	}
 }
 
+// increment pointer and return pointed char
 static int scan_nch(scan_t* s)
 {
 	assert(s);
@@ -62,12 +64,7 @@ static value_t scan_to_whitespace(scan_t* s)
 	{
 		if(c == ' ' || c == '\t' || c == '\n' || c == '('  || c == ')' || c == ';')
 		{
-			if(vsize(r) == 0)
-			{
-				vpush(RCHAR('\0'), r);
-			}
-			r.type.main = SYM_T;
-			return r;
+			break;
 		}
 		else
 		{
@@ -75,8 +72,12 @@ static value_t scan_to_whitespace(scan_t* s)
 		}
 	}
 
-	// must be refactored
+	if(vsize(r) == 0)
+	{
+		vpush(RCHAR('\0'), r);
+	}
 	r.type.main = SYM_T;
+
 	return r;
 }
 

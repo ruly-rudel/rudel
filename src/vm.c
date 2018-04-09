@@ -100,7 +100,7 @@
 }
 
 #define FIRST(X)  (UNSAFE_CAR(X))
-#define SECOND(X) (UNSAFE_CAR(UNSAFE_CDr(X)))
+#define SECOND(X) (UNSAFE_CAR(UNSAFE_CDR(X)))
 #define THIRD(X)  (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(X))))
 #define FOURTH(X) (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(X)))))
 
@@ -118,21 +118,12 @@
 #define TRACE2N(X, Y, Z)
 #endif // TRACE_VM
 
-#define RERR_TYPE_PC	(unlock_gc(), RERR(ERR_TYPE, cons(vref(debug, pc), NIL)))
+#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(vref(debug, pc), NIL))
 #define RERR_PC(X)	(unlock_gc(), RERR((X), cons(vref(debug, pc), NIL)))
 #define RERR_OVW_PC(X)	(unlock_gc(), rerr(RERR_CAUSE(X), cons(vref(debug, pc), NIL)))
 
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
-
-static inline vector_t* local_aligned_vaddr(value_t v)
-{
-#if __WORDSIZE == 32
-	return (vector_t*) (((uint32_t)v.vector) & 0xfffffff8);
-#else
-	return (vector_t*) (((uint64_t)v.vector) & 0xfffffffffffffff8);
-#endif
-}
 
 inline static value_t local_make_vector(unsigned n)
 {
@@ -158,14 +149,13 @@ inline static value_t local_make_vector(unsigned n)
 inline static value_t local_vref(value_t v, unsigned pos)
 {
 	assert(vectorp(v) || symbolp(v));
-	v.vector = local_aligned_vaddr(v);
-	return VPTROF(v.vector->data)[pos];
+	return VPTROF(AVALUE(v).vector->data)[pos];
 }
 
 inline static value_t local_vref_safe(value_t v, unsigned pos)
 {
 	assert(vectorp(v) || symbolp(v));
-	v.vector = local_aligned_vaddr(v);
+	v = AVALUE(v);
 
 	if(pos < INTOF(v.vector->size))
 	{
@@ -181,8 +171,7 @@ inline static value_t local_vpush(value_t x, value_t v)
 {
 	assert(vectorp(v));
 
-	value_t va;
-	va.vector = local_aligned_vaddr(v);
+	value_t va = AVALUE(v);
 	int s = INTOF(va.vector->size);
 	int a = INTOF(va.vector->alloc);
 	if(s + 1 >= a)
@@ -206,7 +195,7 @@ inline static value_t local_vpush(value_t x, value_t v)
 inline static value_t local_vpop(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
-	v.vector = local_aligned_vaddr(v);
+	v = AVALUE(v);
 	int s = INTOF(v.vector->size) - 1;
 	v.vector->size = RINT(s);
 	return VPTROF(v.vector->data)[s];
@@ -215,28 +204,27 @@ inline static value_t local_vpop(value_t v)
 inline static value_t local_vpeek(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
-	v.vector = local_aligned_vaddr(v);
+	v = AVALUE(v);
 	return VPTROF(v.vector->data)[INTOF(v.vector->size) - 1];
 }
 
 inline static value_t local_rplacv_top(value_t x, value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
-	v.vector = local_aligned_vaddr(v);
+	v = AVALUE(v);
 	return VPTROF(v.vector->data)[INTOF(v.vector->size) - 1] = x;
 }
 
 inline static value_t local_rplacv(value_t v, int i, value_t x)
 {
 	assert(vectorp(v) || symbolp(v));
-	v.vector = local_aligned_vaddr(v);
-	return VPTROF(v.vector->data)[i] = x;
+	return VPTROF(AVALUE(v).vector->data)[i] = x;
 }
 
 inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 {
 	assert(consp(env));
-	assert(rtypeof(ref) == REF_T);
+	assert(refp(ref));
 
 	for(int d = REF_D(ref); d > 0; d--, env = UNSAFE_CDR(env))
 		assert(consp(env));
@@ -290,8 +278,6 @@ value_t exec_vm(value_t c, value_t e)
 	value_t r1    = NIL;
 	value_t r2    = NIL;
 	value_t r3    = NIL;
-
-	value_t r0raw = NIL;
 
 	// register stack, ret, code, env, reg to root
 	push_root        (&code);
@@ -364,9 +350,7 @@ value_t exec_vm(value_t c, value_t e)
 				if(clojurep(r0))	// compiled function
 				{
 					TRACE("AP(Clojure)");
-					r0raw = r0;
-					r0raw.type.main = CONS_T;
-					if(nilp(THIRD(r0raw)))
+					if(nilp(THIRD(r0)))
 					{
 						r2 = compile_vm(r0, env);
 						if(errp(r2)) return unlock_gc(), r2;
@@ -378,25 +362,21 @@ value_t exec_vm(value_t c, value_t e)
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
-					code  = UNSAFE_CAR(THIRD(r0raw));	// clojure code
-					debug = UNSAFE_CDR(THIRD(r0raw));	// clojure debug symbols
-					env  = cons(r1, FOURTH(r0raw));	// clojure environment + new environment as arguments
+					code  = UNSAFE_CAR(THIRD(r0));	// clojure code
+					debug = UNSAFE_CDR(THIRD(r0));	// clojure debug symbols
+					env  = cons(r1, FOURTH(r0));	// clojure environment + new environment as arguments
 					pc   = -1;
 				}
 				else if(macrop(r0))	// compiled macro
 				{
 					TRACE("AP(Macro)");
-					r0raw = r0;
-					r0raw.type.main = CONS_T;
-					if(nilp(THIRD(r0raw)))
+					if(nilp(THIRD(r0)))
 					{
 						r2 = compile_vm(r0, env);
 						if(errp(r2)) return unlock_gc(), r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					r2 = THIRD(r0raw);
-					r3 = FOURTH(r0raw);
-					value_t ext = exec_vm(r2, cons(r1, r3));
+					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
 					if(errp(ext)) return unlock_gc(), ext;
 					TRACE("  Compiling the result on-the-fly.");
 					value_t new_code = compile_vm(ext, env);
@@ -451,9 +431,7 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{
-					r0raw = r0;
-					r0raw.type.main = CONS_T;
-					AVALUE(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0raw)))).cons->car = env;	// set current environment
+					AVALUE(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0)))).cons->car = env;	// set current environment
 				}
 #ifdef TRACE_VM
 				print(pr_str(r0, NIL, true), stderr);
@@ -544,17 +522,13 @@ value_t exec_vm(value_t c, value_t e)
 				if(macrop(r0))	// compiled macro
 				{
 					TRACE("MACROEXPAND");
-					r0raw = r0;
-					r0raw.type.main = CONS_T;
-					if(nilp(THIRD(r0raw)))
+					if(nilp(THIRD(r0)))
 					{
 						r2 = compile_vm(r0, env);
 						if(errp(r2)) return unlock_gc(), r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					r2 = THIRD(r0raw);
-					r3 = FOURTH(r0raw);
-					value_t ext = exec_vm(r2, cons(r1, r3));
+					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
 					if(errp(ext)) return unlock_gc(), ext;
 					TRACE("MACROEXPAND Done.");
 					LOCAL_VPUSH_RAW(ext);
@@ -591,11 +565,11 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_CAR: TRACE("CAR");
-				OP_1P1P(car(r0));
+				OP_1P1P(consp(r0) || nilp(r0) ? car(r0) : RERR_TYPE_PC);
 				break;
 
 			case IS_CDR: TRACE("CDR");
-				OP_1P1P(cdr(r0));
+				OP_1P1P(consp(r0) || nilp(r0) ? cdr(r0) : RERR_TYPE_PC);
 				break;
 
 			case IS_EQ: TRACE("EQ");
@@ -737,7 +711,7 @@ value_t exec_vm(value_t c, value_t e)
 				r0 = LOCAL_VPEEK_RAW;
 				if(!vectorp(r0))
 				{
-					return RERR_TYPE_PC;
+					return unlock_gc(), RERR_TYPE_PC;
 				}
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));

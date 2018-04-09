@@ -12,24 +12,6 @@
 /////////////////////////////////////////////////////////////////////
 // private: support functions
 
-static inline cons_t* aligned_addr(value_t v)
-{
-#if __WORDSIZE == 32
-	return (cons_t*) (((uint32_t)v.cons) & 0xfffffff8);
-#else
-	return (cons_t*) (((uint64_t)v.cons) & 0xfffffffffffffff8);
-#endif
-}
-
-static inline vector_t* aligned_vaddr(value_t v)
-{
-#if __WORDSIZE == 32
-	return (vector_t*) (((uint32_t)v.vector) & 0xfffffff8);
-#else
-	return (vector_t*) (((uint64_t)v.vector) & 0xfffffffffffffff8);
-#endif
-}
-
 static inline bool is_cons_pair(value_t x)
 {
 	return rtypeof(x) >= CONS_T && rtypeof(x) <= ERR_T;
@@ -40,44 +22,21 @@ static inline bool is_cons_pair_or_nil(value_t x)
 	return (rtypeof(x) >= CONS_T && rtypeof(x) <= ERR_T) || nilp(x);
 }
 
-static inline bool is_seq(value_t x)
-{
-	return rtypeof(x) == CONS_T;
-}
-
-static inline bool is_seq_or_nil(value_t x)
-{
-	return (rtypeof(x) == CONS_T) || nilp(x);
-}
-
-
 /////////////////////////////////////////////////////////////////////
 // public: typical lisp functions
 
 value_t car(value_t x)
 {
-	if(is_cons_pair_or_nil(x))
-	{
-		cons_t* c = aligned_addr(x);
-		return c ? c->car : NIL;
-	}
-	else
-	{
-		return RERR(ERR_TYPE, NIL);
-	}
+	assert(is_cons_pair_or_nil(x));
+	x = AVALUE(x);
+	return x.raw ? x.cons->car : NIL;
 }
 
 value_t cdr(value_t x)
 {
-	if(is_cons_pair_or_nil(x))
-	{
-		cons_t* c = aligned_addr(x);
-		return c ? c->cdr : NIL;
-	}
-	else
-	{
-		return RERR(ERR_TYPE, NIL);
-	}
+	assert(is_cons_pair_or_nil(x));
+	x = AVALUE(x);
+	return x.raw ? x.cons->cdr : NIL;
 }
 
 value_t	cons(value_t car, value_t cdr)
@@ -132,7 +91,7 @@ bool equal(value_t x, value_t y)
 			return equal(car(x), car(y)) && equal(cdr(x), cdr(y));
 		}
 	}
-	else if(vectorp(x))
+	else if(vectorp(x) || symbolp(x))
 	{
 		return veq(x, y);
 	}
@@ -144,81 +103,54 @@ bool equal(value_t x, value_t y)
 
 value_t rplaca(value_t x, value_t v)
 {
-	if(is_cons_pair(x))
-	{
-		cons_t* c = aligned_addr(x);
-		c->car = v;
-	}
-	else
-	{
-		x = RERR(ERR_TYPE, NIL);
-	}
+	assert(is_cons_pair(x));
 
+	AVALUE(x).cons->car = v;
 	return x;
 }
 
 value_t rplacd(value_t x, value_t v)
 {
-	if(is_cons_pair(x))
-	{
-		cons_t* c = aligned_addr(x);
-		c->cdr = v;
-	}
-	else
-	{
-		x = RERR(ERR_TYPE, NIL);
-	}
+	assert(is_cons_pair(x));
 
+	AVALUE(x).cons->cdr = v;
 	return x;
 }
 
 value_t last(value_t x)
 {
-	if(is_cons_pair_or_nil(x))
-	{
-		if(nilp(x))
-		{
-			return x;
-		}
-		else
-		{
-			for(; !nilp(cdr(x)); x = cdr(x))
-				assert(is_seq_or_nil(x));
+	assert(is_cons_pair_or_nil(x));
 
-			return x;
-		}
+	if(nilp(x))
+	{
+		return x;
 	}
 	else
 	{
-		return RERR(ERR_TYPE, NIL);
+		for(; !nilp(cdr(x)); x = cdr(x))
+			assert(is_cons_pair_or_nil(x));
+
+		return x;
 	}
 }
 
 value_t nth(int n, value_t x)
 {
-	if(is_cons_pair_or_nil(x))
+	assert(is_cons_pair_or_nil(x));
+
+	for(int i = 0; i < n; i++, x = cdr(x))
 	{
-		if(nilp(x))
+		if(rtypeof(x) != CONS_T)
+		{
+			return RERR(ERR_TYPE, NIL);
+		}
+		else if(nilp(x))
 		{
 			return RERR(ERR_RANGE, NIL);
 		}
-		else
-		{
-			if(n == 0)
-			{
-				return car(x);
-			}
-			else
-			{
-				return nth(n - 1, cdr(x));
-			}
-		}
+	}
 
-	}
-	else
-	{
-		return RERR(ERR_TYPE, NIL);
-	}
+	return nilp(x) ? RERR(ERR_RANGE, NIL) : car(x);
 }
 
 value_t nconc(value_t a, value_t b)
@@ -301,10 +233,9 @@ int	count(value_t x)
 value_t symbol_string(value_t sym)
 {
 	assert(symbolp(sym));
-	sym.type.main = VEC_T;
-	value_t r = copy_vector(sym);
 
-	return r;
+	sym.type.main = VEC_T;
+	return copy_vector(sym);
 }
 
 
@@ -390,10 +321,8 @@ value_t init(value_t env)
 	rplaca(env, car(create_root_env()));
 
 #ifndef NOINIT
-	lock_gc();
 	value_t s = vconc(vconc(str_to_rstr("(progn "), slurp("init.rud")), str_to_rstr(")"));
 	value_t c = compile_vm(read_str(s), env);
-	unlock_gc();
 
 	return errp(c) ? c : exec_vm(c, env);
 #else // NOINIT
@@ -429,7 +358,7 @@ value_t vref(value_t v, unsigned pos)
 {
 	assert(vectorp(v) || symbolp(v));
 	assert(vsize(v) <= vallocsize(v));
-	v.vector = aligned_vaddr(v);
+	v = AVALUE(v);
 
 	if(pos < INTOF(v.vector->size))
 	{
@@ -451,8 +380,7 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 		vresize(v, pos + 1);
 	}
 
-	v.vector = aligned_vaddr(v);
-	VPTROF(v.vector->data)[pos] = data;
+	VPTROF(AVALUE(v).vector->data)[pos] = data;
 
 	return data;
 }
@@ -460,7 +388,7 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 int vsize(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
-	v.vector = aligned_vaddr(v);
+	v = AVALUE(v);
 	assert(INTOF(v.vector->size) <= INTOF(v.vector->alloc));
 	return INTOF(v.vector->size);
 }
@@ -468,7 +396,7 @@ int vsize(value_t v)
 int vallocsize(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
-	v.vector = aligned_vaddr(v);
+	v = AVALUE(v);
 	assert(INTOF(v.vector->size) <= INTOF(v.vector->alloc));
 	return INTOF(v.vector->alloc);
 }
@@ -477,23 +405,21 @@ value_t vtype(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	assert(vsize(v) <= vallocsize(v));
-	v.vector = aligned_vaddr(v);
-	return v.vector->type;
+	return AVALUE(v).vector->type;
 }
 
 value_t* vdata(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	assert(vsize(v) <= vallocsize(v));
-	v.vector = aligned_vaddr(v);
-	return VPTROF(v.vector->data);
+	return VPTROF(AVALUE(v).vector->data);
 }
 
 value_t vresize(value_t v, int n)
 {
 	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
-	vector_t* va = aligned_vaddr(v);
+	value_t va = AVALUE(v);
 	if(n < 0)
 	{
 		return RERR(ERR_RANGE, NIL);
@@ -502,7 +428,7 @@ value_t vresize(value_t v, int n)
 	{
 
 		// resize allocated area
-		if(INTOF(va->alloc) < n)
+		if(INTOF(va.vector->alloc) < n)
 		{
 			int new_alloc;
 			for(new_alloc = 1; new_alloc < n; new_alloc *= 2);
@@ -513,12 +439,11 @@ value_t vresize(value_t v, int n)
 		}
 
 		// change size and NILify new area
-		va = aligned_vaddr(v);
-		int cur_size = INTOF(va->size);
-		va->size = RINT(n);
+		int cur_size = INTOF(va.vector->size);
+		va.vector->size = RINT(n);
 		for(int i = cur_size; i < n; i++)
 		{
-			VPTROF(va->data)[i] = NIL;
+			VPTROF(va.vector->data)[i] = NIL;
 		}
 	}
 
@@ -613,7 +538,7 @@ value_t vpush_front(value_t v, value_t x)
 
 value_t copy_vector(value_t src)
 {
-	assert(vectorp(src));
+	assert(vectorp(src) || symbolp(src));
 	assert(vsize(src) <= vallocsize(src));
 	value_t r = make_vector(vsize(src));
 
@@ -624,6 +549,7 @@ value_t copy_vector(value_t src)
 			rplacv(r, i, vref(src, i));
 		}
 	}
+	r.type.main = src.type.main;
 
 	return r;
 }

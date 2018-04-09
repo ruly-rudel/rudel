@@ -12,7 +12,6 @@
 static value_t read_int(value_t token)
 {
 	assert(vectorp(token) || symbolp(token));
-	token.type.main = VEC_T;
 
 	// sign (if exists)
 	int idx  = 0;
@@ -236,24 +235,22 @@ static value_t read_form(scan_t* st)
 #ifndef USE_LINENOISE
 static value_t read_line(FILE* fp)
 {
-	value_t	 r	= NIL;
-	value_t* cur	= &r;
+	value_t	 r	= make_vector(0);
 
 	for(;;)
 	{
 		int c = fgetc(fp);
-		if(c == EOF && nilp(r))	// EOF
+		if(c == EOF && vsize(r) == 0)	// EOF
 		{
-			return RERR(ERR_EOF);
+			return RERR(ERR_EOF, NIL);
 		}
 		else if(c == '\n' || c == EOF)
 		{
-			r.type.main = STR_T;
 			return r;
 		}
 		else
 		{
-			cur = cons_and_cdr(RCHAR(c), cur);
+			vpush(RCHAR(c), r);
 		}
 	}
 }
@@ -295,7 +292,7 @@ value_t READ(const char* prompt, FILE* fp)
 		return RERR(ERR_EOF, NIL);
 	}
 #else	// USE_LINENOISE
-	fprintf(stdout, prompt);
+	fputs(prompt, stdout);
 	value_t str = read_line(fp);
 	if(errp(str))
 	{
