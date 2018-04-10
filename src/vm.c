@@ -420,14 +420,24 @@ value_t exec_vm(value_t c, value_t e)
 					fprintf(stderr, "%s ", sn);
 					free(sn);
 #endif // TRACE_VM
-					r0 = get_env_ref(r0, env);
-					if(errp(r0))
+					r1 = get_env_ref(r0, env);
+					if(errp(r1))
 					{
-						return RERR_OVW_PC(r0);
+						if(EQ(r0, g_env))
+						{
+							r0 = env;
+						}
+						else
+						{
+							return RERR_OVW_PC(r1);
+						}
 					}
-					local_rplacv(code, pc, r0);		// replace symbol to reference
-					TRACE2N("-> #REF:%d,%d# ", REF_D(r0), REF_W(r0));
-					r0 = local_get_env_value_ref(r0, env);
+					else
+					{
+						local_rplacv(code, pc, r1);		// replace symbol to reference
+						TRACE2N("-> #REF:%d,%d# ", REF_D(r1), REF_W(r1));
+						r0 = local_get_env_value_ref(r1, env);
+					}
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{

@@ -226,6 +226,23 @@
 			(str n ": " (vref v n) "\n" (rec (+ n 1)))))))
 	  (println (rec 0))))
 
+(defun vmap (fn v)
+	(let* ((rec (lambda (n)
+		      (if (eq n (- (vsize v) 1))
+			(fn (vref v n))
+			(cons (fn (vref v n)) (rec (+ n 1)))))))
+	  (rec 0)))
+
+(defun compile-env ()
+  (vmap (lambda (x) (compile-vm (cdr x)))
+	(car (last env))))
+
+(defun initcore ()
+  (progn
+    (init)
+    (compile-env)
+    (save-core "init.rudc")))
+
 ;; debug functions
 (defun trace (x)
 	(setq *trace* (if x (cons x *trace*))))
