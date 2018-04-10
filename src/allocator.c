@@ -300,7 +300,8 @@ value_t save_core(value_t fn, value_t root)
 				// address translation, g_memory_pool based.
 				if(rtypeof(w) < OTH_T && AVALUE(w).raw != 0)
 				{
-					w.raw -= (uintptr_t)g_memory_pool;
+					// shift addres sizeof(cons_t) because avoiding zero pointer (is nil)
+					w.raw -= ((uintptr_t)g_memory_pool - sizeof(cons_t));
 				}
 
 				if(fwrite(&w, sizeof(value_t), 1, fp) != 1)
@@ -383,7 +384,8 @@ value_t load_core(const char* fn)
 					// address translation, g_memory_pool based.
 					if(rtypeof(*g_memory_top) < OTH_T && AVALUE(*g_memory_top).raw != 0)
 					{
-						g_memory_top->raw += (uintptr_t)g_memory_pool;
+						// shift addres sizeof(cons_t) because avoiding zero pointer (is nil)
+						g_memory_top->raw += (uintptr_t)g_memory_pool - sizeof(cons_t);
 					}
 				}
 

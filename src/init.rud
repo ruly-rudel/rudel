@@ -42,6 +42,12 @@
 (defun cddr (x) (cdr (cdr x)))
 (defun caddr (x) (car (cdr (cdr x))))
 
+(defun first  (x) (car x))
+(defun second (x) (car (cdr x)))
+(defun third  (x) (car (cdr (cdr x))))
+(defun fourth (x) (car (cdr (cdr (cdr x)))))
+(defun fifth  (x) (car (cdr (cdr (cdr (cdr x))))))
+
 ;(defun nth (x n)
 ;	(if (eq n 0)
 ;	  (car x)
