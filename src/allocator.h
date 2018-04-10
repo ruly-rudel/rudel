@@ -13,14 +13,16 @@ EXTERN value_t* g_memory_pool_from;
 EXTERN value_t* g_memory_top;
 EXTERN value_t* g_memory_max;
 EXTERN value_t* g_memory_gc;
+EXTERN int	g_lock_cnt;
 
 void		push_root		(value_t* v);
 void		push_root_raw_vec	(value_t *v, int* sp);
 void		pop_root		(void);
-void		lock_gc			(void);
-void		unlock_gc		(void);
-void		check_gc		(void);
+value_t*	exec_gc			(void);
 void		force_gc		(void);
+INLINE(value_t*	check_gc(void),		g_memory_top >= g_memory_gc && g_lock_cnt == 0 ?  exec_gc() : 0)
+INLINE(int	lock_gc(void),		g_lock_cnt++)
+INLINE(int	unlock_gc(void),	g_lock_cnt--)
 
 void		clear_symtbl		(void);
 value_t		register_sym		(value_t s);

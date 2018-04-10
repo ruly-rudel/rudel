@@ -16,7 +16,6 @@ typedef struct
 static value_t	s_symbol_pool		= NIL;
 static root_t	s_root[ROOT_SIZE]	= { 0 };
 static int	s_root_ptr		=   0;
-static int	s_lock_cnt		=   0;
 
 /////////////////////////////////////////////////////////////////////
 // private: support functions
@@ -159,26 +158,6 @@ static void exec_gc_root(void)
 	init_global();
 }
 
-static value_t* exec_gc(void)
-{
-#ifdef NOGC
-	return 0;
-#else  // NOGC
-
-#ifdef TRACE_GC
-	fprintf(stderr, "Executing GC...\n");
-#endif
-	swap_buffer();
-	exec_gc_root();
-
-
-#ifdef TRACE_GC
-	fprintf(stderr, "Executing GC Done.\n");
-#endif
-	return g_memory_top;
-#endif // NOGC
-}
-
 /////////////////////////////////////////////////////////////////////
 // public: Control GC
 
@@ -205,27 +184,24 @@ void pop_root(void)
 	return;
 }
 
-void lock_gc(void)
+value_t* exec_gc(void)
 {
-	s_lock_cnt++;
-	assert(s_lock_cnt >= 0);
-}
+#ifdef NOGC
+	return 0;
+#else  // NOGC
 
-void unlock_gc(void)
-{
-	s_lock_cnt--;
-	assert(s_lock_cnt >= 0);
-}
-
-void check_gc(void)
-{
-	if(g_memory_top >= g_memory_gc && s_lock_cnt == 0)
-	{
 #ifdef TRACE_GC
-		fprintf(stderr, "Found heap almost full, execute GC.\n");
-#endif // TRACE_GC
-		exec_gc();
-	}
+	fprintf(stderr, "Executing GC...\n");
+#endif
+	swap_buffer();
+	exec_gc_root();
+
+
+#ifdef TRACE_GC
+	fprintf(stderr, "Executing GC Done.\n");
+#endif
+	return g_memory_top;
+#endif // NOGC
 }
 
 void force_gc(void)
@@ -428,6 +404,7 @@ void init_allocator(void)
 	g_memory_top       = g_memory_pool;
 	g_memory_max       = g_memory_pool + INITIAL_ALLOC_SIZE;
 	g_memory_gc        = g_memory_pool + INITIAL_ALLOC_SIZE / 2;
+	g_lock_cnt         = 0;
 }
 
 cons_t* alloc_cons(void)
@@ -443,7 +420,7 @@ cons_t* alloc_cons(void)
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	if(g_memory_top >= g_memory_gc && s_lock_cnt == 0)
+	if(g_memory_top >= g_memory_gc && g_lock_cnt == 0)
 	{
 		if(exec_gc())
 		{
@@ -489,7 +466,7 @@ vector_t* alloc_vector()
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	if(g_memory_top >= g_memory_gc && s_lock_cnt == 0)
+	if(g_memory_top >= g_memory_gc && g_lock_cnt == 0)
 	{
 		if(exec_gc())
 		{
@@ -529,7 +506,7 @@ value_t alloc_vector_data(value_t v, size_t size)
 
 	size = size + (size % 2);	// align
 
-	if(g_memory_top + size >= g_memory_gc && s_lock_cnt == 0)
+	if(g_memory_top + size >= g_memory_gc && g_lock_cnt == 0)
 	{
 		if(!exec_gc())
 		{
