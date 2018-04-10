@@ -32,7 +32,7 @@ inline static bool is_to(value_t v)
 }
 #endif // NDEBUG
 
-inline static void copy1(value_t** top, intptr_t ofs, value_t* v)
+inline static void copy1(value_t** top, value_t* v)
 {
 	rtype_t type = rtypeof(*v);
 	value_t cur  = AVALUE(*v);
@@ -49,8 +49,7 @@ inline static void copy1(value_t** top, intptr_t ofs, value_t* v)
 			{
 				// replace value itself to copyed to-space address
 				alloc = cur.cons->car;
-				alloc.raw += ofs;
-				assert(ofs || is_to(alloc));
+				assert(is_to(alloc));
 				alloc.type.main = type;
 				*v = alloc;
 			}
@@ -67,7 +66,6 @@ inline static void copy1(value_t** top, intptr_t ofs, value_t* v)
 				cur.cons->car   = alloc;
 
 				// replace value itself to copyed to-space address
-				alloc.raw += ofs;
 				alloc.type.main = type;
 				*v = alloc;
 			}
@@ -79,8 +77,7 @@ inline static void copy1(value_t** top, intptr_t ofs, value_t* v)
 			{
 				// replace value itself to copyed to-space address
 				alloc = cur.vector->size;
-				alloc.raw += ofs;
-				assert(ofs || is_to(alloc));
+				assert(is_to(alloc));
 				alloc.type.main = type;
 				*v = alloc;
 			}
@@ -102,7 +99,6 @@ inline static void copy1(value_t** top, intptr_t ofs, value_t* v)
 				cur.vector->size    = alloc;
 
 				// replace value itself to copyed to-space address
-				alloc.raw += ofs;
 				alloc.type.main = type;
 				*v = alloc;
 			}
@@ -133,23 +129,23 @@ static void exec_gc_root(void)
 		{
 			for(int j = 0; j <= *s_root[i].size; j++)
 			{
-				copy1(&g_memory_top, 0, s_root[i].data + j);
+				copy1(&g_memory_top, s_root[i].data + j);
 			}
 		}
 		else
 		{
-			copy1(&g_memory_top, 0, s_root[i].data);
+			copy1(&g_memory_top, s_root[i].data);
 		}
 	}
 
 	// copy symbol pool to memory pool
-	copy1(&g_memory_top, 0, &s_symbol_pool);
+	copy1(&g_memory_top, &s_symbol_pool);
 
 	// scan and copy rest
 	value_t* scanned = g_memory_pool;
 	while(scanned != g_memory_top)
 	{
-		copy1(&g_memory_top, 0, scanned++);
+		copy1(&g_memory_top, scanned++);
 	}
 
 #ifdef TRACE_GC
@@ -249,14 +245,14 @@ value_t save_core(value_t fn, value_t root)
 
 	// swap buffer and gc partial root
 	swap_buffer();
-	copy1(&g_memory_top, 0, &root);
-	copy1(&g_memory_top, 0, &s_symbol_pool);
+	copy1(&g_memory_top, &root);
+	copy1(&g_memory_top, &s_symbol_pool);
 
 	// scan and copy rest
 	value_t* scanned = g_memory_pool;
 	while(scanned != g_memory_top)
 	{
-		copy1(&g_memory_top, 0, scanned++);
+		copy1(&g_memory_top, scanned++);
 	}
 
 #ifdef TRACE_GC
@@ -309,19 +305,19 @@ value_t save_core(value_t fn, value_t root)
 		{
 			for(int j = 0; j <= *s_root[i].size; j++)
 			{
-				copy1(&g_memory_top, 0, s_root[i].data + j);
+				copy1(&g_memory_top, s_root[i].data + j);
 			}
 		}
 		else
 		{
-			copy1(&g_memory_top, 0, s_root[i].data);
+			copy1(&g_memory_top, s_root[i].data);
 		}
 	}
 
 	// scan and copy rest
 	while(scanned != g_memory_top)
 	{
-		copy1(&g_memory_top, 0, scanned++);
+		copy1(&g_memory_top, scanned++);
 	}
 
 #ifdef TRACE_GC

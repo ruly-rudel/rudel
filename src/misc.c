@@ -32,6 +32,8 @@ void init_global(void)
 	value_t tbl[] = {
 		str_to_sym("atom"),		ROP(IS_ATOM),		RINT(1),
 		str_to_sym("consp"),		ROP(IS_CONSP),		RINT(1),
+		str_to_sym("clojurep"),		ROP(IS_CLOJUREP),	RINT(1),
+		str_to_sym("macrop"),		ROP(IS_MACROP),		RINT(1),
 		str_to_sym("strp"),		ROP(IS_STRP),		RINT(1),
 		str_to_sym("cons"),		ROP(IS_CONS),		RINT(2),
 		str_to_sym("car"),		ROP(IS_CAR),		RINT(1),

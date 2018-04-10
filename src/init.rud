@@ -243,6 +243,10 @@
     (compile-env)
     (save-core "init.rudc")))
 
+(defun vmcode (x)
+  (if (or (clojurep x) (macrop x))
+    (car (third x))))
+
 ;; debug functions
 (defun trace (x)
 	(setq *trace* (if x (cons x *trace*))))
