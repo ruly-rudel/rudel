@@ -7,6 +7,9 @@
 	   (macro (name arg body)
 		`(setq ,name (macro ,arg ,body))))
 
+(defmacro \ (arg body)
+  `(lambda ,arg ,body))
+
 ;; conditions
 (defun not (a)
 	(if a nil t))
@@ -102,7 +105,7 @@
 	    (cons (car lst) (remove x (cdr lst))))))
 
 (defun concat (& body)
-	(let* ((rec (lambda (x)
+	(let* ((rec (\ (x)
 			(if (not x) nil
 			  (if (consp x)
 			    (let* ((copy (copy-list (car x))))
@@ -117,7 +120,7 @@
 ;; map functions
 (defun reduce (fn lst)
 	(let*
-	  ((rec      (lambda (head lst)
+	  ((rec      (\ (head lst)
 			 (if lst
 			   (rec (fn head (car lst)) (cdr lst))
 			   head))))
@@ -135,19 +138,19 @@
 
 (defun str (& body)
   (if body
-    (reduce (lambda (x y) (vconc x y))
-	    (mapcar (lambda (x) (pr_str x nil)) body))
+    (reduce (\ (x y) (vconc x y))
+	    (mapcar (\ (x) (pr_str x nil)) body))
     ""))
 
 (defun pr-str (& body)
   (if body
-    (reduce (lambda (x y) (vconc (vconc x " ") y))
-	    (mapcar (lambda (x) (pr_str x t)) body))
+    (reduce (\ (x y) (vconc (vconc x " ") y))
+	    (mapcar (\ (x) (pr_str x t)) body))
     ""))
 
 (defun println-str (body)
-  (reduce (lambda (x y) (vconc (vconc x " ") y))
-	  (mapcar (lambda (x) (pr_str x nil)) body)))
+  (reduce (\ (x y) (vconc (vconc x " ") y))
+	  (mapcar (\ (x) (pr_str x nil)) body)))
 
 (defun println (& body)
   (printline (println-str body)))
@@ -185,14 +188,14 @@
 	       (next  (+ indent 3)))
 	  (str
 	    "("
-	    (reduce (lambda (x y) (str x " " y))
-		    (mapcar (lambda (x) (pp x next)) prec))
+	    (reduce (\ (x y) (str x " " y))
+		    (mapcar (\ (x) (pp x next)) prec))
 	    (if trail
 	      (str
 	         "\n"
 	         (insert-space next)
-		 (reduce (lambda (x y) (str x "\n" (insert-space next) y))
-			 (mapcar (lambda (x) (pp x next)) trail))
+		 (reduce (\ (x y) (str x "\n" (insert-space next) y))
+			 (mapcar (\ (x) (pp x next)) trail))
 		 ")")
 	      ")"))))
 
@@ -207,6 +210,7 @@
 		 (equal fn 'if)       (pp-n tree indent 2)
 		 (equal fn 'setq)     (pp-n tree indent 2)
 		 (equal fn 'lambda)   (pp-n tree indent 2)
+		 (equal fn '\)        (pp-n tree indent 2)
 		 (equal fn 'defun)    (pp-n tree indent 3)
 		 (equal fn 'defmacro) (pp-n tree indent 3)
 		 t                (pp-n tree indent 1)))
@@ -220,21 +224,21 @@
   (make-vector-from-list lst))
 
 (defun vdump (v)
-	(let* ((rec (lambda (n)
+	(let* ((rec (\ (n)
 		      (if (eq n (- (vsize v) 1))
 			(str n ": " (vref v n) "\n")
 			(str n ": " (vref v n) "\n" (rec (+ n 1)))))))
 	  (println (rec 0))))
 
 (defun vmap (fn v)
-	(let* ((rec (lambda (n)
+	(let* ((rec (\ (n)
 		      (if (eq n (- (vsize v) 1))
 			(fn (vref v n))
 			(cons (fn (vref v n)) (rec (+ n 1)))))))
 	  (rec 0)))
 
 (defun compile-env ()
-  (vmap (lambda (x) (compile-vm (cdr x)))
+  (vmap (\ (x) (compile-vm (cdr x)))
 	(car (last env))))
 
 (defun initcore ()

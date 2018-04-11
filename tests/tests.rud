@@ -1244,3 +1244,19 @@ x
 ;=>#<CLOJURE>
 (exec-vm (compile-vm '(tlist 1 2 3)))
 ;=>(1 2 3)
+
+;; Testing continuation
+(+ 2 (callcc (\ (x) (x 9))))
+;=>11
+(+ 2 (callcc (\ (x) 9)))
+;=>11
+(defun f (c) (* 10 (c 20)))
+;=>#<CLOJURE>
+(+ 5 (callcc f))
+;=>25
+(defun f () (callcc (\ (escape) (progn (println "hoge") (println "hige") (escape 10) (println "hage")))))
+;=>#<CLOJURE>
+(f)
+; hoge
+; hige
+;=>10

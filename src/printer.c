@@ -509,6 +509,7 @@ static value_t pr_vmis(value_t s)
 		case IS_EXEC_VM:	return str_to_rstr("IS_EXEC_VM");
 		case IS_PR_STR:		return str_to_rstr("IS_PR_STR");
 		case IS_PRINTLINE:	return str_to_rstr("IS_PRINTLINE");
+		case IS_CALLCC:		return str_to_rstr("IS_CALLCC");
 		case IS_MVFL:		return str_to_rstr("IS_MVFL");
 		case IS_MLFV:		return str_to_rstr("IS_MLFV");
 		default:		return RERR(ERR_NOTIMPL, str_to_rstr("VMIS"));

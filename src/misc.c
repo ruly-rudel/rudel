@@ -72,7 +72,7 @@ void init_global(void)
 		str_to_sym("exec-vm"),		ROP(IS_EXEC_VM),	RINT(1),
 		str_to_sym("pr_str"),		ROP(IS_PR_STR),		RINT(2),
 		str_to_sym("printline"),	ROP(IS_PRINTLINE),	RINT(1),
-		str_to_sym("slurp"),		ROP(IS_SLURP),		RINT(1),
+		str_to_sym("callcc"),		ROP(IS_CALLCC),		RINT(1),
 		str_to_sym("make-vector-from-list"),		ROP(IS_MVFL),		RINT(1),
 		str_to_sym("make-list-from-vector"),		ROP(IS_MLFV),		RINT(1),
 	};

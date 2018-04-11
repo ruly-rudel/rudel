@@ -103,6 +103,8 @@
 #define SECOND(X) (UNSAFE_CAR(UNSAFE_CDR(X)))
 #define THIRD(X)  (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(X))))
 #define FOURTH(X) (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(X)))))
+#define FIFTH(X)  (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(X))))))
+#define SIXTH(X)  (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(X)))))))
 
 #ifdef TRACE_VM
 #define TRACEN(X)        fprintf(stderr, "[rudel-vm:pc=%06x] "  X      , pc)
@@ -343,6 +345,59 @@ value_t exec_vm(value_t c, value_t e)
 				local_vpush(cons(r0, r1), r2);
 				break;
 
+			case IS_GOTO: TRACE("GOTO");
+				// fetch first argument as result
+				r3 = RREF(0, 0);
+				r3 = local_get_env_value_ref(r3, env);
+
+				r0 = local_vref(code, ++pc);	// next code is entity(continuation itself)
+
+				// restore stack
+				r1 = FIRST(r0);	// stack_raw
+				sp = -1;	// clear stack
+				for(int i = 0; i < vsize(r1); i++)
+				{
+					LOCAL_VPUSH_RAW(local_vref(r1, i));
+				}
+
+				// restore ret stack
+				r2 = SECOND(r0);	// ret_raw
+				rsp = -1;		// clear ret stack
+				for(int i = 0; i < vsize(r2); i++)
+				{
+					LOCAL_VPUSH_RET_RAW(local_vref(r2, i));
+				}
+
+				// restore code, debug, env, pc
+				code  = THIRD(r0);
+				debug = FOURTH(r0);
+				env   = FIFTH(r0);
+				pc    = INTOF(SIXTH(r0));
+
+				// push result to stack
+				LOCAL_VPUSH_RAW(r3);
+				break;
+
+			case IS_CALLCC: TRACE("CALLCC");
+				// save continuation
+				r0 = make_vector(sp  < 0 ? 0 :  sp + 1);	// stack copy
+				for(int i = 0; i <= sp; i++)
+					vpush(stack_raw[i], r0);
+
+				r1 = make_vector(rsp < 0 ? 0 : rsp + 1);	// ret copy
+				for(int i = 0; i <= rsp; i++)
+					vpush(ret_raw[i], r1);
+
+				r3 = make_vector(2);				// code invoking continuation
+				local_vpush(ROP(IS_GOTO),                                r3);
+				local_vpush(list(6, r0, r1, code, debug, env, RINT(pc)), r3);	// continuation itself
+
+				// make clojure that invokes continuation and make it argument
+				r2 = make_vector(1);
+				local_vpush(cons(NIL, cloj(NIL, NIL, cons(r3, r3), NIL, NIL)), r2);
+				LOCAL_VPUSH_RAW(r2);
+				// fall-through to AP
+
 			case IS_AP:
 			{
 				r1 = LOCAL_VPOP_RAW;
@@ -549,6 +604,8 @@ value_t exec_vm(value_t c, value_t e)
 				}
 			}
 			break;
+
+
 
 			case IS_ATOM: TRACE("ATOM");
 				OP_1P1P(atom(r0) ? g_t : NIL);
