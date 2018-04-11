@@ -51,7 +51,9 @@ typedef enum {
 	IS_VPOP_ENV,
 	IS_NIL_CONS_VPUSH,
 	IS_CONS_VPUSH,
+	IS_CALLCC,
 	IS_AP,
+	IS_GOTO,
 	IS_RET,
 	IS_DUP,
 	IS_PUSH,
@@ -62,8 +64,6 @@ typedef enum {
 	IS_SETSYM,
 	IS_RESTPARAM,
 	IS_MACROEXPAND,
-	IS_GOTO,
-	IS_CALLCC,
 
 	IS_ATOM,
 	IS_CONSP,

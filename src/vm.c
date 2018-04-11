@@ -345,69 +345,41 @@ value_t exec_vm(value_t c, value_t e)
 				local_vpush(cons(r0, r1), r2);
 				break;
 
-			case IS_GOTO: TRACE("GOTO");
-				// fetch first argument as result
-				r3 = RREF(0, 0);
-				r3 = local_get_env_value_ref(r3, env);
-
-				r0 = local_vref(code, ++pc);	// next code is entity(continuation itself)
-
-				// restore stack
-				r1 = FIRST(r0);	// stack_raw
-				sp = -1;	// clear stack
-				for(int i = 0; i < vsize(r1); i++)
-				{
-					LOCAL_VPUSH_RAW(local_vref(r1, i));
-				}
-
-				// restore ret stack
-				r2 = SECOND(r0);	// ret_raw
-				rsp = -1;		// clear ret stack
-				for(int i = 0; i < vsize(r2); i++)
-				{
-					LOCAL_VPUSH_RET_RAW(local_vref(r2, i));
-				}
-
-				// restore code, debug, env, pc
-				code  = THIRD(r0);
-				debug = FOURTH(r0);
-				env   = FIFTH(r0);
-				pc    = INTOF(SIXTH(r0));
-
-				// push result to stack
-				LOCAL_VPUSH_RAW(r3);
-				break;
-
 			case IS_CALLCC: TRACE("CALLCC");
 				// save continuation
 				r0 = make_vector(sp  < 0 ? 0 :  sp + 1);	// stack copy
 				for(int i = 0; i <= sp; i++)
 					vpush(stack_raw[i], r0);
 
+				LOCAL_VPUSH_RET_RAW(code);
+				LOCAL_VPUSH_RET_RAW(debug);
+				LOCAL_VPUSH_RET_RAW(RINT(pc));
+				LOCAL_VPUSH_RET_RAW(env);
+				LOCAL_VPUSH_RET_RAW(r0);
+
 				r1 = make_vector(rsp < 0 ? 0 : rsp + 1);	// ret copy
 				for(int i = 0; i <= rsp; i++)
 					vpush(ret_raw[i], r1);
 
-				r3 = make_vector(2);				// code invoking continuation
-				local_vpush(ROP(IS_GOTO),                                r3);
-				local_vpush(list(6, r0, r1, code, debug, env, RINT(pc)), r3);	// continuation itself
+				r2 = make_vector(2);				// code invoking continuation
+				local_vpush(ROP(IS_GOTO), r2);
+				local_vpush(r1,           r2);	// continuation itself(is ret stack including stack)
 
 				// make clojure that invokes continuation and make it argument
-				r2 = make_vector(1);
-				local_vpush(cons(NIL, cloj(NIL, NIL, cons(r3, r3), NIL, NIL)), r2);
-				LOCAL_VPUSH_RAW(r2);
+				r3 = make_vector(1);
+				local_vpush(cons(NIL, cloj(NIL, NIL, cons(r2, r2), NIL, NIL)), r3);
+				LOCAL_VPUSH_RAW(r3);
 				// fall-through to AP
 
 			case IS_AP:
-			{
-				r1 = LOCAL_VPOP_RAW;
 				r0 = LOCAL_VPOP_RAW;
-				if(clojurep(r0))	// compiled function
+				r1 = LOCAL_VPOP_RAW;
+				if(clojurep(r1))	// compiled function
 				{
 					TRACE("AP(Clojure)");
-					if(nilp(THIRD(r0)))
+					if(nilp(THIRD(r1)))
 					{
-						r2 = compile_vm(r0, env);
+						r2 = compile_vm(r1, env);
 						if(errp(r2)) return unlock_gc(), r2;
 					}
 					// save contexts
@@ -417,37 +389,59 @@ value_t exec_vm(value_t c, value_t e)
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
-					code  = UNSAFE_CAR(THIRD(r0));	// clojure code
-					debug = UNSAFE_CDR(THIRD(r0));	// clojure debug symbols
-					env  = cons(r1, FOURTH(r0));	// clojure environment + new environment as arguments
-					pc   = -1;
+					code  = UNSAFE_CAR(THIRD(r1));	// clojure code
+					debug = UNSAFE_CDR(THIRD(r1));	// clojure debug symbols
+					env   = cons(r0, FOURTH(r1));	// clojure environment + new environment as arguments
+					pc    = -1;
 				}
-				else if(macrop(r0))	// compiled macro
+				else if(macrop(r1))	// compiled macro
 				{
 					TRACE("AP(Macro)");
-					if(nilp(THIRD(r0)))
+					if(nilp(THIRD(r1)))
 					{
-						r2 = compile_vm(r0, env);
+						r2 = compile_vm(r1, env);
 						if(errp(r2)) return unlock_gc(), r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
-					if(errp(ext)) return unlock_gc(), ext;
+					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));	if(errp(r2)) return unlock_gc(), r2;
 					TRACE("  Compiling the result on-the-fly.");
-					value_t new_code = compile_vm(ext, env);
-					if(errp(new_code)) return unlock_gc(), new_code;
+					r3 = compile_vm(r2, env);			if(errp(r3)) return unlock_gc(), r3;
 					TRACE("  Evaluate it, invoking another VM.");
-					value_t res = exec_vm(new_code, env);
-					if(errp(res)) return unlock_gc(), res;
+					r2 = exec_vm   (r3, env);			if(errp(r2)) return unlock_gc(), r2;
 					TRACE("AP(Macro) Done.");
-					LOCAL_VPUSH_RAW(res);
+					LOCAL_VPUSH_RAW(r2);
 				}
 				else
 				{
 					return RERR_PC(ERR_INVALID_AP);
 				}
-			}
-			break;
+				break;
+
+			case IS_GOTO: TRACE("GOTO");
+				// fetch first argument as result
+				r0 = RREF(0, 0);
+				r0 = local_get_env_value_ref(r0, env);
+
+				r1 = local_vref(code, ++pc);	// next code is entity(continuation itself)
+
+				// restore ret stack
+				rsp = -1;		// clear ret stack
+				for(int i = 0; i < vsize(r1); i++)
+				{
+					LOCAL_VPUSH_RET_RAW(local_vref(r1, i));
+				}
+
+				// restore stack
+				r2 = LOCAL_VPOP_RET_RAW;
+				sp = -1;	// clear stack
+				for(int i = 0; i < vsize(r1); i++)
+				{
+					LOCAL_VPUSH_RAW(local_vref(r1, i));
+				}
+
+				// push result to stack
+				LOCAL_VPUSH_RAW(r0);
+				// fall through to RET
 
 			case IS_RET: TRACE("RET");
 				env   = LOCAL_VPOP_RET_RAW;
@@ -561,49 +555,44 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_RESTPARAM: TRACE1("RESTPARAM %d", pc + op.op.operand);
-			{
 				r0 = UNSAFE_CAR(env);
-				r2 = LOCAL_VPOP_RAW;
-				int size = vsize(r0);
-				r1 = NIL;
-				value_t* cur = &r1;
+				r1 = LOCAL_VPOP_RAW;
+				r2 = NIL;
+				value_t* cur = &r2;
 
-				for(int i = op.op.operand; i < size; i++)
+				for(int i = op.op.operand; i < vsize(r0); i++)
 				{
 					cur = cons_and_cdr(UNSAFE_CDR(local_vref(r0, i)), cur);
 				}
-				r3 = rplacv(r0, op.op.operand, cons(r2, r1));
+				r3 = rplacv(r0, op.op.operand, cons(r1, r2));
 				if(errp(r3))
 				{
 					return RERR_PC(ERR_ARG);
 				}
-			}
 				break;
 
 			case IS_MACROEXPAND:
-			{
-				r1 = LOCAL_VPOP_RAW;
 				r0 = LOCAL_VPOP_RAW;
-				if(macrop(r0))	// compiled macro
+				r1 = LOCAL_VPOP_RAW;
+				if(macrop(r1))	// compiled macro
 				{
 					TRACE("MACROEXPAND");
-					if(nilp(THIRD(r0)))
+					if(nilp(THIRD(r1)))
 					{
-						r2 = compile_vm(r0, env);
+						r2 = compile_vm(r1, env);
 						if(errp(r2)) return unlock_gc(), r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					value_t ext = exec_vm(THIRD(r0), cons(r1, FOURTH(r0)));
-					if(errp(ext)) return unlock_gc(), ext;
+					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));
+					if(errp(r2)) return unlock_gc(), r2;
 					TRACE("MACROEXPAND Done.");
-					LOCAL_VPUSH_RAW(ext);
+					LOCAL_VPUSH_RAW(r2);
 				}
 				else
 				{
 					return RERR_PC(ERR_INVALID_AP);
 				}
-			}
-			break;
+				break;
 
 
 
