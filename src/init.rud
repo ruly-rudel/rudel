@@ -181,7 +181,7 @@
 					(progn
 					  (pop *exception-stack*)
 					  (,ret ,result))))))))
-		 ,e)))))
+		 (,catch ,e))))))
 
 (defun raise (e)
   ((pop *exception-stack*) e))

@@ -347,19 +347,19 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_CALLCC: TRACE("CALLCC");
 				// save continuation
-				r0 = make_vector(sp  < 0 ? 0 :  sp + 1);	// stack copy
+				r0 = make_vector(sp  < 0 ? 0 :  sp + 1);		// stack copy
 				for(int i = 0; i <= sp; i++)
-					vpush(stack_raw[i], r0);
+					local_vpush(stack_raw[i], r0);
 
-				LOCAL_VPUSH_RET_RAW(code);
-				LOCAL_VPUSH_RET_RAW(debug);
-				LOCAL_VPUSH_RET_RAW(RINT(pc));
-				LOCAL_VPUSH_RET_RAW(env);
-				LOCAL_VPUSH_RET_RAW(r0);
-
-				r1 = make_vector(rsp < 0 ? 0 : rsp + 1);	// ret copy
+				r1 = make_vector(rsp < 0 ? 0 + 5 : rsp + 1 + 5);	// ret copy
 				for(int i = 0; i <= rsp; i++)
-					vpush(ret_raw[i], r1);
+					local_vpush(ret_raw[i], r1);
+
+				local_vpush(code,     r1);
+				local_vpush(debug,    r1);
+				local_vpush(RINT(pc), r1);
+				local_vpush(env,      r1);
+				local_vpush(r0,       r1);
 
 				r2 = make_vector(2);				// code invoking continuation
 				local_vpush(ROP(IS_GOTO), r2);
