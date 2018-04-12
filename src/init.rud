@@ -158,6 +158,33 @@
 (defmacro prn (& body)
   `(printline (pr-str ,@body)))
 
+(defmacro push (value place)
+  `(setq ,place (cons ,value ,place)))
+
+(defmacro pop (place)
+  (let* ((value (gensym)))
+    `(let* ((,value (car ,place)))
+       (progn
+	 (setq ,place (cdr ,place))
+	 ,value))))
+
+(defmacro try (code catch)
+  (let* ((e      (gensym))
+	 (result (gensym))
+	 (ret    (gensym))
+	 (onerr  (gensym)))
+    `(callcc (lambda (,ret)
+	       (let* ((,e (callcc (lambda (,onerr)
+				    (progn
+				      (push ,onerr *exception-stack*)
+				      (let* ((,result ,code))
+					(progn
+					  (pop *exception-stack*)
+					  (,ret ,result))))))))
+		 ,e)))))
+
+(defun raise (e)
+  ((pop *exception-stack*) e))
 
 ;; rudel-specific functions
 (defun load-file (f)

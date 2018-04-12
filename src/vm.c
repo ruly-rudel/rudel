@@ -404,6 +404,10 @@ value_t exec_vm(value_t c, value_t e)
 					}
 					TRACE("  Expand macro, invoking another VM.");
 					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));	if(errp(r2)) return unlock_gc(), r2;
+					TRACEN("  Expand macro done. the result S-exp is: ");
+#ifdef TRACE_VM
+					print(r2, stderr);
+#endif // TRACE_VM
 					TRACE("  Compiling the result on-the-fly.");
 					r3 = compile_vm(r2, env);			if(errp(r3)) return unlock_gc(), r3;
 					TRACE("  Evaluate it, invoking another VM.");

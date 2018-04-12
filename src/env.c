@@ -206,18 +206,20 @@ value_t	get_env_value_ref(value_t ref, value_t env)
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(5,
+	value_t key = list(6,
 	                      str_to_sym("nil"),
 	                      str_to_sym("t"),
 	                      str_to_sym("*gensym-counter*"),
 	                      str_to_sym("*debug*"),
-	                      str_to_sym("*trace*")
+	                      str_to_sym("*trace*"),
+	                      str_to_sym("*exception-stack*")
 	                  );
 
-	value_t val = list(5,
+	value_t val = list(6,
 			      NIL,
 			      str_to_sym("t"),
 			      RINT(0),
+	                      NIL,
 	                      NIL,
 	                      NIL
 			  );
