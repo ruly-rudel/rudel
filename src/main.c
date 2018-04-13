@@ -20,7 +20,11 @@ void repl(value_t env)
 	for(;;)
 	{
 		lock_gc();
+#ifdef USE_LINENOISE
+		r = READ("user> ", stdin);
+#else // USE_LINENOISE
 		r = READ(L"user> ", stdin);
+#endif // USE_LINENOISE
 		if(errp(r))
 		{
 			if(intp(car(r)) && INTOF(car(r)) == ERR_EOF)

@@ -262,8 +262,8 @@ static value_t read_line(FILE* fp)
 
 void init_linenoise(void)
 {
-	//linenoiseSetMultiLine(1);
-	//linenoiseHistoryLoad(RUDEL_INPUT_HISTORY);
+	linenoiseSetMultiLine(1);
+	linenoiseHistoryLoad(RUDEL_INPUT_HISTORY);
 	return ;
 }
 
@@ -275,17 +275,21 @@ value_t read_str(value_t s)
 	return r;
 }
 
+#ifdef USE_LINENOISE
+value_t READ(const char* prompt, FILE* fp)
+#else // USE_LINENOISE
 value_t READ(const wchar_t* prompt, FILE* fp)
+#endif // USE_LINENOISE
 {
 #ifdef USE_LINENOISE
-	wchar_t* line = linenoise(prompt);
+	char* line = linenoise(prompt);
 	if(line)
 	{
-		//linenoiseHistoryAdd(line);
-		//linenoiseHistorySave(RUDEL_INPUT_HISTORY);
+		linenoiseHistoryAdd(line);
+		linenoiseHistorySave(RUDEL_INPUT_HISTORY);
 
-		value_t r = wcstr_to_rstr(line);
-		linenoiseFree(line);
+		value_t r = mbstr_to_rstr(line);
+		free(line);
 		return read_str(r);
 	}
 	else

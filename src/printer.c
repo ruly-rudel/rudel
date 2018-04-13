@@ -2,6 +2,7 @@
 #include <wchar.h>
 #include "builtin.h"
 #include "printer.h"
+#include "reader.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: printer support functions
@@ -524,15 +525,33 @@ void printline(value_t s, FILE* fp)
 	assert(vectorp(s) || nilp(s));
 	if(!nilp(s))
 	{
+		char buf[MB_CUR_MAX + 1];
 		for(int i = 0; i < vsize(s); i++)
 		{
 			value_t c = vref(s, i);
 			assert(charp(c));
 			if(INTOF(c) == '\0') break;
+#ifdef USE_LINENOISE
+			int len = wctomb(buf, INTOF(c));
+			if(len > 0)
+			{
+				fwrite(buf, 1, len, fp);
+			}
+			else
+			{
+				abort();
+			}
+#else // USE_LINENOISE
 			fputwc(INTOF(c), fp);
+#endif // USE_LINENOISE
 		}
 	}
+
+#ifdef USE_LINENOISE
+	fputc('\n', fp);
+#else // USE_LINENOISE
 	fputwc('\n', fp);
+#endif // USE_LINENOISE
 	fflush(fp);
 	return ;
 }
