@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <wchar.h>
 #include "builtin.h"
 #include "reader.h"
 #include "scanner.h"
@@ -239,8 +240,8 @@ static value_t read_line(FILE* fp)
 
 	for(;;)
 	{
-		int c = fgetc(fp);
-		if(c == EOF && vsize(r) == 0)	// EOF
+		wint_t c = fgetwc(fp);
+		if(c == WEOF && vsize(r) == 0)	// EOF
 		{
 			return RERR(ERR_EOF, NIL);
 		}
@@ -261,8 +262,8 @@ static value_t read_line(FILE* fp)
 
 void init_linenoise(void)
 {
-	linenoiseSetMultiLine(1);
-	linenoiseHistoryLoad(RUDEL_INPUT_HISTORY);
+	//linenoiseSetMultiLine(1);
+	//linenoiseHistoryLoad(RUDEL_INPUT_HISTORY);
 	return ;
 }
 
@@ -274,18 +275,17 @@ value_t read_str(value_t s)
 	return r;
 }
 
-value_t READ(const char* prompt, FILE* fp)
+value_t READ(const wchar_t* prompt, FILE* fp)
 {
 #ifdef USE_LINENOISE
-	char* line = linenoise(prompt);
+	wchar_t* line = linenoise(prompt);
 	if(line)
 	{
-		linenoiseHistoryAdd(line);
-		linenoiseHistorySave(RUDEL_INPUT_HISTORY);
+		//linenoiseHistoryAdd(line);
+		//linenoiseHistorySave(RUDEL_INPUT_HISTORY);
 
-		value_t r = str_to_rstr(line);
-		//linenoiseFree(line);
-		free(line);
+		value_t r = wcstr_to_rstr(line);
+		linenoiseFree(line);
 		return read_str(r);
 	}
 	else
@@ -293,7 +293,7 @@ value_t READ(const char* prompt, FILE* fp)
 		return RERR(ERR_EOF, NIL);
 	}
 #else	// USE_LINENOISE
-	fputs(prompt, stdout);
+	fputws(prompt, stdout);
 	value_t str = read_line(fp);
 	if(errp(str))
 	{

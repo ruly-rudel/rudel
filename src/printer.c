@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <wchar.h>
 #include "builtin.h"
 #include "printer.h"
 
@@ -528,10 +529,10 @@ void printline(value_t s, FILE* fp)
 			value_t c = vref(s, i);
 			assert(charp(c));
 			if(INTOF(c) == '\0') break;
-			fputc(INTOF(c), fp);
+			fputwc(INTOF(c), fp);
 		}
 	}
-	fputc('\n', fp);
+	fputwc('\n', fp);
 	fflush(fp);
 	return ;
 }

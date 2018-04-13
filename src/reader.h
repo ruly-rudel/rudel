@@ -10,6 +10,6 @@
 
 void			init_linenoise(void);
 value_t read_str	(value_t s);
-value_t READ		(const char* prompt, FILE* fp);
+value_t READ		(const wchar_t* prompt, FILE* fp);
 
 #endif // _reader_h_

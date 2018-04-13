@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <wchar.h>
 #include "misc.h"
 
 typedef enum _rtype_t {
@@ -234,6 +235,7 @@ typedef struct _vector_t
 #define ERR_CANTOPEN		16
 #define ERR_FWRITE		17
 #define ERR_FREAD		18
+#define ERR_WCHAR		18
 
 #define UNSAFE_CAR(X)	AVALUE(X).cons->car
 #define UNSAFE_CDR(X)	AVALUE(X).cons->cdr
@@ -302,7 +304,11 @@ value_t make_list_from_vector	(value_t x);
 
 value_t str_to_cons	(const char* s);
 value_t str_to_vec	(const char* s);
+value_t mbstr_to_vec	(const char* s);
+value_t wcstr_to_vec	(const wchar_t* s);
 value_t str_to_rstr	(const char* s);
+value_t mbstr_to_rstr	(const char* s);
+value_t wcstr_to_rstr	(const wchar_t* s);
 value_t str_to_sym	(const char* s);
 char*   rstr_to_str	(value_t s);
 

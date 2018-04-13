@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <locale.h>
 #include "builtin.h"
 #include "allocator.h"
 #include "reader.h"
@@ -19,7 +20,7 @@ void repl(value_t env)
 	for(;;)
 	{
 		lock_gc();
-		r = READ("user> ", stdin);
+		r = READ(L"user> ", stdin);
 		if(errp(r))
 		{
 			if(intp(car(r)) && INTOF(car(r)) == ERR_EOF)
@@ -96,6 +97,7 @@ value_t parse_arg(int argc, char* argv[])
 
 int main(int argc, char* argv[])
 {
+	setlocale(LC_ALL, "");
 	init_allocator();
 	value_t env = load_core("init.rudc");
 	if(errp(env))

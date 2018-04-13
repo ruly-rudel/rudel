@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 #include "builtin.h"
 #include "allocator.h"
 #include "vm.h"
@@ -300,8 +301,8 @@ value_t slurp(char* fn)
 	{
 		value_t buf = make_vector(0);
 
-		int c;
-		while((c = fgetc(fp)) != EOF)
+		wint_t c;
+		while((c = fgetwc(fp)) != WEOF)
 		{
 			vpush(RCHAR(c), buf);
 		}
@@ -662,10 +663,87 @@ value_t str_to_vec	(const char* s)
 	return r;
 }
 
+value_t mbstr_to_vec	(const char* s)
+{
+	assert(s != NULL);
+	int len = mbstowcs(NULL, s, 0) + 1;
+	wchar_t* wc = (wchar_t*)malloc(sizeof(wchar_t) * len);
+	if(!wc) return rerr_alloc();
+
+	if(mbstowcs(wc, s, len) == len - 1)
+	{
+		value_t    r = make_vector(wcslen(wc));
+
+		for(wchar_t* wcp = wc; *wcp != '\0'; wcp++)
+		{
+			value_t result = vpush(RCHAR(*wcp), r);
+			if(errp(result))
+			{
+				free(wc);
+				return result;
+			}
+
+		}
+
+		free(wc);
+		return r;
+	}
+	else
+	{
+		free(wc);
+		return RERR(ERR_WCHAR, NIL);
+	}
+}
+
+value_t wcstr_to_vec	(const wchar_t* s)
+{
+	assert(s != NULL);
+	value_t    r = make_vector(wcslen(s));
+
+	int c;
+	while((c = *s++) != '\0')
+	{
+		value_t result = vpush(RCHAR(c), r);
+		if(errp(result)) return result;
+	}
+
+	return r;
+}
+
 value_t str_to_rstr	(const char* s)
 {
 	assert(s != NULL);
 	value_t r = str_to_vec(s);
+	if(!errp(r))
+	{
+		if(vsize(r) == 0)
+		{
+			vpush(RCHAR('\0'), r);
+		}
+	}
+
+	return r;
+}
+
+value_t mbstr_to_rstr	(const char* s)
+{
+	assert(s != NULL);
+	value_t r = mbstr_to_vec(s);
+	if(!errp(r))
+	{
+		if(vsize(r) == 0)
+		{
+			vpush(RCHAR('\0'), r);
+		}
+	}
+
+	return r;
+}
+
+value_t wcstr_to_rstr	(const wchar_t* s)
+{
+	assert(s != NULL);
+	value_t r = wcstr_to_vec(s);
 	if(!errp(r))
 	{
 		if(vsize(r) == 0)
