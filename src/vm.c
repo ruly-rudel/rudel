@@ -178,7 +178,7 @@ inline static value_t local_vpush(value_t x, value_t v)
 	int a = INTOF(va.vector->alloc);
 	if(s + 1 >= a)
 	{
-		a = a * 2;
+		a = a ? a * 2 : 2;
 		//va.vector->alloc = a;
 		//value_t* np = (value_t*)realloc(v.vector->data, a * sizeof(value_t));
 		value_t np = alloc_vector_data(v, a);
@@ -347,11 +347,11 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_CALLCC: TRACE("CALLCC");
 				// save continuation
-				r0 = make_vector(sp  < 0 ? 0 :  sp + 1);		// stack copy
-				for(int i = 0; i <= sp; i++)
+				r0 = make_vector(sp  < 0 ? 0 :  sp);	// stack copy, top of stack is not copied bucase it is clojure that called in following IS_AP, and it is not containd in continuation
+				for(int i = 0; i < sp; i++)
 					local_vpush(stack_raw[i], r0);
 
-				r1 = make_vector(rsp < 0 ? 0 + 5 : rsp + 1 + 5);	// ret copy
+				r1 = make_vector(rsp < 0 ? 0 : rsp + 1);	// ret copy
 				for(int i = 0; i <= rsp; i++)
 					local_vpush(ret_raw[i], r1);
 
@@ -438,9 +438,9 @@ value_t exec_vm(value_t c, value_t e)
 				// restore stack
 				r2 = LOCAL_VPOP_RET_RAW;
 				sp = -1;	// clear stack
-				for(int i = 0; i < vsize(r1); i++)
+				for(int i = 0; i < vsize(r2); i++)
 				{
-					LOCAL_VPUSH_RAW(local_vref(r1, i));
+					LOCAL_VPUSH_RAW(local_vref(r2, i));
 				}
 
 				// push result to stack

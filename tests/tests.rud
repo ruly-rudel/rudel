@@ -1260,3 +1260,15 @@ x
 ; hoge
 ; hige
 ;=>10
+
+;; Testing try/raise
+(+ 1 (try (if nil 1 (raise 1)) (\ (x) (+ 10 x))))
+;=>12
+(+ 1 (try (if t 1 (raise 1)) (\ (x) (+ 10 x))))
+;=>2
+(+ 1 (try (if t (try (if nil 5 (raise 7)) (\ (x) (raise (+ x 2)))) (raise 1)) (\ (x) (+ 10 x))))
+;=>20
+(+ 1 (try (if t (try (if t 5 (raise 7)) (\ (x) (raise (+ x 2)))) (raise 1)) (\ (x) (+ 10 x))))
+;=>6
+(+ 1 (try (if nil (try (if nil 5 (raise 7)) (\ (x) (raise (+ x 2)))) (raise 1)) (\ (x) (+ 10 x))))
+;=>12
