@@ -284,7 +284,8 @@ value_t READ(const char* prompt, FILE* fp)
 		linenoiseHistorySave(RUDEL_INPUT_HISTORY);
 
 		value_t r = str_to_rstr(line);
-		linenoiseFree(line);
+		//linenoiseFree(line);
+		free(line);
 		return read_str(r);
 	}
 	else

@@ -9,12 +9,12 @@ AR=ar
 DEBUG_OPT=-g3 -O0 -DSTR_EASY_CHECK -DDEBUG_CMD -DNO_INLINE -DPRINT_STACK_USAGE -DTRACE_VM -DTRACE_GC
 PROF_OPT=-O3 -pg -DSTR_EASY_CHECK -DNDEBUG -DPRINT_STACK_USAGE
 FAST_OPT=-O3 -DSTR_EASY_CHECK -DNDEBUG
-OPT=-O3 -DSTR_EASY_CHECK -DDEBUG_CMD
+OPT=-O3 -DUSE_UTF8 -DSTR_EASY_CHECK -DDEBUG_CMD
 ARCH=-m32
 CFLAGS=$(ARCH) -Wall $(INCPATHS)
 LDFLAGS=$(ARCH) $(LIBPATHS) -L.
 
-LIBSOURCES=builtin.c allocator.c scanner.c reader.c printer.c env.c vm.c compile_vm.c misc.c ../linenoise/linenoise.c
+LIBSOURCES=builtin.c allocator.c scanner.c reader.c printer.c env.c vm.c compile_vm.c misc.c ../linenoise/linenoise.c ../linenoise/stringbuf.c ../linenoise/utf8.c
 LIBOBJS=$(LIBSOURCES:%.c=%.o)
 
 TARGET=rudel

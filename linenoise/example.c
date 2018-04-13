@@ -3,15 +3,15 @@
 #include <string.h>
 #include "linenoise.h"
 
-
-void completion(const char *buf, linenoiseCompletions *lc) {
+#ifndef NO_COMPLETION
+void completion(const char *buf, linenoiseCompletions *lc, void *userdata) {
     if (buf[0] == 'h') {
         linenoiseAddCompletion(lc,"hello");
         linenoiseAddCompletion(lc,"hello there");
     }
 }
 
-char *hints(const char *buf, int *color, int *bold) {
+char *hints(const char *buf, int *color, int *bold, void *userdata) {
     if (!strcasecmp(buf,"hello")) {
         *color = 35;
         *bold = 0;
@@ -19,8 +19,10 @@ char *hints(const char *buf, int *color, int *bold) {
     }
     return NULL;
 }
+#endif
 
-int main(int argc, char **argv) {
+int main(int argc, char *argv[]) {
+    const char *prompt = "hello> ";
     char *line;
     char *prgname = argv[0];
 
@@ -31,19 +33,24 @@ int main(int argc, char **argv) {
         if (!strcmp(*argv,"--multiline")) {
             linenoiseSetMultiLine(1);
             printf("Multi-line mode enabled.\n");
-        } else if (!strcmp(*argv,"--keycodes")) {
-            linenoisePrintKeyCodes();
-            exit(0);
+        } else if (!strcmp(*argv,"--fancyprompt")) {
+            prompt = "\x1b[1;31m\xf0\xa0\x8a\x9d-\xc2\xb5hello>\x1b[0m ";
+        } else if (!strcmp(*argv,"--prompt") && argc > 1) {
+            argc--;
+            argv++;
+            prompt = *argv;
         } else {
-            fprintf(stderr, "Usage: %s [--multiline] [--keycodes]\n", prgname);
+            fprintf(stderr, "Usage: %s [--multiline] [--fancyprompt] [--prompt text]\n", prgname);
             exit(1);
         }
     }
 
+#ifndef NO_COMPLETION
     /* Set the completion callback. This will be called every time the
      * user uses the <tab> key. */
-    linenoiseSetCompletionCallback(completion);
-    linenoiseSetHintsCallback(hints);
+    linenoiseSetCompletionCallback(completion, NULL);
+    linenoiseSetHintsCallback(hints, NULL);
+#endif
 
     /* Load history from file. The history file is just a plain text file
      * where entries are separated by newlines. */
@@ -55,7 +62,7 @@ int main(int argc, char **argv) {
      *
      * The typed string is returned as a malloc() allocated string by
      * linenoise, so the user needs to free() it. */
-    while((line = linenoise("hello> ")) != NULL) {
+    while((line = linenoise(prompt)) != NULL) {
         /* Do something with the string. */
         if (line[0] != '\0' && line[0] != '/') {
             printf("echo: '%s'\n", line);
