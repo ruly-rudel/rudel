@@ -1,14 +1,16 @@
 
 (setq defun
-	   (macro (name arg body)
-		`(setq ,name (lambda ,arg ,body))))
+	   (macro (name arg & body)
+		`(setq ,name (lambda ,arg (progn ,@body)))))
 
 (setq defmacro
-	   (macro (name arg body)
-		`(setq ,name (macro ,arg ,body))))
+	   (macro (name arg & body)
+		`(setq ,name (macro ,arg (progn ,@body)))))
 
-(defmacro \ (arg body)
-  `(lambda ,arg ,body))
+(defmacro \ (arg & body)
+  (if (consp arg)
+    `(lambda  ,arg  (progn ,@body))
+    `(lambda (,arg) (progn ,@body))))
 
 ;; conditions
 (defun not (a)
@@ -105,7 +107,7 @@
 	    (cons (car lst) (remove x (cdr lst))))))
 
 (defun concat (& body)
-	(let* ((rec (\ (x)
+	(let* ((rec (\x
 			(if (not x) nil
 			  (if (consp x)
 			    (let* ((copy (copy-list (car x))))
@@ -139,18 +141,18 @@
 (defun str (& body)
   (if body
     (reduce (\ (x y) (vconc x y))
-	    (mapcar (\ (x) (pr_str x nil)) body))
+	    (mapcar (\x (pr_str x nil)) body))
     ""))
 
 (defun pr-str (& body)
   (if body
     (reduce (\ (x y) (vconc (vconc x " ") y))
-	    (mapcar (\ (x) (pr_str x t)) body))
+	    (mapcar (\x (pr_str x t)) body))
     ""))
 
 (defun println-str (body)
   (reduce (\ (x y) (vconc (vconc x " ") y))
-	  (mapcar (\ (x) (pr_str x nil)) body)))
+	  (mapcar (\x (pr_str x nil)) body)))
 
 (defun println (& body)
   (printline (println-str body)))
@@ -173,8 +175,8 @@
 	 (result (gensym))
 	 (ret    (gensym))
 	 (onerr  (gensym)))
-    `(callcc (lambda (,ret)
-	       (let* ((,e (callcc (lambda (,onerr)
+    `(callcc (\,ret
+	       (let* ((,e (callcc (\,onerr
 				    (progn
 				      (push ,onerr *exception-stack*)
 				      (let* ((,result ,code))
@@ -216,13 +218,13 @@
 	  (str
 	    "("
 	    (reduce (\ (x y) (str x " " y))
-		    (mapcar (\ (x) (pp x next)) prec))
+		    (mapcar (\x (pp x next)) prec))
 	    (if trail
 	      (str
 	         "\n"
 	         (insert-space next)
 		 (reduce (\ (x y) (str x "\n" (insert-space next) y))
-			 (mapcar (\ (x) (pp x next)) trail))
+			 (mapcar (\x (pp x next)) trail))
 		 ")")
 	      ")"))))
 
@@ -251,21 +253,21 @@
   (make-vector-from-list lst))
 
 (defun vdump (v)
-	(let* ((rec (\ (n)
+	(let* ((rec (\n
 		      (if (eq n (- (vsize v) 1))
 			(str n ": " (vref v n) "\n")
 			(str n ": " (vref v n) "\n" (rec (+ n 1)))))))
 	  (println (rec 0))))
 
 (defun vmap (fn v)
-	(let* ((rec (\ (n)
+	(let* ((rec (\n
 		      (if (eq n (- (vsize v) 1))
 			(fn (vref v n))
 			(cons (fn (vref v n)) (rec (+ n 1)))))))
 	  (rec 0)))
 
 (defun compile-env ()
-  (vmap (\ (x) (compile-vm (cdr x)))
+  (vmap (\x (compile-vm (cdr x)))
 	(car (last env))))
 
 (defun initcore ()

@@ -152,13 +152,14 @@ static value_t scan1(scan_t* s)
 	{
 		switch(c)
 		{
-		    // special character
+		    // special character(is first char)
 		    case ',':
 		    case '(':
 		    case ')':
 		    case '\'':
 		    case '`':
 		    case '@':
+		    case '\\':
 			scan_nch(s);
 			value_t sr   = make_vector(0);
 			vpush(RCHAR(c), sr);
