@@ -5,7 +5,7 @@
 #include "builtin.h"
 #include <stdio.h>
 
-#define USE_LINENOISE
+//#define USE_LINENOISE
 #define RUDEL_INPUT_HISTORY	".history.rd"
 
 void			init_linenoise(void);

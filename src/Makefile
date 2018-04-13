@@ -55,7 +55,7 @@ alloc: test_allocator.o librudel.a
 	$(CC) $(OPT) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags ../tags alloc gmon.out
+	rm -rf *.o ../linenoise/*.o $(TARGET) librudel.a .deps tags ../tags ../linenoise/tags alloc gmon.out
 
 -include .deps
 
