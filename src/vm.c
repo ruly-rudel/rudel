@@ -497,7 +497,7 @@ value_t exec_vm(value_t c, value_t e)
 					AVALUE(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0)))).cons->car = env;	// set current environment
 				}
 #ifdef TRACE_VM
-				print(pr_str(r0, NIL, true), stderr);
+				print(r0, stderr);
 #endif // TRACE_VM
 				if(errp(r0))
 				{
@@ -509,7 +509,7 @@ value_t exec_vm(value_t c, value_t e)
 			case IS_PUSHR: TRACEN("PUSHR: ");
 				r0 = local_vref(code, ++pc);	// next code is entity
 #ifdef TRACE_VM
-				print(pr_str(r0, NIL, true), stderr);
+				print(r0, stderr);
 #endif // TRACE_VM
 				LOCAL_VPUSH_RAW(r0);
 				break;

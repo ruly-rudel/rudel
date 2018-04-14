@@ -716,6 +716,10 @@ value_t compile_vm(value_t ast, value_t env)
 	{
 		vpush(ROP(IS_HALT), code);	vpush(ast, debug);
 	}
+	else
+	{
+		return code;
+	}
 
 	return cons(code, debug);
 }

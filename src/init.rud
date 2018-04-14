@@ -8,7 +8,7 @@
 		`(setq ,name (macro ,arg (progn ,@body)))))
 
 (defmacro \ (arg & body)
-  (if (consp arg)
+  (if (or (consp arg) (not arg))
     `(lambda  ,arg  (progn ,@body))
     `(lambda (,arg) (progn ,@body))))
 
@@ -39,7 +39,7 @@
       (list 'if (car clauses)
             (if (> (count clauses) 1)
                 (nth clauses 1)
-                (err "cond requires an even number of forms"))
+                (throw "cond requires an even number of forms"))
             (cons 'cond (cdr (cdr clauses))))))
 
 ;; list manipulation functions
@@ -185,8 +185,31 @@
 					  (,ret ,result))))))))
 		 (,catch ,e))))))
 
-(defun raise (e)
+(defun throw (e)
   ((pop *exception-stack*) e))
+
+(defmacro reset (e)
+  `(*reset (\ () ,e)))
+
+(defmacro shift (k e)
+  `(*shift (\ ,k ,e)))
+
+(defun *meta-continuation* (v)
+  (throw "You forgot the top-level reset."))
+
+(defun *abort (thunk)
+  (let* ((v (thunk)))
+    (*meta-continuation* v)))
+
+(defun *reset (thunk)
+  (let* ((mc *meta-continuation*))
+    (callcc (\k (setq *meta-continuation*
+		      (\v (setq *meta-continuation* mc)
+			  (k v)))
+		(*abort thunk)))))
+
+(defun *shift (f)
+  (callcc (\k (*abort (\ () (f (\v (reset (k v)))))))))
 
 ;; rudel-specific functions
 (defun load-file (f)
