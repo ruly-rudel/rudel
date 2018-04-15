@@ -10,6 +10,9 @@
 #include "vm.h"
 #include "compile_vm.h"
 
+#define SYM(X) str_to_sym(X)
+#define STR(X) str_to_rstr(X)
+
 void repl(value_t env)
 {
 #ifdef USE_LINENOISE
@@ -19,7 +22,17 @@ void repl(value_t env)
 	// build repl code
 	lock_gc();
 
-	value_t code = make_vector(22);
+	value_t begin = SYM("try");
+	value_t end   = list(3, RSPECIAL(SP_LAMBDA), list(1, SYM("x")), list(3, SYM("println"), STR("exception caches at root:"), SYM("x")));
+
+	value_t code = make_vector(22 + 9);
+
+	vpush(ROP (IS_PUSH),		code);
+	vpush(NIL,			code);
+	vpush(ROP (IS_PUSH),		code);
+	vpush(end,			code);
+	vpush(ROP (IS_CONS),		code);
+
 	vpush(ROP (IS_READ),		code);
 	vpush(ROP (IS_DUP),		code);
 	vpush(ROP (IS_ERRP),		code);
@@ -28,20 +41,26 @@ void repl(value_t env)
 	vpush(ROP (IS_CAR),		code);
 	vpush(ROP (IS_CONSP),		code);
 	vpush(ROPD(IS_BNIL, 2),		code);
-	vpush(ROPD(IS_BR, 12),		code);
+	vpush(ROPD(IS_BR, 16),		code);
 	vpush(ROP (IS_DUP),		code);
 	vpush(ROP (IS_CAR),		code);
 	vpush(ROP (IS_PUSH),		code);
 	vpush(RINT(ERR_EOF),		code);
 	vpush(ROP (IS_EQ),		code);
-	vpush(ROPD(IS_BNIL, 6),		code);
+	vpush(ROPD(IS_BNIL, 10),	code);
 	vpush(ROP (IS_POP),		code);
 	vpush(ROP (IS_PUSH),		code);
 	vpush(g_t,			code);
 	vpush(ROP (IS_HALT),		code);
+
+	vpush(ROP (IS_CONS),		code);
+	vpush(ROP (IS_PUSHR),		code);
+	vpush(begin,			code);
+	vpush(ROP (IS_CONS),		code);
+
 	vpush(ROP (IS_EVAL),		code);
 	vpush(ROP (IS_PRINT),		code);
-	vpush(ROPD(IS_BRB, 21),		code);
+	vpush(ROPD(IS_BRB, 30),		code);
 
 	value_t cd = cons(code, code);
 
@@ -57,8 +76,8 @@ void rep_file(char* fn, value_t env)
 	lock_gc();
 
 	value_t rfn   = str_to_rstr(fn);
-	value_t begin = str_to_rstr("(progn ");
-	value_t end   = str_to_rstr(")");
+	value_t begin = str_to_rstr("(try (progn ");
+	value_t end   = str_to_rstr(") (\\x (println \"excption caches at root:\" x)))");
 
 	value_t code  = make_vector(21);
 
