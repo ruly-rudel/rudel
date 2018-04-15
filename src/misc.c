@@ -35,6 +35,7 @@ void init_global(void)
 		str_to_sym("clojurep"),		ROP(IS_CLOJUREP),	RINT(1),
 		str_to_sym("macrop"),		ROP(IS_MACROP),		RINT(1),
 		str_to_sym("strp"),		ROP(IS_STRP),		RINT(1),
+		str_to_sym("errp"),		ROP(IS_ERRP),		RINT(1),
 		str_to_sym("cons"),		ROP(IS_CONS),		RINT(2),
 		str_to_sym("car"),		ROP(IS_CAR),		RINT(1),
 		str_to_sym("cdr"),		ROP(IS_CDR),		RINT(1),
@@ -72,7 +73,9 @@ void init_global(void)
 		str_to_sym("exec-vm"),		ROP(IS_EXEC_VM),	RINT(1),
 		str_to_sym("pr_str"),		ROP(IS_PR_STR),		RINT(2),
 		str_to_sym("printline"),	ROP(IS_PRINTLINE),	RINT(1),
+		str_to_sym("print"),		ROP(IS_PRINT),		RINT(1),
 		str_to_sym("callcc"),		ROP(IS_CALLCC),		RINT(1),
+		str_to_sym("read"),		ROP(IS_READ),		RINT(0),
 		str_to_sym("make-vector-from-list"),		ROP(IS_MVFL),		RINT(1),
 		str_to_sym("make-list-from-vector"),		ROP(IS_MLFV),		RINT(1),
 	};

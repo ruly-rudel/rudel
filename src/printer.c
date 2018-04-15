@@ -460,7 +460,9 @@ static value_t pr_vmis(value_t s)
 		case IS_VPOP_ENV:	return str_to_rstr("IS_VPOP_ENV");
 		case IS_NIL_CONS_VPUSH:	return str_to_rstr("IS_NIL_CONS_VPUSH");
 		case IS_CONS_VPUSH:	return str_to_rstr("IS_CONS_VPUSH");
+		case IS_CALLCC:		return str_to_rstr("IS_CALLCC");
 		case IS_AP:		return str_to_rstr("IS_AP");
+		case IS_GOTO:		return str_to_rstr("IS_GOTO");
 		case IS_RET:		return str_to_rstr("IS_RET");
 		case IS_DUP:		return str_to_rstr("IS_DUP");
 		case IS_PUSH:		return str_to_rstr("IS_PUSH");
@@ -511,7 +513,8 @@ static value_t pr_vmis(value_t s)
 		case IS_EXEC_VM:	return str_to_rstr("IS_EXEC_VM");
 		case IS_PR_STR:		return str_to_rstr("IS_PR_STR");
 		case IS_PRINTLINE:	return str_to_rstr("IS_PRINTLINE");
-		case IS_CALLCC:		return str_to_rstr("IS_CALLCC");
+		case IS_PRINT:		return str_to_rstr("IS_PRINT");
+		case IS_READ:		return str_to_rstr("IS_READ");
 		case IS_MVFL:		return str_to_rstr("IS_MVFL");
 		case IS_MLFV:		return str_to_rstr("IS_MLFV");
 		default:		return RERR(ERR_NOTIMPL, str_to_rstr("VMIS"));

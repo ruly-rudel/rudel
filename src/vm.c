@@ -56,7 +56,7 @@
 { \
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = (X); \
-	if(errp(r1)) return RERR_OVW_PC(r1); \
+	if(errp(r1)) r1 = RERR_OVW_PC(r1); \
 }
 
 #define OP_1P0PNE(X) \
@@ -68,7 +68,7 @@
 #define OP_0P1P(X) \
 { \
 	r0 = (X); \
-	if(errp(r0)) return RERR_OVW_PC(r0); \
+	if(errp(r0)) r0 = RERR_OVW_PC(r0); \
 	LOCAL_VPUSH_RAW(r0); \
 }
 
@@ -76,7 +76,7 @@
 { \
 	r0 = LOCAL_VPEEK_RAW; \
 	r1 = (X); \
-	if(errp(r1)) return RERR_OVW_PC(r1); \
+	if(errp(r1)) r1 = RERR_OVW_PC(r1); \
 	LOCAL_RPLACV_TOP_RAW(r1); \
 }
 
@@ -85,7 +85,7 @@
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = LOCAL_VPEEK_RAW; \
 	r2 = (X); \
-	if(errp(r2)) return RERR_OVW_PC(r2); \
+	if(errp(r2)) r2 = RERR_OVW_PC(r2); \
 	LOCAL_RPLACV_TOP_RAW(r2); \
 }
 
@@ -95,7 +95,7 @@
 	r1 = LOCAL_VPOP_RAW; \
 	r2 = LOCAL_VPEEK_RAW; \
 	r3 = (X); \
-	if(errp(r3)) return RERR_OVW_PC(r3); \
+	if(errp(r3)) r3 = RERR_OVW_PC(r3); \
 	LOCAL_RPLACV_TOP_RAW(r3); \
 }
 
@@ -121,8 +121,8 @@
 #endif // TRACE_VM
 
 #define RERR_TYPE_PC	RERR(ERR_TYPE, cons(vref(debug, pc), NIL))
-#define RERR_PC(X)	(unlock_gc(), RERR((X), cons(vref(debug, pc), NIL)))
-#define RERR_OVW_PC(X)	(unlock_gc(), rerr(RERR_CAUSE(X), cons(vref(debug, pc), NIL)))
+#define RERR_PC(X)	RERR((X), cons(vref(debug, pc), NIL))
+#define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(vref(debug, pc), NIL))
 
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
@@ -179,8 +179,6 @@ inline static value_t local_vpush(value_t x, value_t v)
 	if(s + 1 >= a)
 	{
 		a = a ? a * 2 : 2;
-		//va.vector->alloc = a;
-		//value_t* np = (value_t*)realloc(v.vector->data, a * sizeof(value_t));
 		value_t np = alloc_vector_data(v, a);
 		if(nilp(np))
 		{
@@ -315,6 +313,10 @@ value_t exec_vm(value_t c, value_t e)
 				pc += op.op.operand - 1;
 				break;
 
+			case IS_BRB: TRACE1("BRB %x", pc - op.op.operand);
+				pc -= op.op.operand + 1;
+				break;
+
 			case IS_BNIL: TRACE1("BNIL %x", pc + op.op.operand);
 				OP_1P0PNE(pc += nilp(r0) ? op.op.operand - 1: 0);
 				break;
@@ -417,7 +419,7 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else
 				{
-					return RERR_PC(ERR_INVALID_AP);
+					LOCAL_VPUSH_RAW(RERR_PC(ERR_INVALID_AP));
 				}
 				break;
 
@@ -482,7 +484,7 @@ value_t exec_vm(value_t c, value_t e)
 						}
 						else
 						{
-							return RERR_OVW_PC(r1);
+							r0 = r1;
 						}
 					}
 					else
@@ -501,7 +503,7 @@ value_t exec_vm(value_t c, value_t e)
 #endif // TRACE_VM
 				if(errp(r0))
 				{
-					return RERR_OVW_PC(r0);
+					r0 = RERR_OVW_PC(r0);
 				}
 				LOCAL_VPUSH_RAW(r0);
 				break;
@@ -550,7 +552,7 @@ value_t exec_vm(value_t c, value_t e)
 				r1 = local_vref_safe(r0, op.op.operand);
 				if(errp(r1))
 				{
-					return RERR_PC(ERR_ARG);
+					return unlock_gc(), RERR_PC(ERR_ARG);
 				}
 				else
 				{
@@ -571,7 +573,7 @@ value_t exec_vm(value_t c, value_t e)
 				r3 = rplacv(r0, op.op.operand, cons(r1, r2));
 				if(errp(r3))
 				{
-					return RERR_PC(ERR_ARG);
+					return unlock_gc(), RERR_PC(ERR_ARG);
 				}
 				break;
 
@@ -594,7 +596,7 @@ value_t exec_vm(value_t c, value_t e)
 				}
 				else
 				{
-					return RERR_PC(ERR_INVALID_AP);
+					LOCAL_VPUSH_RAW(RERR_PC(ERR_INVALID_AP));
 				}
 				break;
 
@@ -618,6 +620,10 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_STRP: TRACE("STRP");
 				OP_1P1P(is_str(r0) ? g_t : NIL);
+				break;
+
+			case IS_ERRP: TRACE("ERRP");
+				OP_1P1P(errp(r0) ? g_t : NIL);
 				break;
 
 			case IS_CONS: TRACE("CONS");
@@ -691,11 +697,14 @@ value_t exec_vm(value_t c, value_t e)
 			case IS_EVAL: TRACE("EVAL");
 				r0 = LOCAL_VPEEK_RAW;
 				r1 = compile_vm(r0, last(env));
-				LOCAL_RPLACV_TOP_RAW(exec_vm(r1, last(env)));
+				unlock_gc();
+				r2 = exec_vm(r1, last(env));
+				lock_gc();
+				LOCAL_RPLACV_TOP_RAW(r2);
 				break;
 
 			case IS_ERR: TRACE("ERR");
-				OP_1P0P(rerr(r0, RINT(pc)));
+				OP_1P1P(rerr(r0, RINT(pc)));
 				break;
 
 			case IS_NTH: TRACE("NTH");
@@ -755,7 +764,9 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_EXEC_VM: TRACE("EXEC_VM");
+				unlock_gc();
 				OP_1P1P(consp(r0) && vectorp(car(r0)) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
+				lock_gc();
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
@@ -764,6 +775,10 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_PRINTLINE: TRACE("PRINTLINE");
 				OP_1P1P(vectorp(r0) || nilp(r0) ? (printline(r0, stdout), NIL) : RERR_TYPE_PC);
+				break;
+
+			case IS_PRINT: TRACE("PRINT");
+				OP_1P1P((print(r0, stdout), NIL));
 				break;
 
 			case IS_SLURP: TRACE("SLURP");
@@ -779,6 +794,10 @@ value_t exec_vm(value_t c, value_t e)
 			}
 			break;
 
+			case IS_READ: TRACE("READ");
+				OP_0P1P(READ(PROMPT, stdin));
+				break;
+
 			case IS_MVFL: TRACE("MVFL");
 				OP_1P1P(consp(r0) || nilp(r0) ? make_vector_from_list(r0) : RERR_TYPE_PC);
 				break;
@@ -788,7 +807,7 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			default:
-				return RERR_PC(ERR_INVALID_IS);
+				return unlock_gc(), RERR_PC(ERR_INVALID_IS);
 		}
 		unlock_gc();
 

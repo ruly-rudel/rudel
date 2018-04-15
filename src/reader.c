@@ -233,8 +233,17 @@ static value_t read_form(scan_t* st)
 	}
 }
 
-#ifndef USE_LINENOISE
-static value_t read_line(FILE* fp)
+/////////////////////////////////////////////////////////////////////
+// public: Rudel-specific functions
+
+void init_linenoise(void)
+{
+	linenoiseSetMultiLine(1);
+	linenoiseHistoryLoad(RUDEL_INPUT_HISTORY);
+	return ;
+}
+
+value_t read_line(FILE* fp)
 {
 	value_t	 r	= make_vector(0);
 
@@ -255,31 +264,8 @@ static value_t read_line(FILE* fp)
 		}
 	}
 }
-#endif // USE_LINENOISE
 
-/////////////////////////////////////////////////////////////////////
-// public: Rudel-specific functions
-
-void init_linenoise(void)
-{
-	linenoiseSetMultiLine(1);
-	linenoiseHistoryLoad(RUDEL_INPUT_HISTORY);
-	return ;
-}
-
-value_t read_str(value_t s)
-{
-	scan_t st = scan_init(s);
-
-	value_t r = read_form(&st);
-	return r;
-}
-
-#ifdef USE_LINENOISE
-value_t READ(const char* prompt, FILE* fp)
-#else // USE_LINENOISE
-value_t READ(const wchar_t* prompt, FILE* fp)
-#endif // USE_LINENOISE
+value_t read_line_prompt(prompt_t prompt, FILE* fp)
 {
 #ifdef USE_LINENOISE
 	char* line = linenoise(prompt);
@@ -290,7 +276,7 @@ value_t READ(const wchar_t* prompt, FILE* fp)
 
 		value_t r = mbstr_to_rstr(line);
 		free(line);
-		return read_str(r);
+		return r;
 	}
 	else
 	{
@@ -298,16 +284,23 @@ value_t READ(const wchar_t* prompt, FILE* fp)
 	}
 #else	// USE_LINENOISE
 	fputws(prompt, stdout);
-	value_t str = read_line(fp);
-	if(errp(str))
-	{
-		return str;
-	}
-	else
-	{
-		return read_str(str);
-	}
+	return read_line(fp);
 #endif  // USE LINENOISE
+}
+
+value_t read_str(value_t s)
+{
+	scan_t st = scan_init(s);
+
+	value_t r = read_form(&st);
+	return r;
+}
+
+value_t READ(prompt_t prompt, FILE* fp)
+{
+	value_t r = read_line_prompt(prompt, fp);
+
+	return errp(r) ? r : read_str(r);
 }
 
 

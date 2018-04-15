@@ -46,6 +46,7 @@ typedef enum {
 typedef enum {
 	IS_HALT = 0,
 	IS_BR,		// Branch to pc + operand (relative to pc)
+	IS_BRB,		// Branch to pc - operand (relative to pc)
 	IS_BNIL,	// Branch to pc + operand when NIL. (relative to pc)
 	IS_MKVEC_ENV,
 	IS_VPUSH_ENV,
@@ -71,6 +72,7 @@ typedef enum {
 	IS_CLOJUREP,
 	IS_MACROP,
 	IS_STRP,
+	IS_ERRP,
 	IS_CONS,
 	IS_CAR,
 	IS_CDR,
@@ -108,6 +110,8 @@ typedef enum {
 	IS_EXEC_VM,
 	IS_PR_STR,
 	IS_PRINTLINE,
+	IS_PRINT,
+	IS_READ,
 	IS_MVFL,
 	IS_MLFV,
 } vmis_t;

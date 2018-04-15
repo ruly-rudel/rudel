@@ -16,75 +16,80 @@ void repl(value_t env)
 	init_linenoise();
 #endif // USE_LINENOISE
 
-	value_t r, c, e;
-	for(;;)
-	{
-		lock_gc();
-#ifdef USE_LINENOISE
-		r = READ("user> ", stdin);
-#else // USE_LINENOISE
-		r = READ(L"user> ", stdin);
-#endif // USE_LINENOISE
-		if(errp(r))
-		{
-			if(intp(car(r)) && INTOF(car(r)) == ERR_EOF)
-			{
-				break;
-			}
-			else
-			{
-				print(r, stderr);
-			}
-		}
-		else
-		{
-			c = compile_vm(r, env);
-			if(errp(c))
-			{
-				print(c, stderr);
-			}
-			else
-			{
-				unlock_gc();
-				e = exec_vm(c, env);
-				lock_gc();
+	// build repl code
+	lock_gc();
 
-				print(e, errp(e) ? stderr : stdout);
-			}
-		}
-		unlock_gc();
-	}
+	value_t code = make_vector(22);
+	vpush(ROP (IS_READ),		code);
+	vpush(ROP (IS_DUP),		code);
+	vpush(ROP (IS_ERRP),		code);
+	vpush(ROPD(IS_BNIL, 16),	code);
+	vpush(ROP (IS_DUP),		code);
+	vpush(ROP (IS_CAR),		code);
+	vpush(ROP (IS_CONSP),		code);
+	vpush(ROPD(IS_BNIL, 2),		code);
+	vpush(ROPD(IS_BR, 12),		code);
+	vpush(ROP (IS_DUP),		code);
+	vpush(ROP (IS_CAR),		code);
+	vpush(ROP (IS_PUSH),		code);
+	vpush(RINT(ERR_EOF),		code);
+	vpush(ROP (IS_EQ),		code);
+	vpush(ROPD(IS_BNIL, 6),		code);
+	vpush(ROP (IS_POP),		code);
+	vpush(ROP (IS_PUSH),		code);
+	vpush(g_t,			code);
+	vpush(ROP (IS_HALT),		code);
+	vpush(ROP (IS_EVAL),		code);
+	vpush(ROP (IS_PRINT),		code);
+	vpush(ROPD(IS_BRB, 21),		code);
+
+	value_t cd = cons(code, code);
+
+	unlock_gc();
+
+	// exec repl
+	exec_vm(cd, env);
 }
 
 void rep_file(char* fn, value_t env)
 {
+	// build rep code
 	lock_gc();
-	value_t fstr = slurp(fn);
-	if(errp(fstr))
-	{
-		print(fstr, stderr);
-	}
-	else
-	{
-		value_t s = vnconc(vnconc(str_to_rstr("(progn "), fstr), str_to_rstr(")"));
 
-		value_t c = compile_vm(read_str(s), env);
-		if(errp(c))
-		{
-			print(c, stderr);
-		}
-		else
-		{
-			unlock_gc();
-			value_t e = exec_vm(c, env);
-			lock_gc();
+	value_t rfn   = str_to_rstr(fn);
+	value_t begin = str_to_rstr("(progn ");
+	value_t end   = str_to_rstr(")");
 
-			print(e, errp(e) ? stderr : stdout);
-		}
-	}
+	value_t code  = make_vector(21);
+
+	vpush(ROP (IS_PUSHR),		code);
+	vpush(end,			code);
+	vpush(ROP (IS_PUSHR),		code);
+	vpush(rfn,			code);
+	vpush(ROP (IS_SLURP),		code);
+	vpush(ROP (IS_DUP),		code);
+	vpush(ROP (IS_ERRP),		code);
+	vpush(ROPD(IS_BNIL, 2),		code);
+	vpush(ROPD(IS_BR, 11),		code);
+	vpush(ROP (IS_PUSHR),		code);
+	vpush(begin,			code);
+	vpush(ROP (IS_VCONC),		code);
+	vpush(ROP (IS_VCONC),		code);
+	vpush(ROP (IS_READ_STRING),	code);
+	vpush(ROP (IS_DUP),		code);
+	vpush(ROP (IS_ERRP),		code);
+	vpush(ROPD(IS_BNIL, 2),		code);
+	vpush(ROPD(IS_BR, 2),		code);
+	vpush(ROP (IS_EVAL),		code);
+	vpush(ROP (IS_PRINT),		code);
+	vpush(ROP (IS_HALT),		code);
+
+	value_t cd = cons(code, code);
+
 	unlock_gc();
 
-	return ;
+	// exec rep
+	exec_vm(cd, env);
 }
 
 value_t parse_arg(int argc, char* argv[])
