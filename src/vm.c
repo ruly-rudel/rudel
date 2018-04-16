@@ -285,8 +285,6 @@ value_t exec_vm(value_t c, value_t e)
 	value_t r2    = NIL;
 	value_t r3    = NIL;
 
-	value_t cont  = NIL;
-
 	// register stack, ret, code, env, reg to root
 	push_root        (&code);
 	push_root        (&debug);
@@ -834,15 +832,14 @@ apply:
 			default:
 				THROW(pr_str(RERR_PC(ERR_INVALID_IS), NIL, false));
 throw:
-				cont = get_env_ref(str_to_sym("*exception-stack*"), env);
-				cont = local_get_env_value_ref(cont, env);
-				cont = car(cont);
-				if(!clojurep(cont)) return unlock_gc(), RERR_PC(ERR_EXCEPTION);
-				LOCAL_VPUSH_RAW(cont);
-				cont = local_make_vector(1);
-				local_vpush(cons(NIL, r0), cont);
-				LOCAL_VPUSH_RAW(cont);
-				cont = NIL;
+				r1 = get_env_ref(str_to_sym("*exception-stack*"), env);
+				r2 = local_get_env_value_ref(r1, env);
+				r3 = car(r2);
+				if(!clojurep(r3)) return unlock_gc(), RERR_PC(ERR_EXCEPTION);
+				LOCAL_VPUSH_RAW(r3);
+				r3 = local_make_vector(1);
+				local_vpush(cons(NIL, r0), r3);
+				LOCAL_VPUSH_RAW(r3);
 				goto apply;
 		}
 		unlock_gc();
