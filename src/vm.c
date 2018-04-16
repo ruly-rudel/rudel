@@ -101,18 +101,9 @@
 
 #define THROW(X) \
 { \
-	cont = get_env_ref(str_to_sym("*exception-stack*"), env); \
-	cont = local_get_env_value_ref(cont, env); \
-	cont = car(cont); \
-	if(!clojurep(cont)) return unlock_gc(), RERR_PC(ERR_EXCEPTION); \
-	LOCAL_VPUSH_RAW(cont); \
-	cont = local_make_vector(1); \
-	local_vpush(cons(NIL, (X)), cont); \
-	LOCAL_VPUSH_RAW(cont); \
-	cont = NIL; \
-	goto apply; \
+	r0 = (X); \
+	goto throw; \
 }
-
 
 #define FIRST(X)  (UNSAFE_CAR(X))
 #define SECOND(X) (UNSAFE_CAR(UNSAFE_CDR(X)))
@@ -442,7 +433,6 @@ apply:
 				else
 				{
 					THROW(pr_str(RERR_PC(ERR_INVALID_AP), NIL, false));
-					//LOCAL_VPUSH_RAW(RERR_PC(ERR_INVALID_AP));
 				}
 				break;
 
@@ -577,7 +567,6 @@ apply:
 				if(errp(r1))
 				{
 					THROW(pr_str(RERR_PC(ERR_ARG), NIL, false));
-					//return unlock_gc(), RERR_PC(ERR_ARG);
 				}
 				else
 				{
@@ -599,7 +588,6 @@ apply:
 				if(errp(r3))
 				{
 					THROW(pr_str(RERR_PC(ERR_ARG), NIL, false));
-					//return unlock_gc(), RERR_PC(ERR_ARG);
 				}
 				break;
 
@@ -625,7 +613,6 @@ apply:
 				else
 				{
 					THROW(pr_str(RERR_PC(ERR_INVALID_AP), NIL, false));
-					//LOCAL_VPUSH_RAW(RERR_PC(ERR_INVALID_AP));
 				}
 				break;
 
@@ -805,7 +792,6 @@ apply:
 					THROW(pr_str(RERR_TYPE_PC, NIL, false));
 				}
 				LOCAL_RPLACV_TOP_RAW(r1);
-				//OP_1P1P(consp(r0) && vectorp(car(r0)) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
@@ -826,7 +812,6 @@ apply:
 				if(!vectorp(r0))
 				{
 					THROW(pr_str(RERR_TYPE_PC, NIL, false));
-					//return unlock_gc(), RERR_TYPE_PC;
 				}
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));
@@ -848,7 +833,17 @@ apply:
 
 			default:
 				THROW(pr_str(RERR_PC(ERR_INVALID_IS), NIL, false));
-				//return unlock_gc(), RERR_PC(ERR_INVALID_IS);
+throw:
+				cont = get_env_ref(str_to_sym("*exception-stack*"), env);
+				cont = local_get_env_value_ref(cont, env);
+				cont = car(cont);
+				if(!clojurep(cont)) return unlock_gc(), RERR_PC(ERR_EXCEPTION);
+				LOCAL_VPUSH_RAW(cont);
+				cont = local_make_vector(1);
+				local_vpush(cons(NIL, r0), cont);
+				LOCAL_VPUSH_RAW(cont);
+				cont = NIL;
+				goto apply;
 		}
 		unlock_gc();
 
