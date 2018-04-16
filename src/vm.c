@@ -837,6 +837,8 @@ throw:
 				r3 = car(r2);
 				if(!clojurep(r3)) return unlock_gc(), RERR_PC(ERR_EXCEPTION);
 				LOCAL_VPUSH_RAW(r3);
+				r3 = cdr(r2);
+				local_set_env_ref(r1, r3, env);
 				r3 = local_make_vector(1);
 				local_vpush(cons(NIL, r0), r3);
 				LOCAL_VPUSH_RAW(r3);
