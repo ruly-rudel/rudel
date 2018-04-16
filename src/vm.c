@@ -56,7 +56,7 @@
 { \
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = (X); \
-	if(errp(r1)) r1 = RERR_OVW_PC(r1); \
+	if(errp(r1))  THROW(pr_str(RERR_OVW_PC(r1), NIL, false)); \
 }
 
 #define OP_1P0PNE(X) \
@@ -68,7 +68,7 @@
 #define OP_0P1P(X) \
 { \
 	r0 = (X); \
-	if(errp(r0)) r0 = RERR_OVW_PC(r0); \
+	if(errp(r0))  THROW(pr_str(RERR_OVW_PC(r0), NIL, false)); \
 	LOCAL_VPUSH_RAW(r0); \
 }
 
@@ -76,7 +76,7 @@
 { \
 	r0 = LOCAL_VPEEK_RAW; \
 	r1 = (X); \
-	if(errp(r1)) r1 = RERR_OVW_PC(r1); \
+	if(errp(r1))  THROW(pr_str(RERR_OVW_PC(r1), NIL, false)); \
 	LOCAL_RPLACV_TOP_RAW(r1); \
 }
 
@@ -85,7 +85,7 @@
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = LOCAL_VPEEK_RAW; \
 	r2 = (X); \
-	if(errp(r2)) r2 = RERR_OVW_PC(r2); \
+	if(errp(r2))  THROW(pr_str(RERR_OVW_PC(r2), NIL, false)); \
 	LOCAL_RPLACV_TOP_RAW(r2); \
 }
 
@@ -95,9 +95,24 @@
 	r1 = LOCAL_VPOP_RAW; \
 	r2 = LOCAL_VPEEK_RAW; \
 	r3 = (X); \
-	if(errp(r3)) r3 = RERR_OVW_PC(r3); \
+	if(errp(r3))  THROW(pr_str(RERR_OVW_PC(r3), NIL, false)); \
 	LOCAL_RPLACV_TOP_RAW(r3); \
 }
+
+#define THROW(X) \
+{ \
+	cont = get_env_ref(str_to_sym("*exception-stack*"), env); \
+	cont = local_get_env_value_ref(cont, env); \
+	cont = car(cont); \
+	if(!clojurep(cont)) return unlock_gc(), RERR_PC(ERR_EXCEPTION); \
+	LOCAL_VPUSH_RAW(cont); \
+	cont = local_make_vector(1); \
+	local_vpush(cons(NIL, (X)), cont); \
+	LOCAL_VPUSH_RAW(cont); \
+	cont = NIL; \
+	goto apply; \
+}
+
 
 #define FIRST(X)  (UNSAFE_CAR(X))
 #define SECOND(X) (UNSAFE_CAR(UNSAFE_CDR(X)))
@@ -279,6 +294,8 @@ value_t exec_vm(value_t c, value_t e)
 	value_t r2    = NIL;
 	value_t r3    = NIL;
 
+	value_t cont  = NIL;
+
 	// register stack, ret, code, env, reg to root
 	push_root        (&code);
 	push_root        (&debug);
@@ -374,6 +391,7 @@ value_t exec_vm(value_t c, value_t e)
 				// fall-through to AP
 
 			case IS_AP:
+apply:
 				r0 = LOCAL_VPOP_RAW;
 				r1 = LOCAL_VPOP_RAW;
 				if(clojurep(r1))	// compiled function
@@ -405,7 +423,9 @@ value_t exec_vm(value_t c, value_t e)
 						if(errp(r2)) return unlock_gc(), r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
+					unlock_gc();
 					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));	if(errp(r2)) return unlock_gc(), r2;
+					lock_gc();
 					TRACEN("  Expand macro done. the result S-exp is: ");
 #ifdef TRACE_VM
 					print(r2, stderr);
@@ -413,13 +433,16 @@ value_t exec_vm(value_t c, value_t e)
 					TRACE("  Compiling the result on-the-fly.");
 					r3 = compile_vm(r2, env);			if(errp(r3)) return unlock_gc(), r3;
 					TRACE("  Evaluate it, invoking another VM.");
+					unlock_gc();
 					r2 = exec_vm   (r3, env);			if(errp(r2)) return unlock_gc(), r2;
+					lock_gc();
 					TRACE("AP(Macro) Done.");
 					LOCAL_VPUSH_RAW(r2);
 				}
 				else
 				{
-					LOCAL_VPUSH_RAW(RERR_PC(ERR_INVALID_AP));
+					THROW(pr_str(RERR_PC(ERR_INVALID_AP), NIL, false));
+					//LOCAL_VPUSH_RAW(RERR_PC(ERR_INVALID_AP));
 				}
 				break;
 
@@ -504,6 +527,7 @@ value_t exec_vm(value_t c, value_t e)
 				if(errp(r0))
 				{
 					r0 = RERR_OVW_PC(r0);
+					THROW(pr_str(r0, NIL, false));
 				}
 				LOCAL_VPUSH_RAW(r0);
 				break;
@@ -552,7 +576,8 @@ value_t exec_vm(value_t c, value_t e)
 				r1 = local_vref_safe(r0, op.op.operand);
 				if(errp(r1))
 				{
-					return unlock_gc(), RERR_PC(ERR_ARG);
+					THROW(pr_str(RERR_PC(ERR_ARG), NIL, false));
+					//return unlock_gc(), RERR_PC(ERR_ARG);
 				}
 				else
 				{
@@ -573,7 +598,8 @@ value_t exec_vm(value_t c, value_t e)
 				r3 = rplacv(r0, op.op.operand, cons(r1, r2));
 				if(errp(r3))
 				{
-					return unlock_gc(), RERR_PC(ERR_ARG);
+					THROW(pr_str(RERR_PC(ERR_ARG), NIL, false));
+					//return unlock_gc(), RERR_PC(ERR_ARG);
 				}
 				break;
 
@@ -589,14 +615,17 @@ value_t exec_vm(value_t c, value_t e)
 						if(errp(r2)) return unlock_gc(), r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
+					unlock_gc();
 					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));
+					lock_gc();
 					if(errp(r2)) return unlock_gc(), r2;
 					TRACE("MACROEXPAND Done.");
 					LOCAL_VPUSH_RAW(r2);
 				}
 				else
 				{
-					LOCAL_VPUSH_RAW(RERR_PC(ERR_INVALID_AP));
+					THROW(pr_str(RERR_PC(ERR_INVALID_AP), NIL, false));
+					//LOCAL_VPUSH_RAW(RERR_PC(ERR_INVALID_AP));
 				}
 				break;
 
@@ -764,9 +793,19 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			case IS_EXEC_VM: TRACE("EXEC_VM");
-				unlock_gc();
-				OP_1P1P(consp(r0) && vectorp(car(r0)) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
-				lock_gc();
+				r0 = LOCAL_VPEEK_RAW;
+				if(consp(r0) && vectorp(car(r0)))
+				{
+					unlock_gc();
+					r1 = exec_vm(r0, last(env));
+					lock_gc();
+				}
+				else
+				{
+					THROW(pr_str(RERR_TYPE_PC, NIL, false));
+				}
+				LOCAL_RPLACV_TOP_RAW(r1);
+				//OP_1P1P(consp(r0) && vectorp(car(r0)) ? exec_vm(r0, last(env)) : RERR_TYPE_PC);
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
@@ -786,7 +825,8 @@ value_t exec_vm(value_t c, value_t e)
 				r0 = LOCAL_VPEEK_RAW;
 				if(!vectorp(r0))
 				{
-					return unlock_gc(), RERR_TYPE_PC;
+					THROW(pr_str(RERR_TYPE_PC, NIL, false));
+					//return unlock_gc(), RERR_TYPE_PC;
 				}
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));
@@ -807,7 +847,8 @@ value_t exec_vm(value_t c, value_t e)
 				break;
 
 			default:
-				return unlock_gc(), RERR_PC(ERR_INVALID_IS);
+				THROW(pr_str(RERR_PC(ERR_INVALID_IS), NIL, false));
+				//return unlock_gc(), RERR_PC(ERR_INVALID_IS);
 		}
 		unlock_gc();
 

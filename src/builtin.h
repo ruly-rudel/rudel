@@ -240,6 +240,7 @@ typedef struct _vector_t
 #define ERR_FWRITE		17
 #define ERR_FREAD		18
 #define ERR_WCHAR		18
+#define ERR_EXCEPTION		19
 
 #define UNSAFE_CAR(X)	AVALUE(X).cons->car
 #define UNSAFE_CDR(X)	AVALUE(X).cons->cdr

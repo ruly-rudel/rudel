@@ -358,6 +358,9 @@ static value_t pr_err_cause(value_t e)
 		    case ERR_FREAD:
 			return str_to_rstr("cannot read data from file.");
 
+		    case ERR_EXCEPTION:
+			return str_to_rstr("throw exception to the empty exception stack.");
+
 		    default:
 			return str_to_rstr("unknown error.");
 		}
