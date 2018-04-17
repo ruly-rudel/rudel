@@ -173,10 +173,13 @@ void push_root_raw_vec(value_t *v, int* sp)
 	return;
 }
 
-void pop_root(void)
+void pop_root(int n)
 {
-	s_root[s_root_ptr  ].data = 0;
-	s_root[s_root_ptr--].size = 0;
+	for(int i = 0; i < n; i++)
+	{
+		s_root[s_root_ptr  ].data = 0;
+		s_root[s_root_ptr--].size = 0;
+	}
 	return;
 }
 
@@ -230,7 +233,7 @@ value_t register_sym(value_t s)
 		snew.cons->cdr = s_symbol_pool;
 		snew.type.main = CONS_T;
 		s_symbol_pool = snew;
-		pop_root();
+		pop_root(1);
 		return s;
 	}
 	else
@@ -549,7 +552,7 @@ value_t alloc_vector_data(value_t v, size_t size)
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	pop_root();
+	pop_root(1);
 	return v;
 }
 

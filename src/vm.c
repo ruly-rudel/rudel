@@ -19,8 +19,7 @@
 		if(!stack_raw) { \
 			return unlock_gc(), rerr_alloc(); \
 		} \
-		pop_root(); \
-		pop_root(); \
+		pop_root(2); \
 		push_root_raw_vec(stack_raw, &sp); \
 		push_root_raw_vec(ret_raw,   &rsp); \
 	} \
@@ -42,7 +41,7 @@
 		if(!ret_raw) { \
 			return unlock_gc(), rerr_alloc(); \
 		} \
-		pop_root(); \
+		pop_root(1); \
 		push_root_raw_vec(ret_raw,   &rsp); \
 	} \
 	ret_raw[++rsp] = (X); \
@@ -340,8 +339,7 @@ value_t exec_vm(value_t c, value_t e)
 				fprintf(stderr, "VM stack usage: stack %d, return %d\n", alloc, ralloc);
 #endif // PRINT_STACK_USAGE
 				// pop root
-				for(int i = 0; i < 9; i++)
-					pop_root();
+				pop_root(9);
 				unlock_gc();
 				return LOCAL_VPOP_RAW;
 
@@ -824,19 +822,26 @@ apply:
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
+				unlock_gc();
 				OP_2P1P(pr_str(r0, NIL, !nilp(r1)));
+				lock_gc();
 				break;
 
 			case IS_PRINTLINE: TRACE("PRINTLINE");
+				unlock_gc();
 				OP_1P1P(vectorp(r0) || nilp(r0) ? (printline(r0, stdout), NIL) : RERR_TYPE_PC);
+				lock_gc();
 				break;
 
 			case IS_PRINT: TRACE("PRINT");
+				unlock_gc();
 				OP_1P1P((print(r0, stdout), NIL));
+				lock_gc();
 				break;
 
 			case IS_SLURP: TRACE("SLURP");
 			{
+				unlock_gc();
 				r0 = LOCAL_VPEEK_RAW;
 				if(!vectorp(r0))
 				{
@@ -845,6 +850,7 @@ apply:
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));
 				free(fn);
+				lock_gc();
 			}
 			break;
 

@@ -38,7 +38,7 @@ static value_t pr_str_int(int x)
 		vpush_front(r, RCHAR('-'));
 	}
 
-	pop_root();
+	pop_root(1);
 	return r;
 }
 
@@ -52,9 +52,7 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 
 	if(nilp(x))
 	{
-		pop_root();
-		pop_root();
-		pop_root();
+		pop_root(3);
 		return str_to_rstr("nil");
 	}
 	else
@@ -80,9 +78,7 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 
 		vpush(RCHAR(')'), r);
 
-		pop_root();
-		pop_root();
-		pop_root();
+		pop_root(3);
 		return r;
 	}
 }
@@ -270,8 +266,7 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		vpush(RCHAR('\0'), r);
 	}
 
-	pop_root();
-	pop_root();
+	pop_root(2);
 
 	return r;
 }
@@ -384,8 +379,7 @@ static value_t pr_err_pos(value_t e)
 		vnconc(r, pr_str(car(pos), NIL, true));
 	}
 
-	pop_root();
-	pop_root();
+	pop_root(2);
 	return r;
 }
 
@@ -396,7 +390,7 @@ static value_t pr_err(value_t s)
 	push_root(&s);
 	value_t r = pr_err_cause(s);
 	r = vnconc(r, pr_err_pos(s));
-	pop_root();
+	pop_root(1);
 	return r;
 }
 
@@ -431,7 +425,7 @@ static value_t pr_ref(value_t s)
 	vnconc(r, pr_str_int(REF_W(s)));
 	vpush (RCHAR('#'), r);
 
-	pop_root();
+	pop_root(1);
 	return r;
 }
 
@@ -627,14 +621,14 @@ void print(value_t s, FILE* fp)
 	{
 		push_root(&r);
 		printline(pr_str(r, NIL, true), stderr);
-		pop_root();
+		pop_root(1);
 	}
 	else
 	{
 		printline(r, fp);
 	}
 
-	pop_root();
+	pop_root(1);
 	return;
 }
 

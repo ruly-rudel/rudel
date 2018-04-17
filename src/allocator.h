@@ -17,7 +17,7 @@ EXTERN int	g_lock_cnt;
 
 void		push_root		(value_t* v);
 void		push_root_raw_vec	(value_t *v, int* sp);
-void		pop_root		(void);
+void		pop_root		(int n);
 value_t*	exec_gc			(void);
 void		force_gc		(void);
 INLINE(value_t*	check_gc(void),		g_memory_top >= g_memory_gc && g_lock_cnt == 0 ?  exec_gc() : 0)

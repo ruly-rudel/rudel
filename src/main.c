@@ -143,8 +143,7 @@ value_t parse_arg(int argc, char* argv[])
 		CONS_AND_CDR(read_str(str_to_rstr(argv[i])), cur)
 	}
 
-	pop_root();
-	pop_root();
+	pop_root(2);
 	return cdr(r);
 }
 

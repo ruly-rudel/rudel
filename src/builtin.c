@@ -46,8 +46,7 @@ value_t	cons(value_t car, value_t cdr)
 	push_root(&cdr);
 	value_t	r	= { 0 };
 	r.cons		= alloc_cons();
-	pop_root();
-	pop_root();
+	pop_root(2);
 	if(r.cons)
 	{
 		r.cons->car	= car;
@@ -194,8 +193,7 @@ value_t list(int n, ...)
 	}
 	va_end(arg);
 
-	pop_root();
-	pop_root();
+	pop_root(2);
 	return cdr(r);
 }
 
@@ -279,7 +277,7 @@ value_t rerr_add_pos(value_t pos, value_t e)
 	value_t cause = car(e);
 	push_root(&cause);
 	value_t newpos = cons(pos, cdr(e));
-	pop_root();
+	pop_root(1);
 	value_t r = cons(cause, newpos);
 	r.type.main = ERR_T;
 #ifdef DEBUG
@@ -321,7 +319,7 @@ value_t slurp(char* fn)
 		}
 		fclose(fp);
 
-		pop_root();
+		pop_root(1);
 		return buf;
 	}
 	else	// file not found or other error.
@@ -645,9 +643,7 @@ value_t make_list_from_vector(value_t x)
 		CONS_AND_CDR(vref(x, i), cur);
 	}
 
-	pop_root();
-	pop_root();
-	pop_root();
+	pop_root(3);
 	return cdr(r);
 }
 
@@ -669,8 +665,7 @@ value_t str_to_cons	(const char* s)
 		CONS_AND_CDR(RINT(c), cur)
 	}
 
-	pop_root();
-	pop_root();
+	pop_root(2);
 
 	return cdr(r);
 }
