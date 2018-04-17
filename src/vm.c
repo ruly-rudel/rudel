@@ -80,6 +80,20 @@
 	LOCAL_RPLACV_TOP_RAW(r1); \
 }
 
+#define OP_1P1PT(T, X) \
+{ \
+	r0 = LOCAL_VPEEK_RAW; \
+	if(T) \
+	{ \
+		r1 = (X); \
+		LOCAL_RPLACV_TOP_RAW(r1); \
+	} \
+	else \
+	{ \
+		THROW(pr_str(RERR_OVW_PC(RERR_TYPE_PC), NIL, false)); \
+	} \
+}
+
 #define OP_2P1P(X) \
 { \
 	r0 = LOCAL_VPOP_RAW; \
@@ -87,6 +101,21 @@
 	r2 = (X); \
 	if(errp(r2))  THROW(pr_str(RERR_OVW_PC(r2), NIL, false)); \
 	LOCAL_RPLACV_TOP_RAW(r2); \
+}
+
+#define OP_2P1PT(T, X) \
+{ \
+	r0 = LOCAL_VPOP_RAW; \
+	r1 = LOCAL_VPEEK_RAW; \
+	if(T) \
+	{ \
+		r2 = (X); \
+		LOCAL_RPLACV_TOP_RAW(r2); \
+	} \
+	else \
+	{ \
+		THROW(pr_str(RERR_OVW_PC(RERR_TYPE_PC), NIL, false)); \
+	} \
 }
 
 #define OP_3P1P(X) \
@@ -645,11 +674,11 @@ apply:
 				break;
 
 			case IS_CAR: TRACE("CAR");
-				OP_1P1P(rtypeof(r0) >= CONS_T && rtypeof(r0) <= ERR_T ? car(r0) : RERR_TYPE_PC);
+				OP_1P1PT(rtypeof(r0) >= CONS_T && rtypeof(r0) <= ERR_T, car(r0));
 				break;
 
 			case IS_CDR: TRACE("CDR");
-				OP_1P1P(rtypeof(r0) >= CONS_T && rtypeof(r0) <= ERR_T ? cdr(r0) : RERR_TYPE_PC);
+				OP_1P1PT(rtypeof(r0) >= CONS_T && rtypeof(r0) <= ERR_T, cdr(r0));
 				break;
 
 			case IS_EQ: TRACE("EQ");
@@ -673,35 +702,35 @@ apply:
 				break;
 
 			case IS_ADD: TRACE("ADD");
-				OP_2P1P(intp(r0) && intp(r1) ? (RINT(INTOF(r0) + INTOF(r1))) : RERR_TYPE_PC);
+				OP_2P1PT(intp(r0) && intp(r1), RINT(INTOF(r0) + INTOF(r1)));
 				break;
 
 			case IS_SUB: TRACE("SUB");
-				OP_2P1P(intp(r0) && intp(r1) ? (RINT(INTOF(r0) - INTOF(r1))) : RERR_TYPE_PC);
+				OP_2P1PT(intp(r0) && intp(r1), RINT(INTOF(r0) - INTOF(r1)));
 				break;
 
 			case IS_MUL: TRACE("MUL");
-				OP_2P1P(intp(r0) && intp(r1) ? (RINT(INTOF(r0) * INTOF(r1))) : RERR_TYPE_PC);
+				OP_2P1PT(intp(r0) && intp(r1), RINT(INTOF(r0) * INTOF(r1)));
 				break;
 
 			case IS_DIV: TRACE("DIV");
-				OP_2P1P(intp(r0) && intp(r1) ? (RINT(INTOF(r0) / INTOF(r1))) : RERR_TYPE_PC);
+				OP_2P1PT(intp(r0) && intp(r1), RINT(INTOF(r0) / INTOF(r1)));
 				break;
 
 			case IS_LT: TRACE("LT");
-				OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) <  INTOF(r1) ? g_t : NIL) : RERR_TYPE_PC);
+				OP_2P1PT(intp(r0) && intp(r1), r0.raw <  r1.raw ? g_t : NIL);
 				break;
 
 			case IS_ELT: TRACE("ELT");
-				OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) <= INTOF(r1) ? g_t : NIL) : RERR_TYPE_PC);
+				OP_2P1PT(intp(r0) && intp(r1), r0.raw <= r1.raw ? g_t : NIL);
 				break;
 
 			case IS_MT: TRACE("MT");
-				OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) >  INTOF(r1) ? g_t : NIL) : RERR_TYPE_PC);
+				OP_2P1PT(intp(r0) && intp(r1), r0.raw >  r1.raw ? g_t : NIL);
 				break;
 
 			case IS_EMT: TRACE("EMT");
-				OP_2P1P(intp(r0) && intp(r1) ? (INTOF(r0) >= INTOF(r1) ? g_t : NIL) : RERR_TYPE_PC);
+				OP_2P1PT(intp(r0) && intp(r1), r0.raw >= r1.raw ? g_t : NIL);
 				break;
 
 			case IS_READ_STRING: TRACE("READ_STRING");
@@ -746,11 +775,11 @@ apply:
 				break;
 
 			case IS_VSIZE: TRACE("VSIZE");
-				OP_1P1P(vectorp(r0) ? RINT(vsize(r0)) : RERR_TYPE_PC);
+				OP_1P1PT(vectorp(r0), RINT(vsize(r0)));
 				break;
 
 			case IS_VEQ: TRACE("VEQ");
-				OP_2P1P(vectorp(r0) && vectorp(r1) ? (veq(r0, r1) ? g_t : NIL) : RERR_TYPE_PC);
+				OP_2P1PT(vectorp(r0) && vectorp(r1), veq(r0, r1) ? g_t : NIL);
 				break;
 
 			case IS_VPUSH: TRACE("VPUSH");
@@ -770,7 +799,7 @@ apply:
 				break;
 
 			case IS_VNCONC: TRACE("VNCONC");
-				OP_2P1P(vectorp(r0) && vectorp(r1) ? vnconc(r0, r1) : RERR_TYPE_PC);
+				OP_2P1PT(vectorp(r0) && vectorp(r1), vnconc(r0, r1));
 				break;
 
 			case IS_COMPILE_VM: TRACE("COMPILE_VM");
