@@ -179,13 +179,21 @@ value_t nconc(value_t a, value_t b)
 
 value_t list(int n, ...)
 {
+	value_t args[n];
 	va_list	 arg;
+	va_start(arg, n);
+	for(int i = 0; i < n; i++)
+	{
+		args[i] = va_arg(arg, value_t);
+	}
+	va_end(arg);
+	push_root_raw_vec(args, &n);
+
 	value_t    r = cons(NIL, NIL);
 	value_t  cur = r;
 	push_root(&r);
 	push_root(&cur);
 
-	//******* argumets is not push_rooted. fix it.
 	va_start(arg, n);
 	for(int i = 0; i < n; i++)
 	{
@@ -193,7 +201,7 @@ value_t list(int n, ...)
 	}
 	va_end(arg);
 
-	pop_root(2);
+	pop_root(3);
 	return cdr(r);
 }
 

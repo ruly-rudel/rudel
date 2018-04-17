@@ -3,6 +3,7 @@
 #include "builtin.h"
 #include "compile_vm.h"
 #include "env.h"
+#include "allocator.h"
 
 /////////////////////////////////////////////////////////////////////
 // private:
@@ -64,11 +65,18 @@ static value_t compile_vm_setq(value_t code, value_t debug, value_t ast, value_t
 		return RERR(ERR_ARG, cdr(ast));
 	}
 
+	value_t key_ref = NIL;
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+	push_root(&key_ref);
+
 	code = compile_vm1(code, debug, car(val_notev), env);
 
 	if(!errp(code))
 	{
-		value_t key_ref = get_env_ref(key, env);
+		key_ref = get_env_ref(key, env);
 		if(errp(key_ref))
 		{
 			vpush(ROP(IS_PUSHR), code);	vpush(ast, debug);
@@ -82,17 +90,25 @@ static value_t compile_vm_setq(value_t code, value_t debug, value_t ast, value_t
 
 		vpush(ROP(IS_SETENV), code);		vpush(ast, debug);
 	}
+
+	pop_root(5);
 	return code;
 }
 
 static value_t compile_vm_progn(value_t code, value_t debug, value_t ast, value_t env)
 {
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
 	for(; !nilp(ast); ast = cdr(ast))
 	{
 		assert(consp(ast));
 		code = compile_vm1(code, debug, car(ast), env);
 		if(errp(code))
 		{
+			pop_root(4);
 			return code;
 		}
 		vpush(ROP(IS_POP), code);		vpush(ast, debug);
@@ -100,6 +116,7 @@ static value_t compile_vm_progn(value_t code, value_t debug, value_t ast, value_
 	}
 	vpop(code);
 
+	pop_root(4);
 	return code;
 }
 
@@ -111,20 +128,28 @@ static value_t compile_vm_list(value_t code, value_t debug, value_t ast, value_t
 	assert(consp(ast) || nilp(ast));
 	assert(consp(env));
 
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
 	if(!nilp(ast))
 	{
 		code = compile_vm_list(code, debug, cdr(ast), env);
 		if(errp(code))
 		{
+			pop_root(4);
 			return code;
 		}
 		code = compile_vm1(code, debug, car(ast), env);
 		if(errp(code))
 		{
+			pop_root(4);
 			return code;
 		}
 	}
 
+	pop_root(4);
 	return code;
 }
 
@@ -134,6 +159,11 @@ static value_t compile_vm_apply_arg(value_t code, value_t debug, value_t ast, va
 	assert(vectorp(code));
 	assert(consp(ast) || nilp(ast));
 	assert(consp(env));
+
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
 
 	vpush(ROPD(IS_MKVEC_ENV, count(ast)), code);		vpush(ast, debug);
 
@@ -152,7 +182,7 @@ static value_t compile_vm_apply_arg(value_t code, value_t debug, value_t ast, va
 	}
 
 	// push env is in IS_AP
-
+	pop_root(4);
 	return code;
 }
 
@@ -162,6 +192,11 @@ static value_t compile_vm_macro_arg(value_t code, value_t debug, value_t ast, va
 	assert(vectorp(code));
 	assert(consp(ast) || nilp(ast));
 	assert(consp(env));
+
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
 
 	vpush(ROPD(IS_MKVEC_ENV, count(ast)), code);	vpush(ast, debug);
 
@@ -175,6 +210,7 @@ static value_t compile_vm_macro_arg(value_t code, value_t debug, value_t ast, va
 
 	// push env is in IS_AP
 
+	pop_root(4);
 	return code;
 }
 
@@ -190,10 +226,16 @@ static value_t compile_vm_if(value_t code, value_t debug, value_t ast, value_t e
 		return RERR(ERR_ARG, ast);
 	}
 
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
 	// eval condition
 	code = compile_vm1(code, debug, first(ast), env);
 	if(errp(code))
 	{
+		pop_root(4);
 		return code;
 	}
 
@@ -204,6 +246,7 @@ static value_t compile_vm_if(value_t code, value_t debug, value_t ast, value_t e
 	code = compile_vm1(code, debug, second(ast), env);
 	if(errp(code))
 	{
+		pop_root(4);
 		return code;
 	}
 
@@ -214,6 +257,7 @@ static value_t compile_vm_if(value_t code, value_t debug, value_t ast, value_t e
 	code = compile_vm1(code, debug, third(ast), env);
 	if(errp(code))
 	{
+		pop_root(4);
 		return code;
 	}
 
@@ -223,6 +267,7 @@ static value_t compile_vm_if(value_t code, value_t debug, value_t ast, value_t e
 	rplacv(code, cond_br, ROPD(IS_BNIL, true_br + 1 - cond_br));
 	rplacv(code, true_br, ROPD(IS_BR,   next_addr - true_br));
 
+	pop_root(4);
 	return code;
 }
 
@@ -237,15 +282,23 @@ static value_t compile_vm_let(value_t code, value_t debug, value_t ast, value_t 
 		return RERR(ERR_ARG, ast);
 	}
 
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
 	// allocate new environment
 	value_t let_env = create_env(NIL, NIL, env);
+	push_root(&let_env);
 
 	// local symbols
 	value_t def = car(ast);
 	if(rtypeof(def) != CONS_T)
 	{
+		pop_root(5);
 		return RERR(ERR_ARG, ast);
 	}
+	push_root(&def);
 
 	// create env vector
 	vpush(ROPD(IS_MKVEC_ENV, count(def)), code);	vpush(ast, debug);
@@ -255,14 +308,19 @@ static value_t compile_vm_let(value_t code, value_t debug, value_t ast, value_t 
 
 	// cereate environment
 
+	value_t bind = NIL;
+	value_t sym  = NIL;
+	push_root(&bind);
+	push_root(&sym);
 	for(; !nilp(def); def = cdr(def))
 	{
-		value_t bind = first(def);
+		bind = first(def);
 
 		// symbol
-		value_t sym = car(bind);
+		sym = car(bind);
 		if(!symbolp(sym))
 		{
+			pop_root(8);
 			return RERR(ERR_ARG, bind);
 		}
 		set_env(sym, NIL, let_env);	// for self-reference
@@ -271,6 +329,7 @@ static value_t compile_vm_let(value_t code, value_t debug, value_t ast, value_t 
 		code = compile_vm1(code, debug, car(cdr(bind)), let_env);
 		if(errp(code))
 		{
+			pop_root(8);
 			return code;
 		}
 		else
@@ -288,23 +347,31 @@ static value_t compile_vm_let(value_t code, value_t debug, value_t ast, value_t 
 	code = compile_vm1(code, debug, second(ast), let_env);
 	if(errp(code))
 	{
+		pop_root(8);
 		return code;
 	}
 	else
 	{
 		// pop env
 		vpush(ROP(IS_VPOP_ENV), code);		vpush(ast, debug);
+		pop_root(8);
 		return code;
 	}
 }
 
 static value_t	compile_vm_arg_symbol(value_t code, value_t debug, value_t key)
 {
+	value_t key_car = NIL;
+	push_root(&code);
+	push_root(&debug);
+	push_root(&key);
+	push_root(&key_car);
+
 	for(int i = 0; !nilp(key); i++, (key = cdr(key)))
 	{
 		assert(consp(key));
 
-		value_t key_car = car(key);
+		key_car = car(key);
 
 		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
 		{
@@ -321,6 +388,7 @@ static value_t	compile_vm_arg_symbol(value_t code, value_t debug, value_t key)
 		}
 	}
 
+	pop_root(4);
 	return code;
 }
 
@@ -340,24 +408,34 @@ static value_t compile_vm_lambda1(value_t ast, value_t env)
 	{
 		return RERR(ERR_ARG, ast);
 	}
-	value_t lambda_env = create_env(def, NIL, env);
 
+	push_root(&ast);
+	push_root(&env);
+	push_root(&def);
+
+	value_t lambda_env = create_env(def, NIL, env);
+	push_root(&lambda_env);
 
 	// compile body
-	value_t lambda_code  = make_vector(0);
-	value_t lambda_debug = make_vector(0);
+	value_t lambda_code  = make_vector(1);
+	push_root(&lambda_code);
+	value_t lambda_debug = make_vector(1);
+	push_root(&lambda_debug);
 	lambda_code = compile_vm_arg_symbol(lambda_code, lambda_debug, def);	// with rest parameter support
 	if(errp(lambda_code))
 	{
+		pop_root(6);
 		return lambda_code;
 	}
 
 	lambda_code = compile_vm1(lambda_code, lambda_debug, second(ast), lambda_env);
 	if(errp(lambda_code))
 	{
+		pop_root(6);
 		return lambda_code;
 	}
 
+	pop_root(6);
 	return cons(lambda_code, lambda_debug);
 }
 
@@ -366,13 +444,17 @@ static value_t compile_vm_macro(value_t ast, value_t env)
 	assert(consp(ast));
 	assert(consp(env));
 
+	push_root(&ast);
 	value_t macro_code = compile_vm_lambda1(ast, env);
+	push_root(&macro_code);
+
 	if(!errp(macro_code))
 	{
 		// macro invokes another VM.
 		vpush(ROP(IS_HALT), car(macro_code));	vpush(ast, cdr(macro_code));	// HALT
 	}
 
+	pop_root(2);
 	return macro_code;
 }
 
@@ -381,13 +463,17 @@ static value_t compile_vm_lambda(value_t ast, value_t env)
 	assert(consp(ast));
 	assert(consp(env));
 
+	push_root(&ast);
 	value_t lambda_code = compile_vm_lambda1(ast, env);
+	push_root(&lambda_code);
+
 	if(!errp(lambda_code))
 	{
 		// lambda is clojure call
 		vpush(ROP(IS_RET), car(lambda_code));	vpush(ast, cdr(lambda_code));	// RET
 	}
 
+	pop_root(2);
 	return lambda_code;
 }
 
@@ -395,6 +481,11 @@ static value_t compile_vm_quasiquote(value_t code, value_t debug, value_t ast, v
 {
 	assert(vectorp(code));
 	assert(consp(env));
+
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
 
 	if(!consp(ast))					// atom
 	{
@@ -407,6 +498,7 @@ static value_t compile_vm_quasiquote(value_t code, value_t debug, value_t ast, v
 		if(EQ(arg1, RSPECIAL(SP_UNQUOTE)))	// (unquote x)
 		{
 			value_t arg2 = second(ast);
+			pop_root(4);
 			return compile_vm1(code, debug, arg2, env);	  // -> add evaluation code
 		}
 		else if(consp(arg1) && EQ(first(arg1), RSPECIAL(SP_SPLICE_UNQUOTE)))	// ((splice-unquote x) ...)
@@ -414,11 +506,13 @@ static value_t compile_vm_quasiquote(value_t code, value_t debug, value_t ast, v
 			code = compile_vm_quasiquote(code, debug, cdr(ast), env);
 			if(errp(code))
 			{
+				pop_root(4);
 				return code;
 			}
 			code = compile_vm1(code, debug, second(arg1), env);
 			if(errp(code))
 			{
+				pop_root(4);
 				return code;
 			}
 			vpush(ROP(IS_NCONC), code);	vpush(ast, debug);
@@ -428,17 +522,20 @@ static value_t compile_vm_quasiquote(value_t code, value_t debug, value_t ast, v
 			code = compile_vm_quasiquote(code, debug, cdr(ast), env);
 			if(errp(code))
 			{
+				pop_root(4);
 				return code;
 			}
 			code = compile_vm_quasiquote(code, debug, arg1    , env);
 			if(errp(code))
 			{
+				pop_root(4);
 				return code;
 			}
 			vpush(ROP(IS_CONS), code);	vpush(ast, debug);
 		}
 	}
 
+	pop_root(4);
 	return code;
 }
 
@@ -448,26 +545,35 @@ static value_t compile_vm_macroexpand(value_t code, value_t debug, value_t ast, 
 	assert(consp(ast));
 	assert(consp(env));
 
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
 	if(consp(ast))
 	{
 		code = compile_vm1(code, debug, first(ast), env);
 		if(errp(code))
 		{
+			pop_root(4);
 			return code;
 		}
 
 		code = compile_vm_macro_arg(code, debug, cdr(ast), env);	// arguments
 		if(errp(code))
 		{
+			pop_root(4);
 			return code;
 		}
 		vpush(ROP(IS_MACROEXPAND),    code);	vpush(ast, debug);
 	}
 	else
 	{
+		pop_root(4);
 		return RERR(ERR_TYPE, NIL);
 	}
 
+	pop_root(4);
 	return code;
 }
 
@@ -478,48 +584,64 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	assert(consp(env));
 
 	value_t fn = first(ast);
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+	push_root(&fn);
 
 	if(specialp(fn))
 	{
 		switch(INTOF(fn))
 		{
 			case SP_SETQ:
+				pop_root(5);
 				return compile_vm_setq      (code, debug, cdr(ast), env);
 
 			case SP_LET:
+				pop_root(5);
 				return compile_vm_let       (code, debug, cdr(ast), env);
 
 			case SP_PROGN:
+				pop_root(5);
 				return compile_vm_progn     (code, debug, cdr(ast), env);
 
 			case SP_IF:
+				pop_root(5);
 				return compile_vm_if        (code, debug, cdr(ast), env);
 
 			case SP_LAMBDA:		// set only s-expression
 				vpush(ROP(IS_PUSH), code);				vpush(ast, debug);
 				vpush(cloj (cdr(ast), env, NIL, NIL, NIL), code);	vpush(ast, debug);
+				pop_root(5);
 				return code;
 
 			case SP_MACRO:		// set only s-expression
 				vpush(ROP(IS_PUSH), code);				vpush(ast, debug);
 				vpush(macro(cdr(ast), env, NIL, NIL, NIL), code);	vpush(ast, debug);
+				pop_root(5);
 				return code;
 
 			case SP_QUOTE:
 				vpush(ROP(IS_PUSHR), code);				vpush(ast, debug);
 				vpush(second(ast), code);				vpush(ast, debug);
+				pop_root(5);
 				return code;
 
 			case SP_QUASIQUOTE:
+				pop_root(5);
 				return compile_vm_quasiquote (code, debug, second(ast), env);
 
 			case SP_MACROEXPAND:
+				pop_root(5);
 				return compile_vm_macroexpand(code, debug, second(ast), env);
 
 			case SP_AMP:	//******* ad-hock: ignore it
+				pop_root(5);
 				return code;
 
 			default:
+				pop_root(5);
 				return RERR(ERR_NOTIMPL, ast);
 		}
 	}
@@ -528,12 +650,15 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 		value_t bfn = compile_vm_check_builtin(first(ast), env);
 		if(!nilp(bfn))			// apply builtin
 		{
+			push_root(&bfn);
 			code = compile_vm_list(code, debug, cdr(ast), env);		// arguments
 			if(errp(code))
 			{
+				pop_root(5);
 				return code;
 			}
 			vpush(bfn, code);		vpush(ast, debug);
+			pop_root(6);
 			return code;
 		}
 	}
@@ -542,6 +667,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	code = compile_vm1_fn(code, debug, first(ast), env);
 	if(errp(code))
 	{
+		pop_root(5);
 		return code;
 	}
 
@@ -556,6 +682,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	code = compile_vm_apply_arg(code, debug, cdr(ast), env);	// arguments
 	if(errp(code))
 	{
+		pop_root(5);
 		return code;
 	}
 
@@ -566,6 +693,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	code = compile_vm_macro_arg(code, debug, cdr(ast), env);	// arguments
 	if(errp(code))
 	{
+		pop_root(5);
 		return code;
 	}
 
@@ -578,6 +706,8 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 
 	// Join: apply
 	vpush(ROP(IS_AP), code);		vpush(ast, debug);
+
+	pop_root(5);
 	return code;
 }
 
@@ -587,6 +717,12 @@ static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t 
 	assert(consp(env));
 
 	value_t r = NIL;
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+	push_root(&r);
+
 	switch(rtypeof(ast))
 	{
 		case INT_T:
@@ -631,6 +767,7 @@ static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t 
 			break;
 
 		case PTR_T:
+			pop_root(5);
 			return RERR(ERR_TYPE, ast);
 			break;
 
@@ -644,6 +781,7 @@ static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t 
 							compile_vm_macro (first(ast), second(ast));
 				if(errp(lambda_code))
 				{
+					pop_root(5);
 					return lambda_code;
 				}
 				else
@@ -656,15 +794,18 @@ static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t 
 		case SPECIAL_T:
 			if(INTOF(ast) != SP_AMP)	//****** ignore '&' for dummy compilation: it is not evaluate.
 			{
+				pop_root(5);
 				return RERR(ERR_NOTIMPL, ast);
 			}
 			break;
 
 
 		default:
+			pop_root(5);
 			return RERR(ERR_NOTIMPL, ast);
 	}
 
+	pop_root(5);
 	return code;
 }
 
@@ -672,6 +813,12 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 {
 	assert(vectorp(code));
 	assert(consp(env));
+
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
 	if(symbolp(ast))
 	{
 		value_t op = compile_vm_check_builtin(ast, env); // Builtin Function (is one VM Instruction)
@@ -680,8 +827,10 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 			// create clojure calling built-in function
 			int n = compile_vm_get_builtin_argnum(ast, env);
 			assert(n >= 0);
-			value_t b_code  = make_vector(0);
-			value_t b_debug = make_vector(0);
+			value_t b_code  = make_vector(2);
+			push_root(&b_code);
+			value_t b_debug = make_vector(2);
+			push_root(&b_debug);
 			for(int i = n - 1; i >= 0; i--)
 			{
 				vpush(ROP(IS_PUSH), b_code);	vpush(ast, b_debug);
@@ -693,10 +842,12 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 			// generate push-clojure code
 			vpush(ROP(IS_PUSH),                  code);			vpush(ast, debug);
 			vpush(cloj(NIL, env, cons(b_code, b_debug), NIL, NIL), code);	vpush(ast, debug);
+			pop_root(5);
 			return code;
 		}
 	}
 
+	pop_root(4);
 	return compile_vm1_fn(code, debug, ast, env);
 }
 
@@ -708,8 +859,14 @@ value_t compile_vm(value_t ast, value_t env)
 {
 	assert(consp(env));
 
-	value_t code  = make_vector(0);
-	value_t debug = make_vector(0);
+	push_root(&ast);
+	push_root(&env);
+
+	value_t code  = make_vector(1);
+	push_root(&code);
+
+	value_t debug = make_vector(1);
+	push_root(&debug);
 
 	code = compile_vm1(code, debug, ast, env);
 	if(!errp(code))
@@ -721,6 +878,7 @@ value_t compile_vm(value_t ast, value_t env)
 		return code;
 	}
 
+	pop_root(4);
 	return cons(code, debug);
 }
 
