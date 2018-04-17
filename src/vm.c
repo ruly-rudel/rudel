@@ -17,7 +17,7 @@
 		alloc *= 2; \
 		stack_raw = (value_t*)realloc(stack_raw, alloc * sizeof(value_t)); \
 		if(!stack_raw) { \
-			return unlock_gc(), rerr_alloc(); \
+			return rerr_alloc(); \
 		} \
 		pop_root(2); \
 		push_root_raw_vec(stack_raw, &sp); \
@@ -39,7 +39,7 @@
 		ralloc *= 2; \
 		ret_raw = (value_t*)realloc(ret_raw, ralloc * sizeof(value_t)); \
 		if(!ret_raw) { \
-			return unlock_gc(), rerr_alloc(); \
+			return rerr_alloc(); \
 		} \
 		pop_root(1); \
 		push_root_raw_vec(ret_raw,   &rsp); \
@@ -330,7 +330,6 @@ value_t exec_vm(value_t c, value_t e)
 		value_t op = local_vref(code, pc);
 		assert(rtypeof(op) == VMIS_T);
 
-		lock_gc();
 		switch(op.op.mnem)
 		{
 			// core functions
@@ -340,7 +339,6 @@ value_t exec_vm(value_t c, value_t e)
 #endif // PRINT_STACK_USAGE
 				// pop root
 				pop_root(9);
-				unlock_gc();
 				return LOCAL_VPOP_RAW;
 
 			case IS_BR: TRACE1("BR %x", pc + op.op.operand);
@@ -417,7 +415,7 @@ apply:
 					if(nilp(THIRD(r1)))
 					{
 						r2 = compile_vm(r1, env);
-						if(errp(r2)) return unlock_gc(), r2;
+						if(errp(r2)) return r2;
 					}
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
@@ -437,22 +435,18 @@ apply:
 					if(nilp(THIRD(r1)))
 					{
 						r2 = compile_vm(r1, env);
-						if(errp(r2)) return unlock_gc(), r2;
+						if(errp(r2)) return r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					unlock_gc();
-					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));	if(errp(r2)) return unlock_gc(), r2;
-					lock_gc();
+					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));	if(errp(r2)) return r2;
 					TRACEN("  Expand macro done. the result S-exp is: ");
 #ifdef TRACE_VM
 					print(r2, stderr);
 #endif // TRACE_VM
 					TRACE("  Compiling the result on-the-fly.");
-					r3 = compile_vm(r2, env);			if(errp(r3)) return unlock_gc(), r3;
+					r3 = compile_vm(r2, env);			if(errp(r3)) return r3;
 					TRACE("  Evaluate it, invoking another VM.");
-					unlock_gc();
-					r2 = exec_vm   (r3, env);			if(errp(r2)) return unlock_gc(), r2;
-					lock_gc();
+					r2 = exec_vm   (r3, env);			if(errp(r2)) return r2;
 					TRACE("AP(Macro) Done.");
 					LOCAL_VPUSH_RAW(r2);
 				}
@@ -627,13 +621,11 @@ apply:
 					if(nilp(THIRD(r1)))
 					{
 						r2 = compile_vm(r1, env);
-						if(errp(r2)) return unlock_gc(), r2;
+						if(errp(r2)) return r2;
 					}
 					TRACE("  Expand macro, invoking another VM.");
-					unlock_gc();
 					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));
-					lock_gc();
-					if(errp(r2)) return unlock_gc(), r2;
+					if(errp(r2)) return r2;
 					TRACE("MACROEXPAND Done.");
 					LOCAL_VPUSH_RAW(r2);
 				}
@@ -740,9 +732,7 @@ apply:
 			case IS_EVAL: TRACE("EVAL");
 				r0 = LOCAL_VPEEK_RAW;
 				r1 = compile_vm(r0, last(env));
-				unlock_gc();
 				r2 = exec_vm(r1, last(env));
-				lock_gc();
 				LOCAL_RPLACV_TOP_RAW(r2);
 				break;
 
@@ -810,9 +800,7 @@ apply:
 				r0 = LOCAL_VPEEK_RAW;
 				if(consp(r0) && vectorp(car(r0)))
 				{
-					unlock_gc();
 					r1 = exec_vm(r0, last(env));
-					lock_gc();
 				}
 				else
 				{
@@ -822,26 +810,19 @@ apply:
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
-				unlock_gc();
 				OP_2P1P(pr_str(r0, NIL, !nilp(r1)));
-				lock_gc();
 				break;
 
 			case IS_PRINTLINE: TRACE("PRINTLINE");
-				unlock_gc();
 				OP_1P1P(vectorp(r0) || nilp(r0) ? (printline(r0, stdout), NIL) : RERR_TYPE_PC);
-				lock_gc();
 				break;
 
 			case IS_PRINT: TRACE("PRINT");
-				unlock_gc();
 				OP_1P1P((print(r0, stdout), NIL));
-				lock_gc();
 				break;
 
 			case IS_SLURP: TRACE("SLURP");
 			{
-				unlock_gc();
 				r0 = LOCAL_VPEEK_RAW;
 				if(!vectorp(r0))
 				{
@@ -850,7 +831,6 @@ apply:
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));
 				free(fn);
-				lock_gc();
 			}
 			break;
 
@@ -872,7 +852,7 @@ throw:
 				r1 = get_env_ref(str_to_sym("*exception-stack*"), env);
 				r2 = local_get_env_value_ref(r1, env);
 				r3 = car(r2);
-				if(!clojurep(r3)) return unlock_gc(), RERR_PC(ERR_EXCEPTION);
+				if(!clojurep(r3)) return RERR_PC(ERR_EXCEPTION);
 				LOCAL_VPUSH_RAW(r3);
 				r3 = cdr(r2);
 				local_set_env_ref(r1, r3, env);
@@ -881,11 +861,10 @@ throw:
 				LOCAL_VPUSH_RAW(r3);
 				goto apply;
 		}
-		unlock_gc();
 
 		// clear temporal registers for safe
 		r0 = r1 = r2 = r3 = NIL;
-		check_gc();
+		//check_gc();
 	}
 
 	return NIL;	// not reached
