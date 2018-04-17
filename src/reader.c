@@ -117,8 +117,10 @@ static value_t read_list(scan_t* st)
 
 	value_t r = cons(NIL, NIL);
 	value_t cur = r;
+	value_t token = NIL;
 
-	value_t token;
+	push_root(&r);
+	push_root(&cur);
 
 	scan_next(st);	// omit '('
 	while(!nilp(token = scan_peek(st)))
@@ -127,6 +129,7 @@ static value_t read_list(scan_t* st)
 
 		if(errp(token))
 		{
+			pop_root(2);
 			return token;	// scan error
 		}
 		else if(symbolp(token))
@@ -142,6 +145,7 @@ static value_t read_list(scan_t* st)
 					r = NIL;		// () is nil
 				}
 				scan_next(st);
+				pop_root(2);
 				return r;
 			}
 			else
@@ -155,6 +159,7 @@ static value_t read_list(scan_t* st)
 		}
 	}
 
+	pop_root(2);
 	return RERR(ERR_PARSE, NIL);	// error: end of token before ')'
 }
 
@@ -247,16 +252,19 @@ void init_linenoise(void)
 value_t read_line(FILE* fp)
 {
 	value_t	 r	= make_vector(0);
+	push_root(&r);
 
 	for(;;)
 	{
 		wint_t c = fgetwc(fp);
 		if(c == WEOF && vsize(r) == 0)	// EOF
 		{
+			pop_root(1);
 			return RERR(ERR_EOF, NIL);
 		}
 		else if(c == '\n' || c == EOF)
 		{
+			pop_root(1);
 			return r;
 		}
 		else
