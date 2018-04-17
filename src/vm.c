@@ -174,7 +174,7 @@ inline static value_t local_make_vector(unsigned n)
 		v.vector->type  = NIL;
 		v.vector->data  = RPTR(0);
 		v.type.main     = VEC_T;
-		alloc_vector_data(v, n);
+		v = alloc_vector_data(v, n);
 		return v;
 	}
 	else
@@ -214,11 +214,12 @@ inline static value_t local_vpush(value_t x, value_t v)
 	if(s + 1 >= a)
 	{
 		a = a ? a * 2 : 2;
-		value_t np = alloc_vector_data(v, a);
-		if(nilp(np))
+		v = alloc_vector_data(v, a);
+		if(nilp(v))
 		{
 			return rerr_alloc();
 		}
+		va = AVALUE(v);
 	}
 
 	VPTROF(va.vector->data)[s] = x;
@@ -604,13 +605,14 @@ apply:
 			case IS_RESTPARAM: TRACE1("RESTPARAM %d", pc + op.op.operand);
 				r0 = UNSAFE_CAR(env);
 				r1 = LOCAL_VPOP_RAW;
-				r2 = NIL;
-				value_t* cur = &r2;
+				r2 = cons(NIL, NIL);
+				r3 = r2;
 
 				for(int i = op.op.operand; i < vsize(r0); i++)
 				{
-					cur = cons_and_cdr(UNSAFE_CDR(local_vref(r0, i)), cur);
+					CONS_AND_CDR(UNSAFE_CDR(local_vref(r0, i)), r3);
 				}
+				r2 = cdr(r2);
 				r3 = rplacv(r0, op.op.operand, cons(r1, r2));
 				if(errp(r3))
 				{

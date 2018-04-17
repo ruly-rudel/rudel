@@ -245,6 +245,21 @@ typedef struct _vector_t
 #define UNSAFE_CAR(X)	AVALUE(X).cons->car
 #define UNSAFE_CDR(X)	AVALUE(X).cons->cdr
 
+#define GCCONS(X, CAR, CDR) \
+	value_t X; \
+	X.cons      = alloc_cons(); \
+	X.cons->car = (CAR); \
+	X.cons->cdr = (CDR); \
+	X.type.main = CONS_T; \
+	push_root(&X);
+
+#define CONS_AND_CDR(V, C) \
+{ \
+	value_t R = cons((V), NIL); \
+	rplacd((C), R); \
+	(C) = R; \
+}
+
 INLINE(rtype_t rtypeof(value_t v),  v.type.main == OTH_T ? v.type.sub : v.type.main)
 INLINE(bool    nilp(value_t x),     x.type.main == CONS_T &&  x.type.sub == 0 && x.type.val == 0)
 INLINE(bool    intp(value_t x),     x.type.main == OTH_T  &&  x.type.sub == INT_T)
@@ -319,7 +334,6 @@ char*   rstr_to_str	(value_t s);
 
 value_t gensym		(value_t env);
 
-value_t* cons_and_cdr	(value_t v, value_t* c);
 value_t* nconc_and_last	(value_t v, value_t* c);
 bool	is_str		(value_t v);
 

@@ -205,6 +205,11 @@ void force_gc(void)
 	exec_gc();
 }
 
+bool check_lock(void)
+{
+	return s_root_ptr == 0;
+}
+
 /////////////////////////////////////////////////////////////////////
 // public: symbol pool
 
@@ -218,7 +223,14 @@ value_t register_sym(value_t s)
 	value_t sym = find(s, s_symbol_pool, veq);
 	if(nilp(sym))
 	{
-		s_symbol_pool = cons(s, s_symbol_pool);
+		push_root(&s);
+		value_t snew;
+		snew.cons      = alloc_cons();
+		snew.cons->car = s;
+		snew.cons->cdr = s_symbol_pool;
+		snew.type.main = CONS_T;
+		s_symbol_pool = snew;
+		pop_root();
 		return s;
 	}
 	else
@@ -498,7 +510,7 @@ vector_t* alloc_vector()
 value_t alloc_vector_data(value_t v, size_t size)
 {
 	assert(vectorp(v));
-	v = AVALUE(v);
+	push_root(&v);
 
 	size = size + (size % 2);	// align
 
@@ -518,14 +530,15 @@ value_t alloc_vector_data(value_t v, size_t size)
 		return NIL;
 	}
 
-	if(VPTROF(v.vector->data))
+	value_t av = AVALUE(v);
+	if(VPTROF(av.vector->data))
 	{
-		for(int i = 0; i < INTOF(v.vector->size); i++)
-			g_memory_top[i] = VPTROF(v.vector->data)[i];
+		for(int i = 0; i < INTOF(av.vector->size); i++)
+			g_memory_top[i] = VPTROF(av.vector->data)[i];
 	}
 
-	v.vector->data  = RPTR(g_memory_top);
-	v.vector->alloc = RINT(size);
+	av.vector->data  = RPTR(g_memory_top);
+	av.vector->alloc = RINT(size);
 	g_memory_top += size;
 
 #ifdef DUMP_ALLOC_ADDR
@@ -536,7 +549,8 @@ value_t alloc_vector_data(value_t v, size_t size)
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	return v.vector->data;
+	pop_root();
+	return v;
 }
 
 // End of File

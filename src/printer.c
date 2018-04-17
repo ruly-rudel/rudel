@@ -3,6 +3,7 @@
 #include "builtin.h"
 #include "printer.h"
 #include "reader.h"
+#include "allocator.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: printer support functions
@@ -10,6 +11,7 @@
 static value_t pr_str_int(int x)
 {
 	value_t r = make_vector(0);
+	push_root(&r);
 
 	bool is_minus = false;
 	if(x < 0)
@@ -36,16 +38,23 @@ static value_t pr_str_int(int x)
 		vpush_front(r, RCHAR('-'));
 	}
 
+	pop_root();
 	return r;
 }
 
 static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
+	push_root(&x);
+	push_root(&annotate);
 	value_t r    = make_vector(0);
+	push_root(&r);
 
 	if(nilp(x))
 	{
+		pop_root();
+		pop_root();
+		pop_root();
 		return str_to_rstr("nil");
 	}
 	else
@@ -71,6 +80,9 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 
 		vpush(RCHAR(')'), r);
 
+		pop_root();
+		pop_root();
+		pop_root();
 		return r;
 	}
 }
@@ -195,7 +207,9 @@ static value_t pr_str_str(value_t s, bool print_readably)
 {
 	assert(vectorp(s));
 
+	push_root(&s);
 	value_t r = make_vector(0);
+	push_root(&r);
 
 	if(print_readably)
 	{
@@ -256,6 +270,9 @@ static value_t pr_str_str(value_t s, bool print_readably)
 		vpush(RCHAR('\0'), r);
 	}
 
+	pop_root();
+	pop_root();
+
 	return r;
 }
 
@@ -263,30 +280,14 @@ static value_t pr_str_cloj(value_t s, value_t annotate)
 {
 	assert(clojurep(s));
 
-#ifdef PRINT_CLOS_ENV
-	value_t r = str_to_rstr("(#<CLOJURE> . ");
-	vnconc(r, pr_str(cdr(s), annotate));
-	vnconc(r, str_to_rstr(")"));
-
-	return r;
-#else  // PRINT_CLOS_ENV
 	return str_to_rstr("#<CLOJURE>");
-#endif // PRINT_CLOS_ENV
 }
 
 static value_t pr_str_macro(value_t s, value_t annotate)
 {
 	assert(macrop(s));
 
-#ifdef PRINT_CLOS_ENV
-	value_t r = str_to_rstr("(#<MACRO> . ");
-	vnconc(r, pr_str(cdr(s), annotate));
-	vnconc(r, str_to_rstr(")"));
-
-	return r;
-#else  // PRINT_CLOS_ENV
 	return str_to_rstr("#<MACRO>");
-#endif // PRINT_CLOS_ENV
 }
 
 static value_t pr_str_ptr(value_t s, value_t annotate)
@@ -372,8 +373,10 @@ static value_t pr_err_cause(value_t e)
 }
 static value_t pr_err_pos(value_t e)
 {
+	push_root(&e);
 	value_t pos  = RERR_POS(e);
 	value_t r    = make_vector(0);
+	push_root(&r);
 
 	for(; !nilp(pos); pos = cdr(pos))
 	{
@@ -381,6 +384,8 @@ static value_t pr_err_pos(value_t e)
 		vnconc(r, pr_str(car(pos), NIL, true));
 	}
 
+	pop_root();
+	pop_root();
 	return r;
 }
 
@@ -388,21 +393,25 @@ static value_t pr_err(value_t s)
 {
 	assert(errp(s));
 
+	push_root(&s);
 	value_t r = pr_err_cause(s);
-	return vnconc(r, pr_err_pos(s));
+	r = vnconc(r, pr_err_pos(s));
+	pop_root();
+	return r;
 }
 
 static value_t pr_sym(value_t s)
 {
+	assert(symbolp(s));
+
 	s.type.main = VEC_T;
-	value_t r = copy_vector(s);
-	return r;
+	return copy_vector(s);
 }
 
 static value_t pr_str_char(value_t s)
 {
 	assert(charp(s));
-	value_t r    = make_vector(0);
+	value_t r    = make_vector(3);
 
 	vpush(RCHAR('\''), r);
 	vpush(s, r);
@@ -415,12 +424,14 @@ static value_t pr_ref(value_t s)
 	assert(refp(s));
 
 	value_t r    = str_to_rstr("#REF:");
+	push_root(&r);
 
 	vnconc(r, pr_str_int(REF_D(s)));
 	vpush (RCHAR(','), r);
 	vnconc(r, pr_str_int(REF_W(s)));
 	vpush (RCHAR('#'), r);
 
+	pop_root();
 	return r;
 }
 
@@ -609,16 +620,21 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 
 void print(value_t s, FILE* fp)
 {
+	GCCONS(c, RINT(0), NIL);
 
-	value_t r = pr_str(s, cons(RINT(0), NIL), true);
+	value_t r = pr_str(s, c, true);
 	if(errp(r))
 	{
+		push_root(&r);
 		printline(pr_str(r, NIL, true), stderr);
+		pop_root();
 	}
 	else
 	{
 		printline(r, fp);
 	}
+
+	pop_root();
 	return;
 }
 

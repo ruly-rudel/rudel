@@ -115,8 +115,8 @@ static value_t read_list(scan_t* st)
 {
 	assert(st != NULL);
 
-	value_t r = NIL;
-	value_t *cur = &r;
+	value_t r = cons(NIL, NIL);
+	value_t cur = r;
 
 	value_t token;
 
@@ -136,6 +136,7 @@ static value_t read_list(scan_t* st)
 			assert(charp(c));
 			if(INTOF(c) == ')')
 			{
+				r = cdr(r);
 				if(nilp(r))
 				{
 					r = NIL;		// () is nil
@@ -145,12 +146,12 @@ static value_t read_list(scan_t* st)
 			}
 			else
 			{
-				cur = cons_and_cdr(read_form(st), cur);
+				CONS_AND_CDR(read_form(st), cur);
 			}
 		}
 		else
 		{
-			cur = cons_and_cdr(read_form(st), cur);
+			CONS_AND_CDR(read_form(st), cur);
 		}
 	}
 

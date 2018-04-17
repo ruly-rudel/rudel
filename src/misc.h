@@ -23,6 +23,8 @@
 
 #endif // DEF_EXTERN
 
+#define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
+
 void	init_global	(void);
 
 #endif  // _MISC_H_

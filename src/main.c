@@ -133,14 +133,19 @@ void rep_file(char* fn, value_t env)
 
 value_t parse_arg(int argc, char* argv[])
 {
-	value_t  r   = NIL;
-	value_t* cur = &r;
+	value_t  r   = cons(NIL, NIL);
+	value_t  cur = r;
+	push_root(&r);
+	push_root(&cur);
+
 	for(int i = 0; i < argc; i++)
 	{
-		cur = cons_and_cdr(read_str(str_to_rstr(argv[i])), cur);
+		CONS_AND_CDR(read_str(str_to_rstr(argv[i])), cur)
 	}
 
-	return r;
+	pop_root();
+	pop_root();
+	return cdr(r);
 }
 
 int main(int argc, char* argv[])
@@ -177,5 +182,7 @@ int main(int argc, char* argv[])
 		rep_file(argv[1], env);
 	}
 
+	assert(g_lock_cnt == 0);
+	assert(check_lock());
 	return 0;
 }

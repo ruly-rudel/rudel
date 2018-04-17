@@ -42,8 +42,12 @@ value_t cdr(value_t x)
 
 value_t	cons(value_t car, value_t cdr)
 {
+	push_root(&car);
+	push_root(&cdr);
 	value_t	r	= { 0 };
 	r.cons		= alloc_cons();
+	pop_root();
+	pop_root();
 	if(r.cons)
 	{
 		r.cons->car	= car;
@@ -177,18 +181,22 @@ value_t nconc(value_t a, value_t b)
 value_t list(int n, ...)
 {
 	va_list	 arg;
-	value_t    r = NIL;
-	value_t* cur = &r;
+	value_t    r = cons(NIL, NIL);
+	value_t  cur = r;
+	push_root(&r);
+	push_root(&cur);
 
+	//******* argumets is not push_rooted. fix it.
 	va_start(arg, n);
 	for(int i = 0; i < n; i++)
 	{
-		cur = cons_and_cdr(va_arg(arg, value_t), cur);
+		CONS_AND_CDR(va_arg(arg, value_t), cur)
 	}
-
 	va_end(arg);
 
-	return r;
+	pop_root();
+	pop_root();
+	return cdr(r);
 }
 
 value_t find(value_t key, value_t list, bool (*test)(value_t, value_t))
@@ -268,7 +276,11 @@ value_t rerr_alloc(void)
 
 value_t rerr_add_pos(value_t pos, value_t e)
 {
-	value_t r = cons(car(e), cons(pos, cdr(e)));
+	value_t cause = car(e);
+	push_root(&cause);
+	value_t newpos = cons(pos, cdr(e));
+	pop_root();
+	value_t r = cons(cause, newpos);
 	r.type.main = ERR_T;
 #ifdef DEBUG
 	abort();
@@ -300,6 +312,7 @@ value_t slurp(char* fn)
 	if(fp)
 	{
 		value_t buf = make_vector(0);
+		push_root(&buf);
 
 		wint_t c;
 		while((c = fgetwc(fp)) != WEOF)
@@ -308,6 +321,7 @@ value_t slurp(char* fn)
 		}
 		fclose(fp);
 
+		pop_root();
 		return buf;
 	}
 	else	// file not found or other error.
@@ -346,7 +360,7 @@ value_t make_vector(unsigned n)
 		v.vector->type  = NIL;
 		v.vector->data  = RPTR(0);
 		v.type.main     = VEC_T;
-		alloc_vector_data(v, n);
+		v = alloc_vector_data(v, n);
 		return v;
 	}
 	else
@@ -433,10 +447,12 @@ value_t vresize(value_t v, int n)
 		{
 			int new_alloc;
 			for(new_alloc = 1; new_alloc < n; new_alloc *= 2);
-			if(nilp(alloc_vector_data(v, new_alloc)))
+			v = alloc_vector_data(v, new_alloc);
+			if(nilp(v))
 			{
 				return rerr_alloc();
 			}
+			va = AVALUE(v);
 		}
 
 		// change size and NILify new area
@@ -618,15 +634,21 @@ value_t make_list_from_vector(value_t x)
 	assert(vectorp(x));
 	assert(vsize(x) <= vallocsize(x));
 
-	value_t r    = NIL;
-	value_t* cur = &r;
+	push_root(&x);
+	value_t r    = cons(NIL, NIL);
+	value_t cur  = r;
+	push_root(&r);
+	push_root(&cur);
 
 	for(int i = 0; i < vsize(x); i++)
 	{
-		cur = cons_and_cdr(vref(x, i), cur);
+		CONS_AND_CDR(vref(x, i), cur);
 	}
 
-	return r;
+	pop_root();
+	pop_root();
+	pop_root();
+	return cdr(r);
 }
 
 
@@ -636,22 +658,27 @@ value_t make_list_from_vector(value_t x)
 value_t str_to_cons	(const char* s)
 {
 	assert(s != NULL);
-	value_t    r = NIL;
-	value_t* cur = &r;
+	value_t    r = cons(NIL, NIL);
+	value_t  cur = r;
+	push_root(&r);
+	push_root(&cur);
 
 	int c;
 	while((c = *s++) != '\0')
 	{
-		cur = cons_and_cdr(RINT(c), cur);
+		CONS_AND_CDR(RINT(c), cur)
 	}
 
-	return r;
+	pop_root();
+	pop_root();
+
+	return cdr(r);
 }
 
 value_t str_to_vec	(const char* s)
 {
 	assert(s != NULL);
-	value_t    r = make_vector(strlen(s));
+	value_t    r = make_vector(MAX(strlen(s), 1));
 
 	int c;
 	while((c = *s++) != '\0')
@@ -672,7 +699,7 @@ value_t mbstr_to_vec	(const char* s)
 
 	if(mbstowcs(wc, s, len) == len - 1)
 	{
-		value_t    r = make_vector(wcslen(wc));
+		value_t    r = make_vector(MAX(wcslen(wc), 1));
 
 		for(wchar_t* wcp = wc; *wcp != '\0'; wcp++)
 		{
@@ -698,7 +725,7 @@ value_t mbstr_to_vec	(const char* s)
 value_t wcstr_to_vec	(const wchar_t* s)
 {
 	assert(s != NULL);
-	value_t    r = make_vector(wcslen(s));
+	value_t r = make_vector(MAX(wcslen(s), 1));
 
 	int c;
 	while((c = *s++) != '\0')
@@ -717,7 +744,7 @@ value_t str_to_rstr	(const char* s)
 	if(!errp(r))
 	{
 		if(vsize(r) == 0)
-		{
+		{	// str_to_vec generates vector that size is more than 1.
 			vpush(RCHAR('\0'), r);
 		}
 	}
@@ -732,7 +759,7 @@ value_t mbstr_to_rstr	(const char* s)
 	if(!errp(r))
 	{
 		if(vsize(r) == 0)
-		{
+		{	// mbstr_to_vec generates vector that size is more than 1.
 			vpush(RCHAR('\0'), r);
 		}
 	}
@@ -747,7 +774,7 @@ value_t wcstr_to_rstr	(const wchar_t* s)
 	if(!errp(r))
 	{
 		if(vsize(r) == 0)
-		{
+		{	// wcstr_to_vec generates vector that size is more than 1.
 			vpush(RCHAR('\0'), r);
 		}
 	}
@@ -808,12 +835,6 @@ value_t gensym	(value_t env)
 
 /////////////////////////////////////////////////////////////////////
 // public: support functions writing LISP on C
-value_t* cons_and_cdr(value_t v, value_t* c)
-{
-	*c = cons(v, NIL);
-	return &AVALUE(*c).cons->cdr;
-}
-
 value_t* nconc_and_last(value_t v, value_t* c)
 {
 	*c = v;
