@@ -292,8 +292,8 @@ value_t read_line_prompt(prompt_t prompt, FILE* fp)
 value_t read_str(value_t s)
 {
 	scan_t st = scan_init(s);
-
 	value_t r = read_form(&st);
+	scan_close();
 	return r;
 }
 

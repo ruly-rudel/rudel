@@ -1,6 +1,7 @@
 #include <assert.h>
 #include "builtin.h"
 #include "scanner.h"
+#include "allocator.h"
 
 
 /////////////////////////////////////////////////////////////////////
@@ -59,6 +60,7 @@ static value_t scan_to_whitespace(scan_t* s)
 	assert(s);
 
 	value_t r = make_vector(0);
+	push_root(&r);
 
 	for(int c = scan_pch(s); c >= 0; c = scan_nch(s))
 	{
@@ -78,6 +80,7 @@ static value_t scan_to_whitespace(scan_t* s)
 	}
 	r.type.main = SYM_T;
 
+	pop_root(1);
 	return r;
 }
 
@@ -86,6 +89,7 @@ static value_t scan_to_doublequote(scan_t* s)
 	assert(s);
 
 	value_t r = make_vector(0);
+	push_root(&r);
 
 	int st = 0;
 
@@ -105,6 +109,7 @@ static value_t scan_to_doublequote(scan_t* s)
 				{
 					vpush(RCHAR('\0'), r);	// null string
 				}
+				pop_root(1);
 				return r;
 			}
 			else
@@ -127,6 +132,7 @@ static value_t scan_to_doublequote(scan_t* s)
 		}
 	}
 
+	pop_root(1);
 	return RERR(ERR_PARSE, NIL);	// error: end of source string before doublequote
 }
 
@@ -161,7 +167,7 @@ static value_t scan1(scan_t* s)
 		    case '@':
 		    case '\\':
 			scan_nch(s);
-			value_t sr   = make_vector(0);
+			value_t sr   = make_vector(1);
 			vpush(RCHAR(c), sr);
 			sr.type.main = SYM_T;
 			return sr;
@@ -192,8 +198,10 @@ scan_t scan_init(value_t str)
 {
 	scan_t r = { 0 };
 	r.buf    = str;
+	push_root(&r.buf);
 	r.rptr   = 0;
 	r.token  = scan1(&r);
+	push_root(&r.token);
 
 	return r;
 }
@@ -211,6 +219,11 @@ value_t scan_peek(scan_t *s)
 	assert(s != NULL);
 
 	return s->token;
+}
+
+void scan_close(void)
+{
+	pop_root(2);
 }
 
 // End of File

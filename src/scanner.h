@@ -14,5 +14,6 @@ typedef struct
 scan_t	scan_init(value_t str);
 value_t	scan_next(scan_t *s);
 value_t	scan_peek(scan_t *s);
+void	scan_close(void);
 
 #endif // _scanner_h_
