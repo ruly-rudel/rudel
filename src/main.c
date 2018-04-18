@@ -23,16 +23,16 @@ void repl(value_t env)
 
 	// build terminate-catcher code
 	value_t str = STR("exception caches at root: ");
-	value_t catch = make_vector(7);
+	value_t catch = make_vector(8);
 	vpush(ROP (IS_PUSH),		catch);
 	vpush(RREF(0, 0),		catch);
 	vpush(ROP (IS_PUSH),		catch);
 	vpush(str,			catch);
 	vpush(ROP(IS_VCONC),		catch);
 	vpush(ROP(IS_PRINTLINE),	catch);
-	vpush(ROP(IS_HALT),		catch);
+	vpush(ROP(IS_GOTO),		catch);
 
-	value_t clojure = cloj(NIL, NIL, cons(catch, catch), NIL, NIL);
+	value_t clojure = cloj(NIL, NIL, cons(catch, catch), env, NIL);
 	set_env(str_to_sym("*exception-stack*"), cons(clojure, NIL), last(env));
 
 	// build repl code
@@ -67,6 +67,18 @@ void repl(value_t env)
 	vpush(ROP (IS_EVAL),		code);
 	vpush(ROP (IS_PRINT),		code);
 	vpush(ROPD(IS_BRB, 26),		code);
+
+	// save continuation
+	value_t stack = make_vector(0);
+	value_t ret   = make_vector(5);
+
+	vpush(code,     ret);
+	vpush(code,     ret);
+	vpush(RINT(-1), ret);
+	vpush(env,      ret);
+	vpush(stack,    ret);
+
+	vpush(ret,      catch);	// continuation itself is stored in catch code.
 
 	value_t cd = cons(code, code);
 

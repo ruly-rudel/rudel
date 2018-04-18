@@ -445,10 +445,18 @@ apply:
 #endif // TRACE_VM
 					TRACE("  Compiling the result on-the-fly.");
 					r3 = compile_vm(r2, env);			if(errp(r3)) return r3;
-					TRACE("  Evaluate it, invoking another VM.");
-					r2 = exec_vm   (r3, env);			if(errp(r2)) return r2;
-					TRACE("AP(Macro) Done.");
-					LOCAL_VPUSH_RAW(r2);
+					TRACE("  Evaluate it, calling expanded code.");
+
+					// save contexts
+					LOCAL_VPUSH_RET_RAW(code);
+					LOCAL_VPUSH_RET_RAW(debug);
+					LOCAL_VPUSH_RET_RAW(RINT(pc));
+					LOCAL_VPUSH_RET_RAW(env);
+
+					// set new execute contexts using current environment
+					code  = UNSAFE_CAR(r3);	// clojure code
+					debug = UNSAFE_CDR(r3);	// clojure debug symbols
+					pc    = -1;
 				}
 				else
 				{
@@ -732,8 +740,18 @@ apply:
 			case IS_EVAL: TRACE("EVAL");
 				r0 = LOCAL_VPEEK_RAW;
 				r1 = compile_vm(r0, last(env));
-				r2 = exec_vm(r1, last(env));
-				LOCAL_RPLACV_TOP_RAW(r2);
+
+				// save contexts
+				LOCAL_VPUSH_RET_RAW(code);
+				LOCAL_VPUSH_RET_RAW(debug);
+				LOCAL_VPUSH_RET_RAW(RINT(pc));
+				LOCAL_VPUSH_RET_RAW(env);
+
+				// set new execute contexts
+				code  = UNSAFE_CAR(r1);	// clojure code
+				debug = UNSAFE_CDR(r1);	// clojure debug symbols
+				env   = last(env);	// root environment
+				pc    = -1;
 				break;
 
 			case IS_ERR: TRACE("ERR");
@@ -800,7 +818,17 @@ apply:
 				r0 = LOCAL_VPEEK_RAW;
 				if(consp(r0) && vectorp(car(r0)))
 				{
-					r1 = exec_vm(r0, last(env));
+					// save contexts
+					LOCAL_VPUSH_RET_RAW(code);
+					LOCAL_VPUSH_RET_RAW(debug);
+					LOCAL_VPUSH_RET_RAW(RINT(pc));
+					LOCAL_VPUSH_RET_RAW(env);
+
+					// set new execute contexts
+					code  = UNSAFE_CAR(r0);	// clojure code
+					debug = UNSAFE_CDR(r0);	// clojure debug symbols
+					env   = last(env);	// root environment
+					pc    = -1;
 				}
 				else
 				{
@@ -835,7 +863,7 @@ apply:
 			break;
 
 			case IS_READ: TRACE("READ");
-				OP_0P1P(READ(PROMPT, stdin));
+				LOCAL_VPUSH_RAW(READ(PROMPT, stdin));
 				break;
 
 			case IS_MVFL: TRACE("MVFL");

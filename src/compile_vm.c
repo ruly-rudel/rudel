@@ -871,7 +871,7 @@ value_t compile_vm(value_t ast, value_t env)
 	code = compile_vm1(code, debug, ast, env);
 	if(!errp(code))
 	{
-		vpush(ROP(IS_HALT), code);	vpush(ast, debug);
+		vpush(ROP(IS_RET), code);	vpush(ast, debug);
 	}
 	else
 	{
