@@ -140,6 +140,12 @@
 #define FIFTH(X)  (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(X))))))
 #define SIXTH(X)  (UNSAFE_CAR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(X)))))))
 
+#define CONS(X, CAR, CDR) \
+	(X).cons = alloc_cons(); \
+	(X).cons->car = (CAR); \
+	(X).cons->cdr = (CDR); \
+	(X).type.main = CONS_T; \
+
 #ifdef TRACE_VM
 #define TRACEN(X)        fprintf(stderr, "[rudel-vm:pc=%06x] "  X      , pc)
 #define TRACE(X)         fprintf(stderr, "[rudel-vm:pc=%06x] "  X  "\n", pc)
@@ -359,7 +365,8 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_VPUSH_ENV: TRACE("VPUSH_ENV");
 				r0 = LOCAL_VPEEK_RAW;
-				env = cons(r0, env);
+				CONS(r1, r0, env);
+				env = r1;
 				break;
 
 			case IS_VPOP_ENV: TRACE("VPOP_ENV");
@@ -369,14 +376,16 @@ value_t exec_vm(value_t c, value_t e)
 			case IS_NIL_CONS_VPUSH: TRACE("NIL_CONS_VPUSH");
 				r0 = LOCAL_VPOP_RAW;
 				r1 = LOCAL_VPEEK_RAW;
-				local_vpush(cons(NIL, r0), r1);
+				CONS(r2, NIL, r0);
+				local_vpush(r2, r1);
 				break;
 
 			case IS_CONS_VPUSH: TRACE("CONS_VPUSH");
 				r0 = LOCAL_VPOP_RAW;
 				r1 = LOCAL_VPOP_RAW;
 				r2 = LOCAL_VPEEK_RAW;
-				local_vpush(cons(r0, r1), r2);
+				CONS(r3, r0, r1);
+				local_vpush(r3, r2);
 				break;
 
 			case IS_CALLCC: TRACE("CALLCC");
@@ -401,7 +410,9 @@ value_t exec_vm(value_t c, value_t e)
 
 				// make clojure that invokes continuation and make it argument
 				r3 = make_vector(1);
-				local_vpush(cons(NIL, cloj(NIL, NIL, cons(r2, r2), NIL, NIL)), r3);
+				CONS(r0, r2, r2);
+				CONS(r1, NIL, cloj(NIL, NIL, r0, NIL, NIL));
+				local_vpush(r1, r3);
 				LOCAL_VPUSH_RAW(r3);
 				// fall-through to AP
 
@@ -426,7 +437,8 @@ apply:
 					// set new execute contexts
 					code  = UNSAFE_CAR(THIRD(r1));	// clojure code
 					debug = UNSAFE_CDR(THIRD(r1));	// clojure debug symbols
-					env   = cons(r0, FOURTH(r1));	// clojure environment + new environment as arguments
+					CONS(r3, r0, FOURTH(r1));
+					env   = r3;	// clojure environment + new environment as arguments
 					pc    = -1;
 				}
 				else
@@ -576,7 +588,7 @@ apply:
 			case IS_RESTPARAM: TRACE1("RESTPARAM %d", pc + op.op.operand);
 				r0 = UNSAFE_CAR(env);
 				r1 = LOCAL_VPOP_RAW;
-				r2 = cons(NIL, NIL);
+				CONS(r2, NIL, NIL);
 				r3 = r2;
 
 				for(int i = op.op.operand; i < vsize(r0); i++)
@@ -584,7 +596,8 @@ apply:
 					CONS_AND_CDR(UNSAFE_CDR(local_vref(r0, i)), r3);
 				}
 				r2 = cdr(r2);
-				r3 = rplacv(r0, op.op.operand, cons(r1, r2));
+				CONS(r3, r1, r2);
+				r3 = rplacv(r0, op.op.operand, r3);
 				if(errp(r3))
 				{
 					THROW(pr_str(RERR_PC(ERR_ARG), NIL, false));
