@@ -409,9 +409,9 @@ value_t exec_vm(value_t c, value_t e)
 apply:
 				r0 = LOCAL_VPOP_RAW;
 				r1 = LOCAL_VPOP_RAW;
-				if(clojurep(r1))	// compiled function
+				if(clojurep(r1) || macrop(r1))	// compiled function
 				{
-					TRACE("AP(Clojure)");
+					TRACE("AP");
 					if(nilp(THIRD(r1)))
 					{
 						r2 = compile_vm(r1, env);
@@ -590,33 +590,6 @@ apply:
 					THROW(pr_str(RERR_PC(ERR_ARG), NIL, false));
 				}
 				break;
-
-			case IS_MACROEXPAND:
-				r0 = LOCAL_VPOP_RAW;
-				r1 = LOCAL_VPOP_RAW;
-				if(macrop(r1))	// compiled macro
-				{
-					TRACE("MACROEXPAND");
-					if(nilp(THIRD(r1)))
-					{
-						r2 = compile_vm(r1, env);
-						if(errp(r2)) return r2;
-					}
-					TRACE("  Expand macro, invoking another VM.");
-					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));
-					if(errp(r2)) return r2;
-					TRACEN("MACROEXPAND done. the result S-exp is: ");
-#ifdef TRACE_VM
-					print(r2, stderr);
-#endif // TRACE_VM
-					LOCAL_VPUSH_RAW(r2);
-				}
-				else
-				{
-					THROW(pr_str(RERR_PC(ERR_INVALID_AP), NIL, false));
-				}
-				break;
-
 
 
 			case IS_ATOM: TRACE("ATOM");

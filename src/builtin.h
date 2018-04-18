@@ -65,7 +65,6 @@ typedef enum {
 	IS_NCONC,
 	IS_SETSYM,
 	IS_RESTPARAM,
-	IS_MACROEXPAND,
 
 	IS_ATOM,
 	IS_CONSP,

@@ -480,7 +480,6 @@ static value_t pr_vmis(value_t s)
 		case IS_NCONC:		return str_to_rstr("IS_NCONC");
 		case IS_SETSYM:		return str_to_rstr("IS_SETSYM");
 		case IS_RESTPARAM:	return str_to_rstr("IS_RESTPARAM");
-		case IS_MACROEXPAND:	return str_to_rstr("IS_MACROEXPAND");
 		case IS_ATOM:		return str_to_rstr("IS_ATOM");
 		case IS_CONSP:		return str_to_rstr("IS_CONSP");
 		case IS_CLOJUREP:	return str_to_rstr("IS_CLOJUREP");

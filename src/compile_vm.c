@@ -451,7 +451,7 @@ static value_t compile_vm_macro(value_t ast, value_t env)
 	if(!errp(macro_code))
 	{
 		// macro invokes another VM.
-		vpush(ROP(IS_HALT), car(macro_code));	vpush(ast, cdr(macro_code));	// HALT
+		vpush(ROP(IS_RET), car(macro_code));	vpush(ast, cdr(macro_code));	// RET
 	}
 
 	pop_root(2);
@@ -565,7 +565,7 @@ static value_t compile_vm_macroexpand(value_t code, value_t debug, value_t ast, 
 			pop_root(4);
 			return code;
 		}
-		vpush(ROP(IS_MACROEXPAND),    code);	vpush(ast, debug);
+		vpush(ROP(IS_AP),    code);	vpush(ast, debug);
 	}
 	else
 	{
@@ -697,7 +697,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 		pop_root(5);
 		return code;
 	}
-	vpush(ROP(IS_MACROEXPAND), code);	vpush(ast, debug);
+	vpush(ROP(IS_AP),          code);	vpush(ast, debug);
 	vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
 	vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
 
