@@ -343,7 +343,7 @@ static value_t pr_err_cause(value_t e)
 			return str_to_rstr("built-in functions is not first class now. we will fix it later.");
 
 		    case ERR_INVALID_AP:
-			return str_to_rstr("try to AP other than  clojure or macro.");
+			return str_to_rstr("try to AP other than clojure.");
 
 		    case ERR_CANTOPEN:
 			return str_to_rstr("cannot open file.");

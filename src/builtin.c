@@ -342,13 +342,64 @@ value_t init(value_t env)
 	rplaca(env, car(create_root_env()));
 
 #ifndef NOINIT
-	value_t s = vconc(vconc(str_to_rstr("(progn "), slurp("init.rud")), str_to_rstr(")"));
-	value_t c = compile_vm(read_str(s), env);
-
-	return errp(c) ? c : exec_vm(c, env);
-#else // NOINIT
-	return NIL;
+	rep_file("init.rud", env);
 #endif // NOINIT
+	return NIL;
+}
+
+void rep_file(char* fn, value_t env)
+{
+	lock_gc();
+
+	// build terminate-catcher code
+	value_t str = str_to_rstr("exception caches at root: ");
+	value_t catch = make_vector(7);
+	vpush(ROP (IS_PUSH),		catch);
+	vpush(RREF(0, 0),		catch);
+	vpush(ROP (IS_PUSH),		catch);
+	vpush(str,			catch);
+	vpush(ROP(IS_VCONC),		catch);
+	vpush(ROP(IS_PRINTLINE),	catch);
+	vpush(ROP(IS_HALT),		catch);
+
+	value_t clojure = cloj(NIL, NIL, cons(catch, catch), NIL, NIL);
+	set_env(str_to_sym("*exception-stack*"), cons(clojure, NIL), last(env));
+
+	// build rep code
+	value_t rfn   = str_to_rstr(fn);
+	value_t begin = str_to_rstr("(progn ");
+	value_t end   = str_to_rstr(")");
+
+	value_t code  = make_vector(21);
+
+	vpush(ROP (IS_PUSHR),		code);
+	vpush(end,			code);
+	vpush(ROP (IS_PUSHR),		code);
+	vpush(rfn,			code);
+	vpush(ROP (IS_SLURP),		code);
+	vpush(ROP (IS_DUP),		code);
+	vpush(ROP (IS_ERRP),		code);
+	vpush(ROPD(IS_BNIL, 2),		code);
+	vpush(ROPD(IS_BR, 11),		code);
+	vpush(ROP (IS_PUSHR),		code);
+	vpush(begin,			code);
+	vpush(ROP (IS_VCONC),		code);
+	vpush(ROP (IS_VCONC),		code);
+	vpush(ROP (IS_READ_STRING),	code);
+	vpush(ROP (IS_DUP),		code);
+	vpush(ROP (IS_ERRP),		code);
+	vpush(ROPD(IS_BNIL, 2),		code);
+	vpush(ROPD(IS_BR, 2),		code);
+	vpush(ROP (IS_EVAL),		code);
+	vpush(ROP (IS_PRINT),		code);
+	vpush(ROP (IS_HALT),		code);
+
+	value_t cd = cons(code, code);
+
+	unlock_gc();
+
+	// exec rep
+	exec_vm(cd, env);
 }
 
 /////////////////////////////////////////////////////////////////////

@@ -685,6 +685,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 		pop_root(5);
 		return code;
 	}
+	vpush(ROP(IS_AP), code);		vpush(ast, debug);
 
 	int true_br = vsize(code);
 	vpush(ROP(IS_BR), code);		vpush(ast, debug);	// dummy operand(0)
@@ -696,6 +697,9 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 		pop_root(5);
 		return code;
 	}
+	vpush(ROP(IS_MACROEXPAND), code);	vpush(ast, debug);
+	vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
+	vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
 
 	int next_addr = vsize(code);
 
@@ -703,10 +707,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	rplacv(code, cond_br, ROPD(IS_BNIL, true_br + 1 - cond_br));
 	rplacv(code, true_br, ROPD(IS_BR,   next_addr - true_br));
 
-
 	// Join: apply
-	vpush(ROP(IS_AP), code);		vpush(ast, debug);
-
 	pop_root(5);
 	return code;
 }

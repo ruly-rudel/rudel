@@ -429,35 +429,6 @@ apply:
 					env   = cons(r0, FOURTH(r1));	// clojure environment + new environment as arguments
 					pc    = -1;
 				}
-				else if(macrop(r1))	// compiled macro
-				{
-					TRACE("AP(Macro)");
-					if(nilp(THIRD(r1)))
-					{
-						r2 = compile_vm(r1, env);
-						if(errp(r2)) return r2;
-					}
-					TRACE("  Expand macro, invoking another VM.");
-					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));	if(errp(r2)) return r2;
-					TRACEN("  Expand macro done. the result S-exp is: ");
-#ifdef TRACE_VM
-					print(r2, stderr);
-#endif // TRACE_VM
-					TRACE("  Compiling the result on-the-fly.");
-					r3 = compile_vm(r2, env);			if(errp(r3)) return r3;
-					TRACE("  Evaluate it, calling expanded code.");
-
-					// save contexts
-					LOCAL_VPUSH_RET_RAW(code);
-					LOCAL_VPUSH_RET_RAW(debug);
-					LOCAL_VPUSH_RET_RAW(RINT(pc));
-					LOCAL_VPUSH_RET_RAW(env);
-
-					// set new execute contexts using current environment
-					code  = UNSAFE_CAR(r3);	// clojure code
-					debug = UNSAFE_CDR(r3);	// clojure debug symbols
-					pc    = -1;
-				}
 				else
 				{
 					THROW(pr_str(RERR_PC(ERR_INVALID_AP), NIL, false));
@@ -634,7 +605,10 @@ apply:
 					TRACE("  Expand macro, invoking another VM.");
 					r2 = exec_vm(THIRD(r1), cons(r0, FOURTH(r1)));
 					if(errp(r2)) return r2;
-					TRACE("MACROEXPAND Done.");
+					TRACEN("MACROEXPAND done. the result S-exp is: ");
+#ifdef TRACE_VM
+					print(r2, stderr);
+#endif // TRACE_VM
 					LOCAL_VPUSH_RAW(r2);
 				}
 				else
@@ -738,8 +712,8 @@ apply:
 				break;
 
 			case IS_EVAL: TRACE("EVAL");
-				r0 = LOCAL_VPEEK_RAW;
-				r1 = compile_vm(r0, last(env));
+				r0 = LOCAL_VPOP_RAW;
+				r1 = compile_vm(r0, env);
 
 				// save contexts
 				LOCAL_VPUSH_RET_RAW(code);
@@ -750,7 +724,6 @@ apply:
 				// set new execute contexts
 				code  = UNSAFE_CAR(r1);	// clojure code
 				debug = UNSAFE_CDR(r1);	// clojure debug symbols
-				env   = last(env);	// root environment
 				pc    = -1;
 				break;
 
@@ -811,11 +784,11 @@ apply:
 				break;
 
 			case IS_COMPILE_VM: TRACE("COMPILE_VM");
-				OP_1P1P(compile_vm(r0, last(env)));
+				OP_1P1P(compile_vm(r0, env));
 				break;
 
 			case IS_EXEC_VM: TRACE("EXEC_VM");
-				r0 = LOCAL_VPEEK_RAW;
+				r0 = LOCAL_VPOP_RAW;
 				if(consp(r0) && vectorp(car(r0)))
 				{
 					// save contexts
@@ -827,14 +800,12 @@ apply:
 					// set new execute contexts
 					code  = UNSAFE_CAR(r0);	// clojure code
 					debug = UNSAFE_CDR(r0);	// clojure debug symbols
-					env   = last(env);	// root environment
 					pc    = -1;
 				}
 				else
 				{
 					THROW(pr_str(RERR_TYPE_PC, NIL, false));
 				}
-				LOCAL_RPLACV_TOP_RAW(r1);
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");

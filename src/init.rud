@@ -283,14 +283,14 @@
 	  (println (rec 0))))
 
 (defun vmap (fn v)
-	(let* ((rec (\n
+	(let* ((rec (lambda (n)
 		      (if (eq n (- (vsize v) 1))
 			(fn (vref v n))
 			(cons (fn (vref v n)) (rec (+ n 1)))))))
 	  (rec 0)))
 
 (defun compile-env ()
-  (vmap (\x (compile-vm (cdr x)))
+  (vmap (lambda (x) (compile-vm (cdr x)))
 	(car (last env))))
 
 (defun initcore ()
