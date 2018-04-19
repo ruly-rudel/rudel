@@ -414,7 +414,7 @@ value_t make_vector(unsigned n)
 	if(v.vector)
 	{
 		v.vector->size  = RINT(0);
-		v.vector->alloc = RINT(n);
+		v.vector->alloc = RINT(0);
 		v.vector->type  = NIL;
 		v.vector->data  = RPTR(0);
 		v.type.main     = VEC_T;

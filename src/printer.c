@@ -389,8 +389,9 @@ static value_t pr_err(value_t s)
 
 	push_root(&s);
 	value_t r = pr_err_cause(s);
+	push_root(&r);
 	r = vnconc(r, pr_err_pos(s));
-	pop_root(1);
+	pop_root(2);
 	return r;
 }
 

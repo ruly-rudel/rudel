@@ -30,6 +30,7 @@ INLINE(value_t*	check_gc(void),		(g_memory_top >= g_memory_gc || FORCE_GC) && g_
 INLINE(int	lock_gc(void),		g_lock_cnt++)
 INLINE(int	unlock_gc(void),	g_lock_cnt--)
 bool		check_lock		(void);
+bool		check_sanity		(void);
 
 void		clear_symtbl		(void);
 value_t		register_sym		(value_t s);

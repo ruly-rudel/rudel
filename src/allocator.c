@@ -224,6 +224,128 @@ bool check_lock(void)
 	return s_root_ptr == 0;
 }
 
+inline static bool is_sanity_addr(value_t v)
+{
+	return ((value_t*)v.cons >= g_memory_pool && (value_t*)v.cons < g_memory_top);
+}
+
+inline static bool is_sanity(value_t v)
+{
+	if(rtypeof(v) < OTH_T)
+	{
+		if(!(is_sanity_addr(AVALUE(v)) || nilp(v) || AVALUE(v).raw == 0))
+		{
+			abort();
+			return false;
+		}
+	}
+	return true;
+}
+
+bool check_sanity_rec(value_t v)
+{
+	rtype_t type = rtypeof(v);
+	value_t cur  = AVALUE(v);
+
+	switch(type)
+	{
+		case CONS_T:
+		case ERR_T:
+		case CLOJ_T:
+		case MACRO_T:
+			if(AVALUE(cur).raw == 0) return true;
+			if(AVALUE(cur.cons->car).raw != 0)
+			{
+				check_sanity_rec(cur.cons->car);
+			}
+			if(AVALUE(cur.cons->cdr).raw != 0)
+			{
+				check_sanity_rec(cur.cons->cdr);
+			}
+			return true;
+
+		case VEC_T:
+		case SYM_T:
+			assert(intp(cur.vector->size));
+			assert(intp(cur.vector->alloc));
+			assert(nilp(cur.vector->type));
+			assert(ptrp(cur.vector->data));
+			if(VPTROF(cur.vector->data))
+			{
+				assert(ptrp(cur.vector->data));
+				bool ret = true;
+				for(int i = 0; i < INTOF(cur.vector->alloc); i++)
+				{
+					if(AVALUE(VPTROF(cur.vector->data)[i]).raw != 0)
+						ret = ret & check_sanity_rec(VPTROF(cur.vector->data)[i]);
+				}
+				return ret;
+			}
+			else
+			{
+				return true;
+			}
+
+		case PTR_T:
+			abort();
+			return false;
+
+		default:
+			return true;
+	}
+}
+
+bool check_sanity(void)
+{
+	/////////////////////////////////////////////
+	// First phase: scan whole memory pool inclementally
+
+	// scan root
+	for(int i = 0; i < s_root_ptr; i++)
+	{
+		if(s_root[i].size)
+		{
+			for(int j = 0; j <= *s_root[i].size; j++)
+			{
+				is_sanity(s_root[i].data[j]);
+			}
+		}
+		else
+		{
+			is_sanity(*s_root[i].data);
+		}
+	}
+
+	// memory pool
+	for(value_t* i = g_memory_pool; i < g_memory_top; i++)
+	{
+		is_sanity(*i);
+	}
+
+	is_sanity(s_symbol_pool);
+
+	/////////////////////////////////////////////
+	// Second phase: scan from root recursively
+#if 0
+	for(int i = 0; i < s_root_ptr; i++)
+	{
+		if(s_root[i].size)
+		{
+			for(int j = 0; j <= *s_root[i].size; j++)
+			{
+				check_sanity_rec(s_root[i].data[j]);
+			}
+		}
+		else
+		{
+			check_sanity_rec(*s_root[i].data);
+		}
+	}
+#endif
+
+	return true;
+}
+
 /////////////////////////////////////////////////////////////////////
 // public: symbol pool
 
@@ -431,11 +553,16 @@ void init_allocator(void)
 
 cons_t* alloc_cons(void)
 {
+#ifdef CHECK_GC_SANITY
+	check_sanity();
+#endif // CHECK_GC_SANITY
+
 	cons_t* c = (cons_t*)g_memory_top;
 	g_memory_top += 2;
 
 	if((g_memory_top >= g_memory_gc || FORCE_GC) && g_lock_cnt == 0)
 	{
+		g_memory_top -= 2;
 		if(exec_gc())
 		{
 			c = (cons_t*)g_memory_top;
@@ -466,16 +593,25 @@ cons_t* alloc_cons(void)
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
+#ifdef DEBUG_GC
+	g_memory_top -= 2;
+	check_sanity();
+	g_memory_top += 2;
+#endif // DEBUG_GC
 	return c;
 }
 
 vector_t* alloc_vector()
 {
+#ifdef CHECK_GC_SANITY
+	check_sanity();
+#endif // CHECK_GC_SANITY
 	vector_t* v = (vector_t*)g_memory_top;
 	g_memory_top += 4;
 
 	if((g_memory_top >= g_memory_gc || FORCE_GC) && g_lock_cnt == 0)
 	{
+		g_memory_top -= 4;
 		if(exec_gc())
 		{
 			v = (vector_t*)g_memory_top;
@@ -506,11 +642,20 @@ vector_t* alloc_vector()
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
+#ifdef CHECK_GC_SANITY
+	g_memory_top -= 4;
+	check_sanity();
+	g_memory_top += 4;
+#endif // CHECK_GC_SANITY
 	return v;
 }
 
 value_t alloc_vector_data(value_t v, size_t size)
 {
+#ifdef CHECK_GC_SANITY
+	check_sanity();
+#endif // CHECK_GC_SANITY
+
 	assert(vectorp(v));
 	push_root(&v);
 
@@ -539,17 +684,17 @@ value_t alloc_vector_data(value_t v, size_t size)
 			g_memory_top[i] = VPTROF(av.vector->data)[i];
 
 		// must be nillify for GC
-		for(int i = INTOF(av.vector->size); i < INTOF(av.vector->alloc); i++)
+		for(int i = INTOF(av.vector->size); i < size; i++)
 			g_memory_top[i] = NIL;
 	}
 	else
 	{
 		// must be nillify for GC
-		for(int i = 0; i < INTOF(av.vector->alloc); i++)
+		for(int i = 0; i < size; i++)
 			g_memory_top[i] = NIL;
 	}
 
-	av.vector->data  = RPTR(g_memory_top);
+	av.vector->data  = RPTR(size ? g_memory_top : 0);
 	av.vector->alloc = RINT(size);
 	g_memory_top += size;
 
@@ -562,6 +707,9 @@ value_t alloc_vector_data(value_t v, size_t size)
 #endif	// DUMP_ALLOC_ADDR
 
 	pop_root(1);
+#ifdef CHECK_GC_SANITY
+	check_sanity();
+#endif // CHECK_GC_SANITY
 	return v;
 }
 

@@ -70,6 +70,7 @@ static value_t compile_vm_setq(value_t code, value_t debug, value_t ast, value_t
 	push_root(&debug);
 	push_root(&ast);
 	push_root(&env);
+	push_root(&key);
 	push_root(&key_ref);
 
 	code = compile_vm1(code, debug, car(val_notev), env);
@@ -91,7 +92,7 @@ static value_t compile_vm_setq(value_t code, value_t debug, value_t ast, value_t
 		vpush(ROP(IS_SETENV), code);		vpush(ast, debug);
 	}
 
-	pop_root(5);
+	pop_root(6);
 	return code;
 }
 
@@ -495,10 +496,11 @@ static value_t compile_vm_quasiquote(value_t code, value_t debug, value_t ast, v
 	else
 	{
 		value_t arg1 = first(ast);
+		push_root(&arg1);
 		if(EQ(arg1, RSPECIAL(SP_UNQUOTE)))	// (unquote x)
 		{
 			value_t arg2 = second(ast);
-			pop_root(4);
+			pop_root(5);
 			return compile_vm1(code, debug, arg2, env);	  // -> add evaluation code
 		}
 		else if(consp(arg1) && EQ(first(arg1), RSPECIAL(SP_SPLICE_UNQUOTE)))	// ((splice-unquote x) ...)
@@ -506,13 +508,13 @@ static value_t compile_vm_quasiquote(value_t code, value_t debug, value_t ast, v
 			code = compile_vm_quasiquote(code, debug, cdr(ast), env);
 			if(errp(code))
 			{
-				pop_root(4);
+				pop_root(5);
 				return code;
 			}
 			code = compile_vm1(code, debug, second(arg1), env);
 			if(errp(code))
 			{
-				pop_root(4);
+				pop_root(5);
 				return code;
 			}
 			vpush(ROP(IS_NCONC), code);	vpush(ast, debug);
@@ -522,17 +524,18 @@ static value_t compile_vm_quasiquote(value_t code, value_t debug, value_t ast, v
 			code = compile_vm_quasiquote(code, debug, cdr(ast), env);
 			if(errp(code))
 			{
-				pop_root(4);
+				pop_root(5);
 				return code;
 			}
 			code = compile_vm_quasiquote(code, debug, arg1    , env);
 			if(errp(code))
 			{
-				pop_root(4);
+				pop_root(5);
 				return code;
 			}
 			vpush(ROP(IS_CONS), code);	vpush(ast, debug);
 		}
+		pop_root(1);
 	}
 
 	pop_root(4);

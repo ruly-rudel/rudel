@@ -175,7 +175,7 @@ inline static value_t local_make_vector(unsigned n)
 	if(v.vector)
 	{
 		v.vector->size  = RINT(0);
-		v.vector->alloc = RINT(n);
+		v.vector->alloc = RINT(0);
 		v.vector->type  = NIL;
 		v.vector->data  = RPTR(0);
 		v.type.main     = VEC_T;
@@ -218,6 +218,7 @@ inline static value_t local_vpush(value_t x, value_t v)
 	int a = INTOF(va.vector->alloc);
 	if(s + 1 >= a)
 	{
+		push_root(&x);
 		a = a ? a * 2 : 2;
 		v = alloc_vector_data(v, a);
 		if(nilp(v))
@@ -225,6 +226,7 @@ inline static value_t local_vpush(value_t x, value_t v)
 			return rerr_alloc();
 		}
 		va = AVALUE(v);
+		pop_root(1);
 	}
 
 	VPTROF(va.vector->data)[s] = x;
@@ -300,6 +302,10 @@ value_t exec_vm(value_t c, value_t e)
 	assert(consp(c));
 	assert(vectorp(car(c)));
 	assert(consp(e));
+
+#ifdef CHECK_GC_SANITY
+	check_sanity();
+#endif // CHECK_GC_SANITY
 
 	int alloc          = 8;
 	int sp             = -1;
@@ -850,6 +856,9 @@ throw:
 		// clear temporal registers for safe
 		r0 = r1 = r2 = r3 = NIL;
 		//check_gc();
+#ifdef CHECK_GC_SANITY
+		check_sanity();
+#endif // CHECK_GC_SANITY
 	}
 
 	return NIL;	// not reached
