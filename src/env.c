@@ -193,11 +193,12 @@ value_t	get_env_ref	(value_t key, value_t env)
 		}
 	}
 
+	push_root(&key);
 	value_t r = str_to_rstr("variable ");
 	push_root(&r);
 	r = vnconc(r, symbol_string(key));
 	r = vnconc(r, str_to_rstr(" is not found."));
-	pop_root(1);
+	pop_root(2);
 
 	return rerr(r, NIL);
 }
@@ -218,24 +219,10 @@ value_t	get_env_value_ref(value_t ref, value_t env)
 
 value_t	create_root_env	(void)
 {
-	value_t key = list(6,
-	                      str_to_sym("nil"),
-	                      str_to_sym("t"),
-	                      str_to_sym("*gensym-counter*"),
-	                      str_to_sym("*debug*"),
-	                      str_to_sym("*trace*"),
-	                      str_to_sym("*exception-stack*")
-	                  );
+	value_t key = list(6, g_nil, g_t, g_gensym_counter, g_exception_stack, g_debug, g_trace);
 	push_root(&key);
 
-	value_t val = list(6,
-			      NIL,
-			      str_to_sym("t"),
-			      RINT(0),
-	                      NIL,
-	                      NIL,
-	                      NIL
-			  );
+	value_t val = list(6, NIL,   g_t, RINT(0),          NIL,               NIL,     NIL);
 	pop_root(1);
 
 	return create_env(key, val, NIL);

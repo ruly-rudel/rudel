@@ -187,19 +187,18 @@ value_t list(int n, ...)
 		args[i] = va_arg(arg, value_t);
 	}
 	va_end(arg);
-	push_root_raw_vec(args, &n);
+	int num = n - 1;
+	push_root_raw_vec(args, &num);
 
 	value_t    r = cons(NIL, NIL);
 	value_t  cur = r;
 	push_root(&r);
 	push_root(&cur);
 
-	va_start(arg, n);
 	for(int i = 0; i < n; i++)
 	{
-		CONS_AND_CDR(va_arg(arg, value_t), cur)
+		CONS_AND_CDR(args[i], cur)
 	}
-	va_end(arg);
 
 	pop_root(3);
 	return cdr(r);

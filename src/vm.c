@@ -550,14 +550,14 @@ apply:
 				r1 = LOCAL_VPEEK_RAW;
 				if(symbolp(r0))
 				{
-					value_t target = find_env_all(r0, env);
-					if(nilp(target))
+					r2 = find_env_all(r0, env);
+					if(nilp(r2))
 					{
 						set_env(r0, r1, last(env));	// set to root
 					}
 					else
 					{
-						rplacd(target, r1);		// replace
+						rplacd(r2, r1);			// replace
 					}
 				}
 				else if(rtypeof(r0) == REF_T)

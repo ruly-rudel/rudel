@@ -337,6 +337,7 @@ value_t gensym		(value_t env);
 //value_t* nconc_and_last	(value_t v, value_t* c);
 bool	is_str		(value_t v);
 
+EXTERN value_t g_nil;
 EXTERN value_t g_t;
 EXTERN value_t g_env;
 EXTERN value_t g_unquote;
@@ -350,9 +351,11 @@ EXTERN value_t g_quote;
 EXTERN value_t g_quasiquote;
 EXTERN value_t g_macro;
 EXTERN value_t g_macroexpand;
+EXTERN value_t g_amp;
 EXTERN value_t g_trace;
 EXTERN value_t g_debug;
-EXTERN value_t g_amp;
+EXTERN value_t g_gensym_counter;
+EXTERN value_t g_exception_stack;
 
 EXTERN value_t* g_istbl;
 EXTERN int      g_istbl_size;
