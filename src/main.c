@@ -109,21 +109,20 @@ int main(int argc, char* argv[])
 	setlocale(LC_ALL, "");
 	init_allocator();
 	value_t env = load_core("init.rudc");
+	push_root(&env);
 	if(errp(env))
 	{
+		lock_gc();
 		init_global();
+		unlock_gc();
 		env = create_env(NIL, NIL, NIL);
 		value_t ini = init(env);
 
-		lock_gc();
 		print(ini, stdout);
-		unlock_gc();
 	}
 	else
 	{
-		lock_gc();
 		print(env, stdout);
-		unlock_gc();
 	}
 
 	if(argc == 1)
@@ -132,12 +131,11 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		lock_gc();
 		set_env(str_to_sym("*ARGV*"), cdr(parse_arg(argc, argv)), env);
-		unlock_gc();
 		rep_file(argv[1], env);
 	}
 
+	pop_root(1);
 	assert(g_lock_cnt == 0);
 	assert(check_lock());
 	return 0;

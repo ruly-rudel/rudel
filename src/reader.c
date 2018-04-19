@@ -65,6 +65,7 @@ static value_t read_int(value_t token)
 static value_t read_atom(scan_t* st)
 {
 	value_t token = scan_peek(st);
+	push_root(&token);
 
 	if(symbolp(token))
 	{
@@ -106,6 +107,7 @@ static value_t read_atom(scan_t* st)
 	}
 
 	scan_next(st);
+	pop_root(1);
 	return token;
 }
 

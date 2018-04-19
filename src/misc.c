@@ -11,6 +11,7 @@
 
 void init_global(void)
 {
+	lock_gc();
 	g_t		= str_to_sym("t");
 	g_env		= str_to_sym("env");
 	g_unquote	= str_to_sym("unquote");
@@ -87,6 +88,7 @@ void init_global(void)
 	{
 		g_istbl[i] = tbl[i];
 	}
+	unlock_gc();
 }
 
 // End of File

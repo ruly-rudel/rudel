@@ -90,9 +90,16 @@ inline static void copy1(value_t** top, value_t* v)
 				alloc.vector->size  = cur.vector->size;
 				alloc.vector->alloc = cur.vector->alloc;
 				alloc.vector->type  = cur.vector->type;
-				alloc.vector->data  = RPTR(*top);
-				for(int i = 0; i < INTOF(cur.vector->alloc); i++)
-					*(*top)++ = VPTROF(cur.vector->data)[i];
+				if(VPTROF(cur.vector->data))
+				{
+					alloc.vector->data  = RPTR(*top);
+					for(int i = 0; i < INTOF(cur.vector->alloc); i++)
+						*(*top)++ = VPTROF(cur.vector->data)[i];
+				}
+				else
+				{
+					alloc.vector->data  = RPTR(0);
+				}
 
 				// write to-space address to car of current cons in from-space
 				alloc.type.main     = PTR_T;
@@ -431,7 +438,7 @@ cons_t* alloc_cons(void)
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	if(g_memory_top >= g_memory_gc && g_lock_cnt == 0)
+	if((g_memory_top >= g_memory_gc || FORCE_GC) && g_lock_cnt == 0)
 	{
 		if(exec_gc())
 		{
@@ -477,7 +484,7 @@ vector_t* alloc_vector()
 #endif
 #endif	// DUMP_ALLOC_ADDR
 
-	if(g_memory_top >= g_memory_gc && g_lock_cnt == 0)
+	if((g_memory_top >= g_memory_gc || FORCE_GC) && g_lock_cnt == 0)
 	{
 		if(exec_gc())
 		{
@@ -517,7 +524,7 @@ value_t alloc_vector_data(value_t v, size_t size)
 
 	size = size + (size % 2);	// align
 
-	if(g_memory_top + size >= g_memory_gc && g_lock_cnt == 0)
+	if((g_memory_top + size >= g_memory_gc || FORCE_GC) && g_lock_cnt == 0)
 	{
 		if(!exec_gc())
 		{
@@ -546,9 +553,9 @@ value_t alloc_vector_data(value_t v, size_t size)
 
 #ifdef DUMP_ALLOC_ADDR
 #if __WORDSIZE == 32
-	fprintf(stderr, "vdat: %08x, size %d\n", (int)v.vector->data, size);
+	fprintf(stderr, "vdat: %08x, size %d\n", ALIGN(av.vector->data), size);
 #else
-	fprintf(stderr, "vdat: %016lx, size %ld\n", (int64_t)v.vector->data, size);
+	fprintf(stderr, "vdat: %016lx, size %ld\n", ALIGN(av.vector->data), size);
 #endif
 #endif	// DUMP_ALLOC_ADDR
 

@@ -338,12 +338,14 @@ value_t slurp(char* fn)
 
 value_t init(value_t env)
 {
+	push_root(&env);
 	env = last(env);
 	rplaca(env, car(create_root_env()));
 
 #ifndef NOINIT
 	rep_file("init.rud", env);
 #endif // NOINIT
+	pop_root(1);
 	return NIL;
 }
 
@@ -446,6 +448,8 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 {
 	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
+	push_root(&v);
+	push_root(&data);
 
 	if(pos >= vsize(v))
 	{
@@ -454,6 +458,7 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 
 	VPTROF(AVALUE(v).vector->data)[pos] = data;
 
+	pop_root(2);
 	return data;
 }
 
@@ -556,7 +561,10 @@ value_t vpush(value_t x, value_t v)
 	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
 
+	push_root(&v);
 	rplacv(v, vsize(v), x);		//***** assume no error
+	pop_root(1);
+
 	return v;
 }
 
@@ -599,6 +607,8 @@ value_t vpush_front(value_t v, value_t x)
 {
 	assert(vectorp(v) || symbolp(v));
 	assert(vsize(v) <= vallocsize(v));
+	push_root(&v);
+	push_root(&x);
 
 	vpush(NIL, v);
 	for(int i = vsize(v) - 2; i >= 0; i--)
@@ -607,6 +617,7 @@ value_t vpush_front(value_t v, value_t x)
 	}
 	rplacv(v, 0, x);
 
+	pop_root(2);
 	return x;
 }
 
@@ -614,7 +625,9 @@ value_t copy_vector(value_t src)
 {
 	assert(vectorp(src) || symbolp(src));
 	assert(vsize(src) <= vallocsize(src));
+	push_root(&src);
 	value_t r = make_vector(vsize(src));
+	push_root(&r);
 
 	if(!errp(r))
 	{
@@ -622,8 +635,9 @@ value_t copy_vector(value_t src)
 		{
 			rplacv(r, i, vref(src, i));
 		}
+		r.type.main = src.type.main;
 	}
-	r.type.main = src.type.main;
+	pop_root(2);
 
 	return r;
 }
@@ -635,10 +649,14 @@ value_t vconc(value_t x, value_t y)
 	assert(vsize(x) <= vallocsize(x));
 	assert(vsize(y) <= vallocsize(y));
 
+	push_root(&x);
+	push_root(&y);
+
 	int sx = vsize(x);
 	int sy = vsize(y);
 
 	value_t r = make_vector(sx + sy);
+	push_root(&r);
 
 	// copy x
 	for(int i = 0; i < sx; i++)
@@ -652,6 +670,7 @@ value_t vconc(value_t x, value_t y)
 		rplacv(r, sx + i, vref(y, i));
 	}
 
+	pop_root(3);
 	return r;
 }
 
@@ -661,6 +680,8 @@ value_t vnconc(value_t x, value_t y)
 	assert(vectorp(y));
 	assert(vsize(x) <= vallocsize(x));
 	assert(vsize(y) <= vallocsize(y));
+	push_root(&x);
+	push_root(&y);
 
 	// copy y
 	int sy = vsize(y);
@@ -669,6 +690,7 @@ value_t vnconc(value_t x, value_t y)
 		vpush(vref(y, i), x);
 	}
 
+	pop_root(2);
 	return x;
 }
 
@@ -676,13 +698,16 @@ value_t make_vector_from_list(value_t x)
 {
 	assert(is_cons_pair_or_nil(x));
 
+	push_root(&x);
 	value_t r = make_vector(0);
+	push_root(&r);
 
 	for(; !nilp(x); x = cdr(x))
 	{
 		vpush(car(x), r);
 	}
 
+	pop_root(2);
 	return r;
 }
 
@@ -876,24 +901,30 @@ char*   rstr_to_str	(value_t s)
 
 value_t gensym	(value_t env)
 {
+	push_root(&env);
 	value_t r = str_to_rstr("#:G");
+	push_root(&r);
 	value_t n = get_env_ref(str_to_sym("*gensym-counter*"), env);
+	push_root(&n);
 	n         = get_env_value_ref(n, env);
 	r         = vnconc(r, pr_str(n, NIL, false));
 	r.type.main = SYM_T;
 
 	set_env(str_to_sym("*gensym-counter*"), RINT(INTOF(n) + 1), env);
 
+	pop_root(3);
 	return r;	// gensym symbol is unregisterd: so same name doesn't cause eq.
 }
 
 /////////////////////////////////////////////////////////////////////
 // public: support functions writing LISP on C
+#if 0
 value_t* nconc_and_last(value_t v, value_t* c)
 {
 	*c = v;
 	return &AVALUE(last(v)).cons->cdr;
 }
+#endif
 
 bool is_str(value_t v)
 {

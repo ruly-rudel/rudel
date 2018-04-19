@@ -1,6 +1,7 @@
 #include <assert.h>
 #include "builtin.h"
 #include "env.h"
+#include "allocator.h"
 
 
 /////////////////////////////////////////////////////////////////////
@@ -45,10 +46,13 @@ static value_t	find_env	(value_t key, value_t env)
 
 value_t	create_env	(value_t key, value_t val, value_t outer)
 {
+	push_root(&key);
+	push_root(&val);
+	push_root(&outer);
 	value_t alist = make_vector(0);
-	int i = 0;
+	push_root(&alist);
 
-	for(; !nilp(key); key = UNSAFE_CDR(key), val = cdr(val))
+	for(int i = 0; !nilp(key); i++, key = UNSAFE_CDR(key), val = cdr(val))
 	{
 		assert(consp(key));
 		assert(consp(val) || nilp(val));	// nil is acceptable
@@ -59,16 +63,17 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
 		{
 			key_car = second(key);
-			rplacv(alist, i++, cons(key_car, val));		// for resolv order.
+			rplacv(alist, i, cons(key_car, val));		// for resolv order.
 			break;
 		}
 		else
 		{
 			assert(symbolp(key_car));
-			rplacv(alist, i++, cons(key_car, val_car));		// for resolv order.
+			rplacv(alist, i, cons(key_car, val_car));		// for resolv order.
 		}
 	}
 
+	pop_root(4);
 	return cons(alist, outer);
 }
 
@@ -77,8 +82,12 @@ value_t	set_env		(value_t key, value_t val, value_t env)
 {
 	assert(consp(env));
 	assert(symbolp(key));
+	push_root(&key);
+	push_root(&val);
+	push_root(&env);
 
 	value_t r = find_env(key, env);
+	push_root(&r);
 	if(nilp(r))
 	{
 		r = cons(key, val);
@@ -100,6 +109,7 @@ value_t	set_env		(value_t key, value_t val, value_t env)
 		rplacd(r, val);
 	}
 
+	pop_root(4);
 	return r;
 }
 
@@ -184,8 +194,10 @@ value_t	get_env_ref	(value_t key, value_t env)
 	}
 
 	value_t r = str_to_rstr("variable ");
+	push_root(&r);
 	r = vnconc(r, symbol_string(key));
 	r = vnconc(r, str_to_rstr(" is not found."));
+	pop_root(1);
 
 	return rerr(r, NIL);
 }
@@ -214,6 +226,7 @@ value_t	create_root_env	(void)
 	                      str_to_sym("*trace*"),
 	                      str_to_sym("*exception-stack*")
 	                  );
+	push_root(&key);
 
 	value_t val = list(6,
 			      NIL,
@@ -223,6 +236,7 @@ value_t	create_root_env	(void)
 	                      NIL,
 	                      NIL
 			  );
+	pop_root(1);
 
 	return create_env(key, val, NIL);
 }

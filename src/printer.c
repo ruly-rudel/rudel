@@ -613,6 +613,7 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 
 void print(value_t s, FILE* fp)
 {
+	push_root(&s);
 	GCCONS(c, RINT(0), NIL);
 
 	value_t r = pr_str(s, c, true);
@@ -627,7 +628,7 @@ void print(value_t s, FILE* fp)
 		printline(r, fp);
 	}
 
-	pop_root(1);
+	pop_root(2);
 	return;
 }
 

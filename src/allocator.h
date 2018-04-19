@@ -6,6 +6,12 @@
 //#define INITIAL_ALLOC_SIZE	(5 * 1024)
 #define ROOT_SIZE		1024
 
+#ifdef DEBUG_GC
+#define FORCE_GC 1
+#else // DEBUG_GC
+#define FORCE_GC 0
+#endif // DEBUG_GC
+
 EXTERN value_t* g_memory_pool;
 #ifndef NOGC
 EXTERN value_t* g_memory_pool_from;
@@ -20,7 +26,7 @@ void		push_root_raw_vec	(value_t *v, int* sp);
 void		pop_root		(int n);
 value_t*	exec_gc			(void);
 void		force_gc		(void);
-INLINE(value_t*	check_gc(void),		g_memory_top >= g_memory_gc && g_lock_cnt == 0 ?  exec_gc() : 0)
+INLINE(value_t*	check_gc(void),		(g_memory_top >= g_memory_gc || FORCE_GC) && g_lock_cnt == 0 ?  exec_gc() : 0)
 INLINE(int	lock_gc(void),		g_lock_cnt++)
 INLINE(int	unlock_gc(void),	g_lock_cnt--)
 bool		check_lock		(void);

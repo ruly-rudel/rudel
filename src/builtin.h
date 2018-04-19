@@ -334,7 +334,7 @@ char*   rstr_to_str	(value_t s);
 
 value_t gensym		(value_t env);
 
-value_t* nconc_and_last	(value_t v, value_t* c);
+//value_t* nconc_and_last	(value_t v, value_t* c);
 bool	is_str		(value_t v);
 
 EXTERN value_t g_t;
