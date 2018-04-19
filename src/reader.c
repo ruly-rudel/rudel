@@ -142,10 +142,6 @@ static value_t read_list(scan_t* st)
 			if(INTOF(c) == ')')
 			{
 				r = cdr(r);
-				if(nilp(r))
-				{
-					r = NIL;		// () is nil
-				}
 				scan_next(st);
 				pop_root(2);
 				return r;
@@ -301,7 +297,8 @@ value_t read_line_prompt(prompt_t prompt, FILE* fp)
 
 value_t read_str(value_t s)
 {
-	scan_t st = scan_init(s);
+	scan_t st = { 0 };
+	scan_init(&st, s);
 	value_t r = read_form(&st);
 	scan_close();
 	return r;

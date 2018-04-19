@@ -503,7 +503,6 @@ value_t vresize(value_t v, int n)
 	}
 	else
 	{
-
 		// resize allocated area
 		if(INTOF(va.vector->alloc) < n)
 		{
@@ -517,13 +516,8 @@ value_t vresize(value_t v, int n)
 			va = AVALUE(v);
 		}
 
-		// change size and NILify new area
-		int cur_size = INTOF(va.vector->size);
+		// change size
 		va.vector->size = RINT(n);
-		for(int i = cur_size; i < n; i++)
-		{
-			VPTROF(va.vector->data)[i] = NIL;
-		}
 	}
 
 	return v;

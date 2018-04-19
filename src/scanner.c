@@ -194,14 +194,14 @@ static value_t scan1(scan_t* s)
 
 /////////////////////////////////////////////////////////////////////
 // public: scanner interface
-scan_t scan_init(value_t str)
+scan_t* scan_init(scan_t* r, value_t str)
 {
-	scan_t r = { 0 };
-	r.buf    = str;
-	push_root(&r.buf);
-	r.rptr   = 0;
-	r.token  = scan1(&r);
-	push_root(&r.token);
+	r->buf    = str;
+	r->rptr   = 0;
+	r->token  = NIL;
+	push_root(&r->buf);
+	push_root(&r->token);
+	r->token  = scan1(r);
 
 	return r;
 }

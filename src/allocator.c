@@ -73,10 +73,10 @@ inline static void copy1(value_t** top, value_t* v)
 
 		case VEC_T:
 		case SYM_T:
-			if(ptrp(cur.vector->size))	// target vector is already copied
+			if(ptrp(cur.vector->type))	// target vector is already copied
 			{
 				// replace value itself to copyed to-space address
-				alloc = cur.vector->size;
+				alloc = cur.vector->type;
 				assert(is_to(alloc));
 				alloc.type.main = type;
 				*v = alloc;
@@ -84,6 +84,9 @@ inline static void copy1(value_t** top, value_t* v)
 			else
 			{
 				assert(is_from(cur));
+				assert(intp(cur.vector->size));
+				assert(intp(cur.vector->alloc));
+				assert(nilp(cur.vector->type));
 				// allocate memory and copy vector in from-space to to-space
 				alloc.raw           = (uintptr_t)*top;
 				*top               += 4;
@@ -92,6 +95,7 @@ inline static void copy1(value_t** top, value_t* v)
 				alloc.vector->type  = cur.vector->type;
 				if(VPTROF(cur.vector->data))
 				{
+					assert(ptrp(cur.vector->data));
 					alloc.vector->data  = RPTR(*top);
 					for(int i = 0; i < INTOF(cur.vector->alloc); i++)
 						*(*top)++ = VPTROF(cur.vector->data)[i];
@@ -103,7 +107,7 @@ inline static void copy1(value_t** top, value_t* v)
 
 				// write to-space address to car of current cons in from-space
 				alloc.type.main     = PTR_T;
-				cur.vector->size    = alloc;
+				cur.vector->type    = alloc;
 
 				// replace value itself to copyed to-space address
 				alloc.type.main = type;
@@ -430,14 +434,6 @@ cons_t* alloc_cons(void)
 	cons_t* c = (cons_t*)g_memory_top;
 	g_memory_top += 2;
 
-#ifdef DUMP_ALLOC_ADDR
-#if __WORDSIZE == 32
-	fprintf(stderr, "cons: %08x\n", (int)c);
-#else
-	fprintf(stderr, "cons: %016lx\n", (int64_t)c);
-#endif
-#endif	// DUMP_ALLOC_ADDR
-
 	if((g_memory_top >= g_memory_gc || FORCE_GC) && g_lock_cnt == 0)
 	{
 		if(exec_gc())
@@ -447,10 +443,6 @@ cons_t* alloc_cons(void)
 			if(g_memory_top >= g_memory_max)
 			{
 				return 0;
-			}
-			else
-			{
-				return c;
 			}
 		}
 		else
@@ -464,25 +456,23 @@ cons_t* alloc_cons(void)
 		{
 			return 0;
 		}
-		else
-		{
-			return c;
-		}
 	}
+
+#ifdef DUMP_ALLOC_ADDR
+#if __WORDSIZE == 32
+	fprintf(stderr, "cons: %08x\n", (int)c);
+#else
+	fprintf(stderr, "cons: %016lx\n", (int64_t)c);
+#endif
+#endif	// DUMP_ALLOC_ADDR
+
+	return c;
 }
 
 vector_t* alloc_vector()
 {
 	vector_t* v = (vector_t*)g_memory_top;
 	g_memory_top += 4;
-
-#ifdef DUMP_ALLOC_ADDR
-#if __WORDSIZE == 32
-	fprintf(stderr, "vect: %08x\n", (int)v);
-#else
-	fprintf(stderr, "vect: %016lx\n", (int64_t)v);
-#endif
-#endif	// DUMP_ALLOC_ADDR
 
 	if((g_memory_top >= g_memory_gc || FORCE_GC) && g_lock_cnt == 0)
 	{
@@ -494,10 +484,6 @@ vector_t* alloc_vector()
 			{
 				return 0;
 			}
-			else
-			{
-				return v;
-			}
 		}
 		else
 		{
@@ -510,11 +496,17 @@ vector_t* alloc_vector()
 		{
 			return 0;
 		}
-		else
-		{
-			return v;
-		}
 	}
+
+#ifdef DUMP_ALLOC_ADDR
+#if __WORDSIZE == 32
+	fprintf(stderr, "vect: %08x\n", (int)v);
+#else
+	fprintf(stderr, "vect: %016lx\n", (int64_t)v);
+#endif
+#endif	// DUMP_ALLOC_ADDR
+
+	return v;
 }
 
 value_t alloc_vector_data(value_t v, size_t size)
@@ -545,6 +537,16 @@ value_t alloc_vector_data(value_t v, size_t size)
 	{
 		for(int i = 0; i < INTOF(av.vector->size); i++)
 			g_memory_top[i] = VPTROF(av.vector->data)[i];
+
+		// must be nillify for GC
+		for(int i = INTOF(av.vector->size); i < INTOF(av.vector->alloc); i++)
+			g_memory_top[i] = NIL;
+	}
+	else
+	{
+		// must be nillify for GC
+		for(int i = 0; i < INTOF(av.vector->alloc); i++)
+			g_memory_top[i] = NIL;
 	}
 
 	av.vector->data  = RPTR(g_memory_top);
