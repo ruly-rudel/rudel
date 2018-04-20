@@ -4,6 +4,8 @@
 #include "compile_vm.h"
 #include "env.h"
 #include "allocator.h"
+#include "vm.h"
+#include "printer.h"
 
 /////////////////////////////////////////////////////////////////////
 // private:
@@ -627,6 +629,43 @@ static value_t compile_vm_special(value_t code, value_t debug, value_t ast, valu
 	return code;
 }
 
+#if 0
+static value_t compile_vm_eval_macro(value_t m, value_t arg, value_t env)
+{
+	assert(macrop(m));
+	assert(consp(arg) || nilp(arg));
+	assert(consp(env));
+
+	push_root(&m);
+	push_root(&arg);
+	push_root(&env);
+
+	value_t macro_code  = make_vector(0);
+	push_root(&macro_code);
+	value_t macro_debug = make_vector(0);
+	push_root(&macro_debug);
+
+	// macro expantion code
+	vpush(ROP(IS_PUSH), macro_code);	vpush(m, macro_debug);
+	vpush(m,            macro_code);	vpush(m, macro_debug);
+
+	macro_code = compile_vm_macro_arg(macro_code, macro_debug, arg, env);
+	if(errp(macro_code))
+	{
+		pop_root(5);
+		return macro_code;
+	}
+	vpush(ROP(IS_AP),          macro_code);	vpush(m, macro_debug);
+	vpush(ROP(IS_HALT),        macro_code);	vpush(m, macro_debug);
+
+	// execute macro expantion
+	value_t r = exec_vm(cons(macro_code, macro_debug), env);
+
+	pop_root(5);
+	return r;
+}
+#endif
+
 static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
@@ -673,22 +712,46 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 				value_t sym = get_env_value_ref(ref, env);
 				if(!errp(ref))
 				{
-					if(clojurep(sym))
+					if(clojurep(sym))	// is clojure call
 					{
-						push_root(&sym);
 						vpush(ROP(IS_PUSH), code);	vpush(ast, debug);
 						vpush(ref,          code);	vpush(ast, debug);
 
 						code = compile_vm_apply_arg(code, debug, cdr(ast), env);	// arguments
 						if(errp(code))
 						{
-							pop_root(6);
+							pop_root(5);
 							return code;
 						}
 						vpush(ROP(IS_AP), code);		vpush(ast, debug);
 
-						pop_root(6);
+						pop_root(5);
 						return code;
+					}
+					else if(macrop(sym))	// is macro call
+					{
+						vpush(ROP(IS_PUSH), code);	vpush(ast, debug);
+						vpush(ref,          code);	vpush(ast, debug);
+
+						code = compile_vm_macro_arg(code, debug, cdr(ast), env);	// arguments
+						if(errp(code))
+						{
+							pop_root(5);
+							return code;
+						}
+						vpush(ROP(IS_AP),          code);	vpush(ast, debug);
+						vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
+						vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
+
+						pop_root(5);
+						return code;
+#if 0
+						value_t r = compile_vm_eval_macro(sym, cdr(ast), env);
+						fprintf(stderr, "macro expantion: ");
+						print(r, stderr);
+						pop_root(5);
+						return compile_vm1(code, debug, r, env);
+#endif
 					}
 				}
 			}
