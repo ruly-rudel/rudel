@@ -846,7 +846,7 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 			// generate push-clojure code
 			vpush(ROP(IS_PUSH),                  code);			vpush(ast, debug);
 			vpush(cloj(NIL, env, cons(b_code, b_debug), NIL, NIL), code);	vpush(ast, debug);
-			pop_root(5);
+			pop_root(6);
 			return code;
 		}
 	}

@@ -368,8 +368,8 @@ static value_t pr_err_cause(value_t e)
 }
 static value_t pr_err_pos(value_t e)
 {
-	push_root(&e);
 	value_t pos  = RERR_POS(e);
+	push_root(&pos);
 	value_t r    = make_vector(0);
 	push_root(&r);
 

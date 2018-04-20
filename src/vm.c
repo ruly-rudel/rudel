@@ -89,7 +89,7 @@
 	} \
 	else \
 	{ \
-		THROW(pr_str(RERR_OVW_PC(RERR_TYPE_PC), NIL, false)); \
+		THROW(pr_str(RERR_TYPE_PC, NIL, false)); \
 	} \
 }
 
@@ -113,7 +113,7 @@
 	} \
 	else \
 	{ \
-		THROW(pr_str(RERR_OVW_PC(RERR_TYPE_PC), NIL, false)); \
+		THROW(pr_str(RERR_TYPE_PC, NIL, false)); \
 	} \
 }
 
@@ -144,7 +144,7 @@
 	(X).cons = alloc_cons(); \
 	(X).cons->car = (CAR); \
 	(X).cons->cdr = (CDR); \
-	(X).type.main = CONS_T; \
+	(X).type.main = CONS_T;
 
 #ifdef TRACE_VM
 #define TRACEN(X)        fprintf(stderr, "[rudel-vm:pc=%06x] "  X      , pc)
@@ -160,9 +160,9 @@
 #define TRACE2N(X, Y, Z)
 #endif // TRACE_VM
 
-#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(vref(debug, pc), NIL))
-#define RERR_PC(X)	RERR((X), cons(vref(debug, pc), NIL))
-#define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(vref(debug, pc), NIL))
+#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(local_vref(debug, pc), NIL))
+#define RERR_PC(X)	RERR((X), cons(local_vref(debug, pc), NIL))
+#define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(local_vref(debug, pc), NIL))
 
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
@@ -417,7 +417,8 @@ value_t exec_vm(value_t c, value_t e)
 				// make clojure that invokes continuation and make it argument
 				r3 = make_vector(1);
 				CONS(r0, r2, r2);
-				CONS(r1, NIL, cloj(NIL, NIL, r0, NIL, NIL));
+				r0 = cloj(NIL, NIL, r0, NIL, NIL);
+				CONS(r1, NIL, r0);
 				local_vpush(r1, r3);
 				LOCAL_VPUSH_RAW(r3);
 				// fall-through to AP
