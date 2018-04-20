@@ -634,7 +634,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	assert(consp(env));
 
 	/////////////////////////////////////
-	// special form
+	// CASE 1:special form
 	value_t fn = first(ast);
 	if(specialp(fn))
 	{
@@ -648,10 +648,10 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	push_root(&fn);
 
 	/////////////////////////////////////
-	// builtin function or some optimizes
+	// CASE 2:builtin function or some optimizes
 	if(symbolp(fn))
 	{
-		value_t bfn = compile_vm_check_builtin(first(ast), env);
+		value_t bfn = compile_vm_check_builtin(fn, env);
 		if(!nilp(bfn))			// apply builtin
 		{
 			push_root(&bfn);
@@ -665,10 +665,38 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 			pop_root(6);
 			return code;
 		}
+		else				// apply setq-ed lambda/macro(is function or macro)
+		{
+			value_t ref = get_env_ref(fn, env);
+			if(!errp(ref))
+			{
+				value_t sym = get_env_value_ref(ref, env);
+				if(!errp(ref))
+				{
+					if(clojurep(sym))
+					{
+						push_root(&sym);
+						vpush(ROP(IS_PUSH), code);	vpush(ast, debug);
+						vpush(ref,          code);	vpush(ast, debug);
+
+						code = compile_vm_apply_arg(code, debug, cdr(ast), env);	// arguments
+						if(errp(code))
+						{
+							pop_root(6);
+							return code;
+						}
+						vpush(ROP(IS_AP), code);		vpush(ast, debug);
+
+						pop_root(6);
+						return code;
+					}
+				}
+			}
+		}
 	}
 
 	/////////////////////////////////////
-	// normal apply
+	// CASE 3:normal apply
 
 	// evaluate 1st element of apply list
 	code = compile_vm1_fn(code, debug, first(ast), env);
