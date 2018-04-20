@@ -924,7 +924,7 @@ bool is_str(value_t v)
 #ifdef STR_EASY_CHECK
 	return vectorp(v) && vsize(v) > 0 && charp(vref(v, 0));
 #else  // STR_EASY_CHECK
-	if(nilp(v)) return false;	// nil is not strgin
+	if(!vectorp(v)) return false;
 
 	for(int i = 0; i < vsize(v); i ++)
 	{

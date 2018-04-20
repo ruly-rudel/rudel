@@ -32,6 +32,24 @@ inline static bool is_to(value_t v)
 }
 #endif // NDEBUG
 
+inline static bool is_sanity_addr(value_t v)
+{
+	return ((value_t*)v.cons >= g_memory_pool && (value_t*)v.cons < g_memory_top);
+}
+
+inline static bool is_sanity(value_t v)
+{
+	if(rtypeof(v) < OTH_T)
+	{
+		if(!(is_sanity_addr(AVALUE(v)) || nilp(v) || AVALUE(v).raw == 0))
+		{
+			abort();
+			return false;
+		}
+	}
+	return true;
+}
+
 inline static void copy1(value_t** top, value_t* v)
 {
 	rtype_t type = rtypeof(*v);
@@ -224,82 +242,8 @@ bool check_lock(void)
 	return s_root_ptr == 0;
 }
 
-inline static bool is_sanity_addr(value_t v)
-{
-	return ((value_t*)v.cons >= g_memory_pool && (value_t*)v.cons < g_memory_top);
-}
-
-inline static bool is_sanity(value_t v)
-{
-	if(rtypeof(v) < OTH_T)
-	{
-		if(!(is_sanity_addr(AVALUE(v)) || nilp(v) || AVALUE(v).raw == 0))
-		{
-			abort();
-			return false;
-		}
-	}
-	return true;
-}
-
-bool check_sanity_rec(value_t v)
-{
-	rtype_t type = rtypeof(v);
-	value_t cur  = AVALUE(v);
-
-	switch(type)
-	{
-		case CONS_T:
-		case ERR_T:
-		case CLOJ_T:
-		case MACRO_T:
-			if(AVALUE(cur).raw == 0) return true;
-			if(AVALUE(cur.cons->car).raw != 0)
-			{
-				check_sanity_rec(cur.cons->car);
-			}
-			if(AVALUE(cur.cons->cdr).raw != 0)
-			{
-				check_sanity_rec(cur.cons->cdr);
-			}
-			return true;
-
-		case VEC_T:
-		case SYM_T:
-			assert(intp(cur.vector->size));
-			assert(intp(cur.vector->alloc));
-			assert(nilp(cur.vector->type));
-			assert(ptrp(cur.vector->data));
-			if(VPTROF(cur.vector->data))
-			{
-				assert(ptrp(cur.vector->data));
-				bool ret = true;
-				for(int i = 0; i < INTOF(cur.vector->alloc); i++)
-				{
-					if(AVALUE(VPTROF(cur.vector->data)[i]).raw != 0)
-						ret = ret & check_sanity_rec(VPTROF(cur.vector->data)[i]);
-				}
-				return ret;
-			}
-			else
-			{
-				return true;
-			}
-
-		case PTR_T:
-			abort();
-			return false;
-
-		default:
-			return true;
-	}
-}
-
 bool check_sanity(void)
 {
-	/////////////////////////////////////////////
-	// First phase: scan whole memory pool inclementally
-
 	// scan root
 	for(int i = 0; i < s_root_ptr; i++)
 	{
@@ -323,25 +267,6 @@ bool check_sanity(void)
 	}
 
 	is_sanity(s_symbol_pool);
-
-	/////////////////////////////////////////////
-	// Second phase: scan from root recursively
-#if 0
-	for(int i = 0; i < s_root_ptr; i++)
-	{
-		if(s_root[i].size)
-		{
-			for(int j = 0; j <= *s_root[i].size; j++)
-			{
-				check_sanity_rec(s_root[i].data[j]);
-			}
-		}
-		else
-		{
-			check_sanity_rec(*s_root[i].data);
-		}
-	}
-#endif
 
 	return true;
 }

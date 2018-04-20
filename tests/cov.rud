@@ -1,0 +1,1232 @@
+;; Testing gensym
+*gensym-counter*
+;=>0
+(gensym)
+;=>#:G0
+(gensym)
+;=>#:G1
+*gensym-counter*
+;=>2
+(setq x (gensym))
+;=>#:G2
+(eq x '#:G2)
+;=>nil
+(equal x '#:G2)	;; must be nil, but now t. fix it later.
+;=>t
+
+;; Testing evaluation of arithmetic operations
+(+ 1 2)
+;=>3
+
+(+ 5 (* 2 3))
+;=>11
+
+(- (+ 5 (* 2 3)) 3)
+;=>8
+
+(/ (- (+ 5 (* 2 3)) 3) 4)
+;=>2
+
+(/ (- (+ 515 (* 87 311)) 302) 27)
+;=>1010
+
+(* -3 6)
+;=>-18
+
+(/ (- (+ 515 (* -87 311)) 296) 27)
+;=>-994
+
+;; Testing empty list
+()
+;=>nil
+
+;; Testing REPL_ENV
+(+ 1 2)
+;=>3
+(/ (- (+ 5 (* 2 3)) 3) 4)
+;=>2
+
+
+;; Testing setq
+(setq x 3)
+;=>3
+x
+;=>3
+(setq x 4)
+;=>4
+x
+;=>4
+(setq y (+ 1 7))
+;=>8
+y
+;=>8
+
+;; Verifying symbols are case-sensitive
+(setq mynum 111)
+;=>111
+(setq MYNUM 222)
+;=>222
+mynum
+;=>111
+MYNUM
+;=>222
+
+;; Check env lookup non-fatal error
+;; Check that error aborts setq
+(setq w 123)
+w
+;=>123
+
+;; Testing let*
+(let* ((z 9)) z)
+;=>9
+(let* ((x 9)) x)
+;=>9
+x
+;=>4
+(let* ((z (+ 2 3))) (+ 1 z))
+;=>6
+(let* ((p (+ 2 3)) (q (+ 2 p))) (+ p q))
+;=>12
+(setq y (let* ((z 7)) z))
+y
+;=>7
+
+;; Testing outer environment
+(setq a 4)
+;=>4
+(let* ((q 9)) q)
+;=>9
+(let* ((q 9)) a)
+;=>4
+(let* ((z 2)) (let* ((q 9)) a))
+;=>4
+(let* ((x 4)) (setq a 5))
+;=>5
+a
+;=>5
+
+;; -----------------------------------------------------
+
+
+;; Testing list functions
+(list)
+;=>nil
+(consp (list))
+;=>nil
+(list 1 2 3)
+;=>(1 2 3)
+(count (list 1 2 3))
+;=>3
+(count (list))
+;=>0
+(count nil)
+;=>0
+(if (> (count (list 1 2 3)) 3) "yes" "no")
+;=>"no"
+(if (>= (count (list 1 2 3)) 3) "yes" "no")
+;=>"yes"
+
+
+;; Testing if form
+(if t 7 8)
+;=>7
+(if nil 7 8)
+;=>8
+(if t (+ 1 7) (+ 1 8))
+;=>8
+(if nil (+ 1 7) (+ 1 8))
+;=>9
+(if nil 7 8)
+;=>8
+(if 0 7 8)
+;=>7
+(if "" 7 8)
+;=>7
+(if (list) 7 8)
+;=>8
+(if (list 1 2 3) 7 8)
+;=>7
+(eq (list) nil)
+;=>t
+
+
+;; Testing 1-way if form
+(if nil (+ 1 7))
+;=>nil
+(if nil 8 7)
+;=>7
+(if t (+ 1 7))
+;=>8
+
+
+;; Testing basic conditionals
+(eq 2 1)
+;=>nil
+(eq 1 1)
+;=>t
+(eq 1 2)
+;=>nil
+(eq 1 (+ 1 1))
+;=>nil
+(eq 2 (+ 1 1))
+;=>t
+(eq nil 1)
+;=>nil
+(eq nil nil)
+;=>t
+
+(> 2 1)
+;=>t
+(> 1 1)
+;=>nil
+(> 1 2)
+;=>nil
+
+(>= 2 1)
+;=>t
+(>= 1 1)
+;=>t
+(>= 1 2)
+;=>nil
+
+(< 2 1)
+;=>nil
+(< 1 1)
+;=>nil
+(< 1 2)
+;=>t
+
+(<= 2 1)
+;=>nil
+(<= 1 1)
+;=>t
+(<= 1 2)
+;=>t
+
+
+;; Testing equality
+(equal 1 1)
+;=>t
+(equal 0 0)
+;=>t
+(equal 1 0)
+;=>nil
+(equal "" "")
+;=>t
+(equal "abc" "abc")
+;=>t
+(equal "abc" "")
+;=>nil
+(equal "" "abc")
+;=>nil
+(equal "abc" "def")
+;=>nil
+(equal "abc" "ABC")
+;=>nil
+(equal t t)
+;=>t
+(equal nil nil)
+;=>t
+(equal nil nil)
+;=>t
+
+(equal (list) (list))
+;=>t
+(equal (list 1 2) (list 1 2))
+;=>t
+(equal (list 1) (list))
+;=>nil
+(equal (list) (list 1))
+;=>nil
+(equal 0 (list))
+;=>nil
+(equal (list) 0)
+;=>nil
+(equal (list) "")
+;=>nil
+(equal "" (list))
+;=>nil
+
+
+;; Testing builtin and user defined functions
+(+ 1 2)
+;=>3
+( (lambda (a b) (+ b a)) 3 4)
+;=>7
+( (lambda () 4) )
+;=>4
+
+( (lambda (f x) (f x)) (lambda (a) (+ 1 a)) 7)
+;=>8
+
+
+;; Testing closures
+( ( (lambda (a) (lambda (b) (+ a b))) 5) 7)
+;=>12
+
+(setq gen-plus5 (lambda () (lambda (b) (+ 5 b))))
+(setq plus5 (gen-plus5))
+(plus5 7)
+;=>12
+
+(setq gen-plusX (lambda (x) (lambda (b) (+ x b))))
+(setq plus7 (gen-plusX 7))
+(plus7 8)
+;=>15
+
+;; Testing progn form
+(progn (prn "prn output1"))
+; "prn output1"
+;=>nil
+(progn (prn "prn output2") 7)
+; "prn output2"
+;=>7
+(progn (prn "prn output1") (prn "prn output2") (+ 1 2))
+; "prn output1"
+; "prn output2"
+;=>3
+
+(progn (setq a 6) 7 (+ a 8))
+;=>14
+a
+;=>6
+
+;; Testing special form case-sensitivity
+(setq DO (lambda (a) 7))
+(DO 3)
+;=>7
+
+;; Testing recursive sumdown function
+(setq sumdown (lambda (N) (if (> N 0) (+ N (sumdown  (- N 1))) 0)))
+(sumdown 1)
+;=>1
+(sumdown 2)
+;=>3
+(sumdown 6)
+;=>21
+
+
+;; Testing recursive fibonacci function
+(setq fib (lambda (N) (if (eq N 0) 1 (if (eq N 1) 1 (+ (fib (- N 1)) (fib (- N 2)))))))
+(fib 1)
+;=>1
+(fib 2)
+;=>2
+(fib 4)
+;=>5
+;;; Too slow for bash, erlang, make and miniMAL
+;;;(fib 10)
+;;;;=>89
+
+
+;>>> deferrable=True
+;;
+;; -------- Deferrable Functionality --------
+
+;; Testing variable length arguments
+
+( (lambda (& more) (count more)) 1 2 3)
+;=>3
+( (lambda (& more) (consp more)) 1 2 3)
+;=>t
+( (lambda (& more) (count more)) 1)
+;=>1
+( (lambda (& more) (count more)) )
+;=>0
+( (lambda (& more) (consp more)) )
+;=>nil
+( (lambda (a & more) (count more)) 1 2 3)
+;=>2
+( (lambda (a & more) (count more)) 1)
+;=>0
+( (lambda (a & more) (consp more)) 1)
+;=>nil
+
+
+;; Testing language defined not function
+(not nil)
+;=>t
+(not t)
+;=>nil
+(not "a")
+;=>nil
+(not 0)
+;=>nil
+
+
+;; -----------------------------------------------------
+
+;; Testing string quoting
+
+""
+;=>""
+
+"abc"
+;=>"abc"
+
+"abc  def"
+;=>"abc  def"
+
+"\""
+;=>"\""
+
+"abc\ndef\nghi"
+;=>"abc\ndef\nghi"
+
+"abc\\def\\ghi"
+;=>"abc\\def\\ghi"
+
+"\\n"
+;=>"\\n"
+
+;; Testing pr-str
+
+(pr-str)
+;=>""
+
+(pr-str "")
+;=>"\"\""
+
+(pr-str "abc")
+;=>"\"abc\""
+
+(pr-str "abc  def" "ghi jkl")
+;=>"\"abc  def\" \"ghi jkl\""
+
+(pr-str "\"")
+;=>"\"\\\"\""
+
+(pr-str (list 1 2 "abc" "\"") "def")
+;=>"(1 2 \"abc\" \"\\\"\") \"def\""
+
+(pr-str "abc\ndef\nghi")
+;=>"\"abc\\ndef\\nghi\""
+
+(pr-str "abc\\def\\ghi")
+;=>"\"abc\\\\def\\\\ghi\""
+
+(pr-str (list))
+;=>"nil"
+
+;; Testing str
+
+(str)
+;=>""
+
+(str "")
+;=>""
+
+(str "abc")
+;=>"abc"
+
+(str "\"")
+;=>"\""
+
+(str 1 "abc" 3)
+;=>"1abc3"
+
+(str "abc  def" "ghi jkl")
+;=>"abc  defghi jkl"
+
+(str "abc\ndef\nghi")
+;=>"abc\ndef\nghi"
+
+(str "abc\\def\\ghi")
+;=>"abc\\def\\ghi"
+
+(str (list 1 2 "abc" "\"") "def")
+;=>"(1 2 abc \")def"
+
+(str (list))
+;=>"nil"
+
+;; Testing prn
+(prn)
+; 
+;=>nil
+
+(prn "")
+; ""
+;=>nil
+
+(prn "abc")
+; "abc"
+;=>nil
+
+(prn "abc  def" "ghi jkl")
+; "abc  def" "ghi jkl"
+
+(prn "\"")
+; "\""
+;=>nil
+
+(prn "abc\ndef\nghi")
+; "abc\ndef\nghi"
+;=>nil
+
+(prn "abc\\def\\ghi")
+; "abc\\def\\ghi"
+nil
+
+(prn (list 1 2 "abc" "\"") "def")
+; (1 2 "abc" "\"") "def"
+;=>nil
+
+
+;; Testing println
+(println)
+; 
+;=>nil
+
+(println "")
+; 
+;=>nil
+
+(println "abc")
+; abc
+;=>nil
+
+(println "abc  def" "ghi jkl")
+; abc  def ghi jkl
+
+(println "\"")
+; "
+;=>nil
+
+(println "abc\ndef\nghi")
+; abc
+; def
+; ghi
+;=>nil
+
+(println "abc\\def\\ghi")
+; abc\def\ghi
+;=>nil
+
+(println (list 1 2 "abc" "\"") "def")
+; (1 2 abc ") def
+;=>nil
+
+;>>> optional=True
+;;
+;; -------- Optional Functionality --------
+
+;;  ;; Testing keywords
+;;  (= :abc :abc)
+;;  ;=>t
+;;  (= :abc :def)
+;;  ;=>nil
+;;  (= :abc ":abc")
+;;  ;=>nil
+
+
+
+;; Testing recursive tail-call function
+
+(setq sum2 (lambda (n acc) (if (eq n 0) acc (sum2 (- n 1) (+ n acc)))))
+
+;; TODO: test let*, and do for TCO
+
+(sum2 10 0)
+;=>55
+
+(setq res2 nil)
+;=>nil
+(setq res2 (sum2 1000 0))
+res2
+;=>500500
+
+
+;; Test mutually recursive tail-call functions
+
+(setq foo (lambda (n) (if (eq n 0) 0 (bar (- n 1)))))
+(setq bar (lambda (n) (if (eq n 0) 0 (foo (- n 1)))))
+
+(foo 10000)
+;=>0
+;;; TODO: really a step5 test
+;;
+;; Testing that (do (do)) not broken by TCO
+(progn (progn 1 2))
+;=>2
+
+;;
+;; Testing read-string, eval and slurp
+(read-string "(1 2 (3 4) nil)")
+;=>(1 2 (3 4) nil)
+
+(read-string "(+ 2 3)")
+;=>(+ 2 3)
+
+(read-string "7 ;; comment")
+;=>7
+
+;;; Differing output, but make sure no fatal error
+(read-string ";; comment")
+
+
+(eval (read-string "(+ 2 3)"))
+;=>5
+
+(slurp "../tests/test.txt")
+;=>"A line of text\n"
+
+;; Testing load-file
+
+(load-file "../tests/inc.rud")
+(inc1 7)
+;=>8
+(inc2 7)
+;=>9
+(inc3 9)
+;=>12
+
+;>>> deferrable=True
+;>>> optional=True
+;;
+;; -------- Deferrable/Optional Functionality --------
+
+;; Testing comments in a file
+(load-file "../tests/incB.rud")
+; "incB.rud finished"
+;=>"incB.rud return string"
+(inc4 7)
+;=>11
+(inc5 7)
+;=>12
+
+;; Testing map literal across multiple lines in a file
+(load-file "../tests/incC.rud")
+mylist
+;=>("a" 1)
+
+
+;; Testing cons function
+(cons 1 (list))
+;=>(1)
+(cons 1 (list 2))
+;=>(1 2)
+(cons 1 (list 2 3))
+;=>(1 2 3)
+(cons (list 1) (list 2 3))
+;=>((1) 2 3)
+
+(setq a (list 2 3))
+(cons 1 a)
+;=>(1 2 3)
+a
+;=>(2 3)
+
+;; Testing concat function
+(concat)
+;=>nil
+(concat (list 1 2))
+;=>(1 2)
+(concat (list 1 2) (list 3 4))
+;=>(1 2 3 4)
+(concat (list 1 2) (list 3 4) (list 5 6))
+;=>(1 2 3 4 5 6)
+(concat (concat))
+;=>nil
+(concat (list) (list))
+;=>nil
+
+(setq a (list 1 2))
+(setq b (list 3 4))
+(concat a b (list 5 6))
+;=>(1 2 3 4 5 6)
+a
+;=>(1 2)
+b
+;=>(3 4)
+
+;; Testing regular quote
+(quote 7)
+;=>7
+(quote (1 2 3))
+;=>(1 2 3)
+(quote (1 2 (3 4)))
+;=>(1 2 (3 4))
+
+;; Testing simple quasiquote
+(quasiquote 7)
+;=>7
+(quasiquote (1 2 3))
+;=>(1 2 3)
+(quasiquote (1 2 (3 4)))
+;=>(1 2 (3 4))
+(quasiquote (nil))
+;=>(nil)
+
+;; Testing unquote
+(quasiquote (unquote 7))
+;=>7
+(setq a 8)
+;=>8
+(quasiquote a)
+;=>a
+(quasiquote (unquote a))
+;=>8
+(quasiquote (1 a 3))
+;=>(1 a 3)
+(quasiquote (1 (unquote a) 3))
+;=>(1 8 3)
+(setq b (quote (1 "b" "d")))
+;=>(1 "b" "d")
+(quasiquote (1 b 3))
+;=>(1 b 3)
+(quasiquote (1 (unquote b) 3))
+;=>(1 (1 "b" "d") 3)
+(quasiquote ((unquote 1) (unquote 2)))
+;=>(1 2)
+
+;; Testing splice-unquote
+(setq c (quote (1 "b" "d")))
+;=>(1 "b" "d")
+(quasiquote (1 c 3))
+;=>(1 c 3)
+(quasiquote (1 (splice-unquote c) 3))
+;=>(1 1 "b" "d" 3)
+
+
+;; Testing symbol equality
+(eq (quote abc) (quote abc))
+;=>t
+(eq (quote abc) (quote abcd))
+;=>nil
+(eq (quote abc) "abc")
+;=>nil
+(equal "abc" (quote abc))
+;=>nil
+(equal "abc" (str (quote abc)))
+;=>t
+(eq (quote abc) nil)
+;=>nil
+(eq nil (quote abc))
+;=>nil
+
+;;;;; Test quine
+;;; TODO: needs expect line length fix
+;;;((lambda [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (lambda [q] (quasiquote ((unquote q) (quote (unquote q)))))))
+;;;=>((lambda [q] (quasiquote ((unquote q) (quote (unquote q))))) (quote (lambda [q] (quasiquote ((unquote q) (quote (unquote q)))))))
+
+;>>> deferrable=True
+;;
+;; -------- Deferrable Functionality --------
+
+;; Testing ' (quote) reader macro
+'7
+;=>7
+'(1 2 3)
+;=>(1 2 3)
+'(1 2 (3 4))
+;=>(1 2 (3 4))
+
+;; Testing ` (quasiquote) reader macro
+`7
+;=>7
+`(1 2 3)
+;=>(1 2 3)
+`(1 2 (3 4))
+;=>(1 2 (3 4))
+`(nil)
+;=>(nil)
+
+;; Testing , (unquote) reader macro
+`,7
+;=>7
+(setq a 8)
+;=>8
+`(1 ,a 3)
+;=>(1 8 3)
+(setq b '(1 "b" "d"))
+;=>(1 "b" "d")
+`(1 b 3)
+;=>(1 b 3)
+`(1 ,b 3)
+;=>(1 (1 "b" "d") 3)
+
+;; Testing ,@ (splice-unquote) reader macro
+(setq c '(1 "b" "d"))
+;=>(1 "b" "d")
+`(1 c 3)
+;=>(1 c 3)
+`(1 ,@c 3)
+;=>(1 1 "b" "d" 3)
+
+
+;; Testing trivial macros
+(defmacro one () 1)
+(one)
+;=>1
+(defmacro two () 2)
+(two)
+;=>2
+
+;; Testing unless macros
+(defmacro unless (pred a b) `(if ,pred ,b ,a))
+(unless nil 7 8)
+;=>7
+(unless t 7 8)
+;=>8
+(defmacro unless2 (pred a b) `(if (not ,pred) ,a ,b))
+(unless2 nil 7 8)
+;=>7
+(unless2 t 7 8)
+;=>8
+
+;; Testing macroexpand
+(macroexpand (unless2 2 3 4))
+;=>(if (not 2) 3 4)
+
+;; Testing evaluation of macro result
+(defmacro identity (x) x)
+(let* ((a 123)) (identity a))
+;=>123
+
+
+;>>> deferrable=True
+;;
+;; -------- Deferrable Functionality --------
+
+;; Testing non-macro function
+(not (eq 1 1))
+;=>nil
+;;; This should fail if it is a macro
+(not (eq 1 2))
+;=>t
+
+;; Testing nth, cons and cdr functions
+
+(nth (list 1) 0)
+;=>1
+(nth (list 1 2) 1)
+;=>2
+(setq x "x")
+;=>"x"
+
+(car (list))
+;=>nil
+(car (list 6))
+;=>6
+(car (list 7 8 9))
+;=>7
+
+(cdr (list))
+;=>nil
+(cdr (list 6))
+;=>nil
+(cdr (list 7 8 9))
+;=>(8 9)
+
+
+;; Testing or macro
+(or)
+;=>nil
+(or 1)
+;=>1
+(or 1 2 3 4)
+;=>1
+(or nil 2)
+;=>2
+(or nil nil 3)
+;=>3
+(or nil nil nil nil nil 4)
+;=>4
+(or nil nil 3 nil nil 4)
+;=>3
+(or (or nil 4))
+;=>4
+
+;; Testing cond macro
+
+(cond)
+;=>nil
+(cond t 7)
+;=>7
+(cond t 7 t 8)
+;=>7
+(cond nil 7 t 8)
+;=>8
+(cond nil 7 nil 8 "else" 9)
+;=>9
+(cond nil 7 (eq 2 2) 8 "else" 9)
+;=>8
+(cond nil 7 nil 8 nil 9)
+;=>nil
+
+;; Testing EVAL in let*
+
+(let* ((x (or nil "yes"))) x)
+;=>"yes"
+
+
+;>>> optional=True
+;;
+;; -------- Optional Functionality --------
+
+;;
+;; Loading core.rud
+(load-file "../tests/core.rud")
+
+;; Testing -> macro
+(-> 7)
+;=>7
+(-> (list 7 8 9) car)
+;=>7
+(-> (list 7 8 9) (car))
+;=>7
+(-> (list 7 8 9) car (+ 7))
+;=>14
+(-> (list 7 8 9) cdr (cdr) car (+ 7))
+;=>16
+
+;; Testing ->> macro
+(->> "L")
+;=>"L"
+(->> "L" (str "A") (str "M"))
+;=>"MAL"
+(->> (list 4) (concat (list 3)) (concat (list 2)) cdr (concat (list 1)))
+;=>(1 3 4)
+
+
+
+;>>> deferrable=False
+;>>> optional=False
+;;
+;; -------- rudel-specific Functionality --------
+
+;; Testing eq, atom
+
+(atom nil)
+;=>t
+(atom '())
+;=>t
+(atom 'symbol)
+;=>t
+(atom 0)
+;=>t
+(atom "string")
+;=>t
+(atom cons)
+;=>t
+(atom or)
+;=>t
+(atom '(1 2))
+;=>nil
+(atom (list 3 4))
+;=>nil
+
+(eq 0 0)
+;=>t
+(eq 0 1)
+;=>nil
+(eq "str" "str")
+;=>nil
+(eq '(1 2) '(1 2))
+;=>nil
+(eq nil nil)
+;=>t
+(eq cons cons)
+;=>nil
+(eq cons or)
+;=>nil
+
+
+(copy-list (list 1 2 3 4 5))
+;=>(1 2 3 4 5)
+(copy-list (list 1 2 '(6 8) 4 5))
+;=>(1 2 (6 8) 4 5)
+(setq x (list 1 2 3 4 5))
+;=>(1 2 3 4 5)
+(eq x (list 1 2 3 4 5))
+;=>nil
+(equal x (list 1 2 3 4 5))
+;=>t
+(copy-list-n x 3)
+;=>(1 2 3)
+(copy-list-n x 0)
+;=>nil
+(copy-list-n x 10)
+;=>(1 2 3 4 5)
+(copy-list-n nil 5)
+;=>nil
+(copy-list-n 'cond 5)
+;=>cond
+x
+;=>(1 2 3 4 5)
+
+(last '(6 7 8 9 10))
+;=>(10)
+(last 10)
+;=>nil
+
+(nthcdr 0 '(a b c d e))
+;=>(b c d e)
+(nthcdr 3 '(a b c d e))
+;=>(e)
+(nthcdr 4 '(a b c d e))
+;=>nil
+(nthcdr 5 '(a b c d e))
+;=>nil
+
+(reduce cons '(1 2))
+;=>(1 . 2)
+(reduce cons '(1 2 3 4 5))
+;=>((((1 . 2) . 3) . 4) . 5)
+
+(mapcar (lambda (x) (* 2 x)) '(1))
+;=>(2)
+(mapcar (lambda (x) (* 2 x)) '(1 2 3 4))
+;=>(2 4 6 8)
+
+(strp "")
+;=>t
+(strp " ")
+;=>t
+(strp "hoge")
+;=>t
+(strp 'hoge)
+;=>nil
+(strp 1)
+;=>nil
+
+;; Testing vector
+(setq x (vpush 1 (make-vector 0)))
+;=>#<VECTOR>
+(vref x 0)
+;=>1
+(rplacv x 0 'car)
+;=>car
+(vref x 0)
+;=>car
+((eval (vref x 0)) (cons 1 2))
+;=>1
+(rplacv x 1 'cons)
+;=>cons
+(vref x 0)
+;=>car
+(vref x 1)
+;=>cons
+
+(setq y (copy-vector x))
+;=>#<VECTOR>
+(eq x y)
+;=>nil
+(veq x y)
+;=>t
+(vref y 0)
+;=>car
+(vref y 1)
+;=>cons
+(setq z (vconc x y))
+;=>#<VECTOR>
+(vref x 0)
+;=>car
+(vref x 1)
+;=>cons
+(veq x y)
+;=>t
+(vref z 0)
+;=>car
+(vref z 1)
+;=>cons
+(vref z 2)
+;=>car
+(vref z 3)
+;=>cons
+(veq z x)
+;=>nil
+(vpop z)
+;=>cons
+(vpop z)
+;=>car
+(veq z x)
+;=>t
+(setq x (vector 1 2 3))
+;=>#<VECTOR>
+(setq y (vector 4 5 6))
+;=>#<VECTOR>
+(setq z (vnconc x y))
+;=>#<VECTOR>
+(eq x z)
+;=>t
+(vref z 5)
+;=>6
+(setq x "hoge")
+;=>"hoge"
+(vref x 0)
+;=>'h'
+(vref x 1)
+;=>'o'
+(vref x 2)
+;=>'g'
+(vref x 3)
+;=>'e'
+(make-list-from-vector x)
+;=>('h' 'o' 'g' 'e')
+
+;; Testing VM
+(exec-vm (compile-vm nil))
+;=>nil
+(exec-vm (compile-vm 1))
+;=>1
+(exec-vm (compile-vm t))
+;=>t
+(exec-vm (compile-vm "hoge"))
+;=>"hoge"
+(exec-vm (compile-vm 'cons))
+;=>#<CLOJURE>
+(exec-vm (compile-vm 'cond))
+;=>#<MACRO>
+(exec-vm (compile-vm 'list))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(+ 1 (* (- 2 4) 3))))
+;=>-5
+(exec-vm (compile-vm '(/ 12 4)))
+;=>3
+(exec-vm (compile-vm '(car (cons 1 (cons 2 (cons 3 nil))))))
+;=>1
+(exec-vm (compile-vm '(cdr (cons 1 (cons 2 (cons 3 nil))))))
+;=>(2 3)
+(exec-vm (compile-vm '(eq 1 2)))
+;=>nil
+(exec-vm (compile-vm '(eq 1 1)))
+;=>t
+(exec-vm (compile-vm '(eq "hoge" "hoge")))
+;=>nil
+(exec-vm (compile-vm '(equal "hoge" "hoge")))
+;=>t
+(setq x 10)
+;=>10
+(setq y 7)
+;=>7
+(exec-vm (compile-vm '(+ x y)))
+;=>17
+(setq x (exec-vm (compile-vm '(vpush 10 (make-vector 4)))))
+;=>#<VECTOR>
+(vref x 0)
+;=>10
+(exec-vm (compile-vm '(vpush cons (make-vector 0))))
+;=>#<VECTOR>
+(exec-vm (compile-vm '(vpop (vpush cons (make-vector 0)))))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(vpop "abcd")))
+;=>'d'
+(exec-vm (compile-vm '(vref "abcd" 1)))
+;=>'b'
+(exec-vm (compile-vm '(let* ((x (+ 2 3)) (y (* 4 2))) (- x y))))
+;=>-3
+(exec-vm (compile-vm '(if t 1 2)))
+;=>1
+(exec-vm (compile-vm '(if nil 1 2)))
+;=>2
+(exec-vm (compile-vm '(let* ((fn (lambda (x) (+ x 1))))  (fn 5))))
+;=>6
+
+(exec-vm (compile-vm '(quote 7)))
+;=>7
+(exec-vm (compile-vm '(quote (1 2 3))))
+;=>(1 2 3)
+(exec-vm (compile-vm '(quote (1 2 (3 4)))))
+;=>(1 2 (3 4))
+
+(exec-vm (compile-vm '(quasiquote 7)))
+;=>7
+(exec-vm (compile-vm '(quasiquote (1 2 3))))
+;=>(1 2 3)
+(exec-vm (compile-vm '(quasiquote (1 2 (3 4)))))
+;=>(1 2 (3 4))
+(exec-vm (compile-vm '(quasiquote (nil))))
+;=>(nil)
+
+(exec-vm (compile-vm '(quasiquote (unquote 7))))
+;=>7
+(exec-vm (compile-vm '(setq a 8)))
+;=>8
+(exec-vm (compile-vm '(quasiquote a)))
+;=>a
+(exec-vm (compile-vm '(quasiquote (unquote a))))
+;=>8
+(exec-vm (compile-vm '(quasiquote (1 a 3))))
+;=>(1 a 3)
+(exec-vm (compile-vm '(quasiquote (1 (unquote a) 3))))
+;=>(1 8 3)
+(exec-vm (compile-vm '(setq b (quote (1 "b" "d")))))
+;=>(1 "b" "d")
+(exec-vm (compile-vm '(quasiquote (1 b 3))))
+;=>(1 b 3)
+(exec-vm (compile-vm '(quasiquote (1 (unquote b) 3))))
+;=>(1 (1 "b" "d") 3)
+(exec-vm (compile-vm '(quasiquote ((unquote 1) (unquote 2)))))
+;=>(1 2)
+
+(exec-vm (compile-vm '(setq c (quote (1 "b" "d")))))
+;=>(1 "b" "d")
+(exec-vm (compile-vm '(quasiquote (1 c 3))))
+;=>(1 c 3)
+(exec-vm (compile-vm '(quasiquote (1 (splice-unquote c) 3))))
+;=>(1 1 "b" "d" 3)
+(exec-vm (compile-vm '((macro (x) x) 1)))
+;=>1
+(exec-vm (compile-vm '((macro (x) `(cons ,x (cons ,(+ x 1) nil))) 1)))
+;=>(1 2)
+
+(exec-vm (compile-vm '(setq x 10)))
+;=>10
+x
+;=>10
+(exec-vm (compile-vm '(setq x (lambda (x) (+ x 10)))))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(x 2)))
+;=>12
+(exec-vm (compile-vm '(setq x (macro (x) `(cons ,x (cons ,(+ x 1) nil))))))
+;=>#<MACRO>
+(exec-vm (compile-vm '(x 7)))
+;=>(7 8)
+
+(exec-vm (compile-vm '(progn 1 2 3)))
+;=>3
+
+(exec-vm (compile-vm '(setq defun (macro (name arg body) `(setq ,name (lambda ,arg ,body))))))
+;=>#<MACRO>
+(exec-vm (compile-vm '(defun mnot (a) (if a nil t))))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(mnot t)))
+;=>nil
+(exec-vm (compile-vm '(mnot nil)))
+;=>t
+
+(exec-vm (compile-vm '(defun tlist (& a) a)))
+;=>#<CLOJURE>
+(exec-vm (compile-vm '(tlist 1 2 3)))
+;=>(1 2 3)
+
+;; Testing continuation
+(+ 2 (callcc (\ (x) (x 9))))
+;=>11
+(+ 2 (callcc (\ (x) 9)))
+;=>11
+(defun f (c) (* 10 (c 20)))
+;=>#<CLOJURE>
+(+ 5 (callcc f))
+;=>25
+(defun f () (callcc (\ (escape) (progn (println "hoge") (println "hige") (escape 10) (println "hage")))))
+;=>#<CLOJURE>
+(f)
+; hoge
+; hige
+;=>10
+
+;; Testing try/raise
+(+ 1 (try (if nil 1 (throw 1)) (\ (x) (+ 10 x))))
+;=>12
+(+ 1 (try (if t 1 (throw 1)) (\ (x) (+ 10 x))))
+;=>2
+(+ 1 (try (if t (try (if nil 5 (throw 7)) (\ (x) (throw (+ x 2)))) (throw 1)) (\ (x) (+ 10 x))))
+;=>20
+(+ 1 (try (if t (try (if t 5 (throw 7)) (\ (x) (throw (+ x 2)))) (throw 1)) (\ (x) (+ 10 x))))
+;=>6
+(+ 1 (try (if nil (try (if nil 5 (throw 7)) (\ (x) (throw (+ x 2)))) (throw 1)) (\ (x) (+ 10 x))))
+;=>12
