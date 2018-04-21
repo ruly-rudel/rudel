@@ -425,7 +425,6 @@ value_t exec_vm(value_t c, value_t e)
 
 			case IS_AP:
 apply:
-				r0 = LOCAL_VPOP_RAW;
 				r1 = LOCAL_VPOP_RAW;
 				if(clojurep(r1) || macrop(r1))	// compiled function
 				{
@@ -444,8 +443,7 @@ apply:
 					// set new execute contexts
 					code  = UNSAFE_CAR(THIRD(r1));	// clojure code
 					debug = UNSAFE_CDR(THIRD(r1));	// clojure debug symbols
-					CONS(r3, r0, FOURTH(r1));
-					env   = r3;	// clojure environment + new environment as arguments
+					env   = FOURTH(r1);		// clojure environment
 					pc    = -1;
 				}
 				else
@@ -612,6 +610,12 @@ apply:
 				}
 				break;
 
+			case IS_SWAP: TRACE("SWAP");
+				r0 = LOCAL_VPOP_RAW;
+				r1 = LOCAL_VPOP_RAW;
+				LOCAL_VPUSH_RAW(r0);
+				LOCAL_VPUSH_RAW(r1);
+				break;
 
 			case IS_ATOM: TRACE("ATOM");
 				OP_1P1P(atom(r0) ? g_t : NIL);

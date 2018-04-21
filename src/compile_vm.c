@@ -242,6 +242,7 @@ static value_t compile_vm_let(value_t code, value_t debug, value_t ast, value_t 
 
 /////////////////////////////////////////////////////////////////////
 // special form: lambda
+#if 0
 static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key)
 {
 	value_t key_car = NIL;
@@ -270,6 +271,51 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key)
 			vpush(ROPD(IS_SETSYM, i),    code);	vpush(key, debug);
 		}
 	}
+
+	pop_root(4);
+	return code;
+}
+#endif
+
+static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key)
+{
+	value_t key_car = NIL;
+	assert(vectorp(code));
+	assert(consp(key) || nilp(key));
+
+	push_root(&code);
+	push_root(&debug);
+	push_root(&key);
+	push_root(&key_car);
+
+	vpush(ROPD(IS_MKVEC_ENV, count(key)), code);		vpush(key, debug);
+	vpush(ROP (IS_VPUSH_ENV),             code);		vpush(key, debug);	// duplicate ENV_VEC on stack top
+
+	for(int i = 0; !nilp(key); i++, (key = cdr(key)))
+	{
+		assert(consp(key));
+
+		key_car = car(key);
+
+		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
+		{
+			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
+			vpush(second(key),           code);	vpush(key, debug);
+			vpush(ROP (IS_CONS_VPUSH),   code);	vpush(key, debug);
+//			vpush(ROPD(IS_RESTPARAM, i), code);	vpush(key, debug);
+			break;
+		}
+		else
+		{
+			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
+			vpush(key_car,               code);	vpush(key, debug);
+			vpush(ROP (IS_CONS_VPUSH),   code);	vpush(key, debug);
+		}
+	}
+
+	vpush(ROP(IS_POP), code);				vpush(key, debug);	// pop environment
 
 	pop_root(4);
 	return code;
@@ -562,6 +608,41 @@ static value_t compile_vm_builtin_arg(value_t code, value_t debug, value_t ast, 
 	return code;
 }
 
+// applicative order
+static value_t compile_vm_arg(bool eval_it, value_t code, value_t debug, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(ast) || nilp(ast));
+	assert(consp(env));
+
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
+	if(!nilp(ast))
+	{
+		code = compile_vm_arg(eval_it, code, debug, cdr(ast), env);
+		if(errp(code)) goto cleanup;
+
+		if(eval_it)
+		{
+			code = compile_vm1(code, debug, car(ast), env);
+			vpush(ROP(IS_SWAP), code);	vpush(ast, debug);
+		}
+		else
+		{
+			vpush(ROP(IS_PUSHR), code);	vpush(ast, debug);
+			vpush(car(ast),      code);	vpush(ast, debug); //**** push symbol to code
+			vpush(ROP(IS_SWAP), code);	vpush(ast, debug);
+		}
+	}
+
+cleanup:
+	pop_root(4);
+	return code;
+}
+
 static value_t compile_vm_special(value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
@@ -704,6 +785,26 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 			pop_root(6);
 			return code;
 		}
+	}
+#if 0
+	/////////////////////////////////////
+	// CASE 2:builtin function or some optimizes
+	if(symbolp(fn))
+	{
+		value_t bfn = compile_vm_check_builtin(fn, env);
+		if(!nilp(bfn))			// apply builtin
+		{
+			push_root(&bfn);
+			code = compile_vm_builtin_arg(code, debug, cdr(ast), env);		// arguments
+			if(errp(code))
+			{
+				pop_root(5);
+				return code;
+			}
+			vpush(bfn, code);		vpush(ast, debug);
+			pop_root(6);
+			return code;
+		}
 		else				// apply setq-ed lambda/macro(is function or macro)
 		{
 			value_t ref = get_env_ref(fn, env);
@@ -757,18 +858,50 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 			}
 		}
 	}
+#endif
 
 	/////////////////////////////////////
 	// CASE 3:normal apply
 
 	// evaluate 1st element of apply list
-	code = compile_vm1_fn(code, debug, first(ast), env);
-	if(errp(code))
-	{
-		pop_root(5);
-		return code;
-	}
+	code = compile_vm1_fn(code, debug, fn, env);
+	if(errp(code)) goto cleanup;
 
+	///////////////////
+	// check function type and select call type
+	vpush(ROP(IS_DUP), code);		vpush(ast, debug);
+	vpush(ROP(IS_CLOJUREP), code);		vpush(ast, debug);
+
+	int cond_br = vsize(code);
+	vpush(ROP(IS_BNIL), code);		vpush(ast, debug);	// dummy operand(0)
+
+	///////////////////
+	// true situation: clojure call
+	code = compile_vm_arg(true, code, debug, cdr(ast), env);	// arguments
+	if(errp(code)) goto cleanup;
+
+	vpush(ROP(IS_AP), code);		vpush(ast, debug);
+
+	int true_br = vsize(code);
+	vpush(ROP(IS_BR), code);		vpush(ast, debug);	// dummy operand(0)
+
+	///////////////////
+	// false situation: macro call
+	code = compile_vm_arg(false, code, debug, cdr(ast), env);	// arguments
+	if(errp(code)) goto cleanup;
+
+	vpush(ROP(IS_AP),          code);	vpush(ast, debug);
+	vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
+	vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
+
+	int next_addr = vsize(code);
+
+	///////////////////
+	// fix branch address: relative to pc
+	rplacv(code, cond_br, ROPD(IS_BNIL, true_br + 1 - cond_br));
+	rplacv(code, true_br, ROPD(IS_BR,   next_addr - true_br));
+
+#if 0
 	///////////////////
 	// check function type and select call type
 	vpush(ROP(IS_DUP), code);		vpush(ast, debug);
@@ -808,7 +941,9 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	// fix branch address: relative to pc
 	rplacv(code, cond_br, ROPD(IS_BNIL, true_br + 1 - cond_br));
 	rplacv(code, true_br, ROPD(IS_BR,   next_addr - true_br));
+#endif
 
+cleanup:
 	pop_root(5);
 	return code;
 }
