@@ -527,6 +527,7 @@ apply:
 				}
 				else if(clojurep(r0) || macrop(r0))
 				{
+					r0 = copy_list(r0);
 					AVALUE(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0)))).cons->car = env;	// set current environment
 				}
 #ifdef TRACE_VM

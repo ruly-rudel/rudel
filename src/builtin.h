@@ -292,6 +292,7 @@ value_t list		(int n, ...);
 value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
 int	count		(value_t x);
 value_t symbol_string	(value_t sym);
+value_t copy_list	(value_t lst);
 
 value_t rerr		(value_t cause, value_t pos);
 value_t rerr_alloc	(void);

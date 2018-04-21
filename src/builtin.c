@@ -252,6 +252,28 @@ value_t symbol_string(value_t sym)
 	return copy_vector(sym);
 }
 
+value_t copy_list(value_t lst)
+{
+	push_root(&lst);
+	value_t r   = cons(NIL, NIL);
+	value_t cur = r;
+	push_root(&r);
+	push_root(&cur);
+
+	rtype_t t = rtypeof(lst);
+
+	for(; !nilp(lst); lst = cdr(lst))
+	{
+		CONS_AND_CDR(car(lst), cur);
+	}
+
+	r = cdr(r);
+	r.type.main = t;
+
+	pop_root(3);
+	return r;
+}
+
 
 /////////////////////////////////////////////////////////////////////
 // public: rudel-specific functions
