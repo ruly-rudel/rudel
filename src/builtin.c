@@ -377,8 +377,6 @@ void rep_file(char* fn, value_t env)
 	// build terminate-catcher code
 	value_t str = str_to_rstr("exception caches at root: ");
 	value_t catch = make_vector(7);
-//	vpush(ROP (IS_PUSH),		catch);
-//	vpush(RREF(0, 0),		catch);
 	vpush(ROP (IS_PUSH),		catch);
 	vpush(str,			catch);
 	vpush(ROP(IS_VCONC),		catch);

@@ -422,11 +422,7 @@ value_t exec_vm(value_t c, value_t e)
 				r3 = make_vector(1);
 				CONS(r0, r2, r2);
 				r0 = cloj(NIL, NIL, r0, NIL, NIL);
-#if 0
-				CONS(r1, NIL, r0);
-				local_vpush(r1, r3);
-				LOCAL_VPUSH_RAW(r3);
-#endif
+
 				r1 = LOCAL_VPOP_RAW;
 				LOCAL_VPUSH_RAW(r0);
 				LOCAL_VPUSH_RAW(r1);
@@ -464,10 +460,6 @@ apply:
 
 			case IS_GOTO: TRACE("GOTO");
 				// fetch first argument as result
-#if 0
-				r0 = RREF(0, 0);
-				r0 = local_get_env_value_ref(r0, env);
-#endif
 				r0 = LOCAL_VPOP_RAW;
 
 				r1 = local_vref(code, ++pc);	// next code is entity(continuation itself)
@@ -589,39 +581,6 @@ apply:
 
 			case IS_NCONC: TRACE("NCONC");
 				OP_2P1P(nconc(r0, r1));
-				break;
-
-			case IS_SETSYM: TRACE1("SETSYM %d", op.op.operand);
-				r0 = UNSAFE_CAR(env);
-				r2 = LOCAL_VPOP_RAW;
-				r1 = local_vref_safe(r0, op.op.operand);
-				if(errp(r1))
-				{
-					THROW(pr_str(RERR_PC(ERR_ARG), NIL, false));
-				}
-				else
-				{
-					AVALUE(r1).cons->car = r2;
-				}
-				break;
-
-			case IS_RESTPARAM: TRACE1("RESTPARAM %d", pc + op.op.operand);
-				r0 = UNSAFE_CAR(env);
-				r1 = LOCAL_VPOP_RAW;
-				CONS(r2, NIL, NIL);
-				r3 = r2;
-
-				for(int i = op.op.operand; i < vsize(r0); i++)
-				{
-					CONS_AND_CDR(UNSAFE_CDR(local_vref(r0, i)), r3);
-				}
-				r2 = cdr(r2);
-				CONS(r3, r1, r2);
-				r3 = rplacv(r0, op.op.operand, r3);
-				if(errp(r3))
-				{
-					THROW(pr_str(RERR_PC(ERR_ARG), NIL, false));
-				}
 				break;
 
 			case IS_SWAP: TRACE("SWAP");
@@ -902,12 +861,6 @@ throw:
 				// pop *exception-stack*
 				r3 = cdr(r2);
 				local_set_env_ref(r1, r3, env);
-
-#if 0
-				r3 = local_make_vector(1);
-				local_vpush(cons(NIL, r0), r3);
-				LOCAL_VPUSH_RAW(r3);
-#endif
 				goto apply;
 		}
 
