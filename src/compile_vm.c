@@ -299,15 +299,14 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key)
 
 		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
 		{
-			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 			vpush(second(key),           code);	vpush(key, debug);
-			vpush(ROP (IS_CONS_VPUSH),   code);	vpush(key, debug);
-//			vpush(ROPD(IS_RESTPARAM, i), code);	vpush(key, debug);
-			break;
+			vpush(ROP (IS_VPUSH_REST),   code);	vpush(key, debug);
+			goto cleanup;
 		}
 		else
 		{
+			vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
 			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 			vpush(key_car,               code);	vpush(key, debug);
@@ -315,8 +314,10 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key)
 		}
 	}
 
+	vpush(ROP(IS_ISZERO_ARGNUM),   code);			vpush(key, debug);
 	vpush(ROP(IS_POP), code);				vpush(key, debug);	// pop environment
 
+cleanup:
 	pop_root(4);
 	return code;
 }
@@ -467,6 +468,41 @@ static value_t compile_vm_macro_arg(value_t code, value_t debug, value_t ast, va
 	return code;
 }
 
+// applicative order
+static value_t compile_vm_arg(bool eval_it, value_t code, value_t debug, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(ast) || nilp(ast));
+	assert(consp(env));
+
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
+	if(!nilp(ast))
+	{
+		code = compile_vm_arg(eval_it, code, debug, cdr(ast), env);
+		if(errp(code)) goto cleanup;
+
+		if(eval_it)
+		{
+			code = compile_vm1(code, debug, car(ast), env);
+			vpush(ROP(IS_SWAP), code);	vpush(ast, debug);
+		}
+		else
+		{
+			vpush(ROP(IS_PUSHR), code);	vpush(ast, debug);
+			vpush(car(ast),      code);	vpush(ast, debug); //**** push symbol to code
+			vpush(ROP(IS_SWAP), code);	vpush(ast, debug);
+		}
+	}
+
+cleanup:
+	pop_root(4);
+	return code;
+}
+
 static value_t compile_vm_macroexpand(value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
@@ -480,6 +516,15 @@ static value_t compile_vm_macroexpand(value_t code, value_t debug, value_t ast, 
 
 	if(consp(ast))
 	{
+		code = compile_vm1_fn(code, debug, car(ast), env);
+		if(errp(code)) goto cleanup;
+
+		code = compile_vm_arg(false, code, debug, cdr(ast), env);	// arguments
+		if(errp(code)) goto cleanup;
+
+		vpush(ROPD(IS_ARGNUM, count(cdr(ast))), code);		vpush(ast, debug);
+		vpush(ROP(IS_AP),          code);	vpush(ast, debug);
+#if 0
 		code = compile_vm1(code, debug, first(ast), env);
 		if(errp(code))
 		{
@@ -493,14 +538,16 @@ static value_t compile_vm_macroexpand(value_t code, value_t debug, value_t ast, 
 			pop_root(4);
 			return code;
 		}
+		vpush(ROPD(IS_ARGNUM, count(cdr(ast))), code);		vpush(ast, debug);
 		vpush(ROP(IS_AP),    code);	vpush(ast, debug);
+#endif
 	}
 	else
 	{
-		pop_root(4);
-		return RERR(ERR_TYPE, NIL);
+		code = RERR(ERR_TYPE, NIL);
 	}
 
+cleanup:
 	pop_root(4);
 	return code;
 }
@@ -604,41 +651,6 @@ static value_t compile_vm_builtin_arg(value_t code, value_t debug, value_t ast, 
 		}
 	}
 
-	pop_root(4);
-	return code;
-}
-
-// applicative order
-static value_t compile_vm_arg(bool eval_it, value_t code, value_t debug, value_t ast, value_t env)
-{
-	assert(vectorp(code));
-	assert(consp(ast) || nilp(ast));
-	assert(consp(env));
-
-	push_root(&code);
-	push_root(&debug);
-	push_root(&ast);
-	push_root(&env);
-
-	if(!nilp(ast))
-	{
-		code = compile_vm_arg(eval_it, code, debug, cdr(ast), env);
-		if(errp(code)) goto cleanup;
-
-		if(eval_it)
-		{
-			code = compile_vm1(code, debug, car(ast), env);
-			vpush(ROP(IS_SWAP), code);	vpush(ast, debug);
-		}
-		else
-		{
-			vpush(ROP(IS_PUSHR), code);	vpush(ast, debug);
-			vpush(car(ast),      code);	vpush(ast, debug); //**** push symbol to code
-			vpush(ROP(IS_SWAP), code);	vpush(ast, debug);
-		}
-	}
-
-cleanup:
 	pop_root(4);
 	return code;
 }
@@ -880,6 +892,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	code = compile_vm_arg(true, code, debug, cdr(ast), env);	// arguments
 	if(errp(code)) goto cleanup;
 
+	vpush(ROPD(IS_ARGNUM, count(cdr(ast))), code);		vpush(ast, debug);
 	vpush(ROP(IS_AP), code);		vpush(ast, debug);
 
 	int true_br = vsize(code);
@@ -890,6 +903,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	code = compile_vm_arg(false, code, debug, cdr(ast), env);	// arguments
 	if(errp(code)) goto cleanup;
 
+	vpush(ROPD(IS_ARGNUM, count(cdr(ast))), code);		vpush(ast, debug);
 	vpush(ROP(IS_AP),          code);	vpush(ast, debug);
 	vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
 	vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
@@ -1068,11 +1082,13 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 			push_root(&b_code);
 			value_t b_debug = make_vector(2);
 			push_root(&b_debug);
+#if 0
 			for(int i = n - 1; i >= 0; i--)
 			{
 				vpush(ROP(IS_PUSH), b_code);	vpush(ast, b_debug);
 				vpush(RREF(0, i),   b_code);	vpush(ast, b_debug);
 			}
+#endif
 			vpush(op,          b_code);		vpush(ast, b_debug);
 			vpush(ROP(IS_RET), b_code);		vpush(ast, b_debug);
 

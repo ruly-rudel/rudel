@@ -129,7 +129,7 @@
 
 #define THROW(X) \
 { \
-	r0 = (X); \
+	LOCAL_VPUSH_RAW(X); \
 	goto throw; \
 }
 
@@ -160,8 +160,9 @@
 #define TRACE2N(X, Y, Z)
 #endif // TRACE_VM
 
-#define RERR_TYPE_PC	RERR(ERR_TYPE, cons(local_vref(debug, pc), NIL))
-#define RERR_PC(X)	RERR((X), cons(local_vref(debug, pc), NIL))
+#define RERR_TYPE_PC	RERR(ERR_TYPE,      cons(local_vref(debug, pc), NIL))
+#define RERR_ARG_PC	RERR(ERR_ARG,       cons(local_vref(debug, pc), NIL))
+#define RERR_PC(X)	RERR((X),           cons(local_vref(debug, pc), NIL))
 #define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(local_vref(debug, pc), NIL))
 
 /////////////////////////////////////////////////////////////////////
@@ -326,6 +327,8 @@ value_t exec_vm(value_t c, value_t e)
 	value_t r2    = NIL;
 	value_t r3    = NIL;
 
+	int argnum    = 0;
+
 	// register stack, ret, code, env, reg to root
 	push_root        (&code);
 	push_root        (&debug);
@@ -404,11 +407,12 @@ value_t exec_vm(value_t c, value_t e)
 				for(int i = 0; i <= rsp; i++)
 					local_vpush(ret_raw[i], r1);
 
-				local_vpush(code,     r1);
-				local_vpush(debug,    r1);
-				local_vpush(RINT(pc), r1);
-				local_vpush(env,      r1);
-				local_vpush(r0,       r1);
+				local_vpush(code,         r1);
+				local_vpush(debug,        r1);
+				local_vpush(RINT(pc),     r1);
+				local_vpush(RINT(argnum), r1);
+				local_vpush(env,          r1);
+				local_vpush(r0,           r1);
 
 				r2 = make_vector(2);				// code invoking continuation
 				local_vpush(ROP(IS_GOTO), r2);
@@ -418,26 +422,32 @@ value_t exec_vm(value_t c, value_t e)
 				r3 = make_vector(1);
 				CONS(r0, r2, r2);
 				r0 = cloj(NIL, NIL, r0, NIL, NIL);
+#if 0
 				CONS(r1, NIL, r0);
 				local_vpush(r1, r3);
 				LOCAL_VPUSH_RAW(r3);
+#endif
+				r1 = LOCAL_VPOP_RAW;
+				LOCAL_VPUSH_RAW(r0);
+				LOCAL_VPUSH_RAW(r1);
+				argnum = 1;
 				// fall-through to AP
 
-			case IS_AP:
+			case IS_AP: TRACE("AP");
 apply:
 				r1 = LOCAL_VPOP_RAW;
 				if(clojurep(r1) || macrop(r1))	// compiled function
 				{
-					TRACE("AP");
 					if(nilp(THIRD(r1)))
 					{
 						r2 = compile_vm(r1, env);
-						if(errp(r2)) return r2;
+						if(errp(r2)) THROW(pr_str(r2, NIL, false));
 					}
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
 					LOCAL_VPUSH_RET_RAW(debug);
 					LOCAL_VPUSH_RET_RAW(RINT(pc));
+					LOCAL_VPUSH_RET_RAW(RINT(argnum));
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
@@ -454,8 +464,11 @@ apply:
 
 			case IS_GOTO: TRACE("GOTO");
 				// fetch first argument as result
+#if 0
 				r0 = RREF(0, 0);
 				r0 = local_get_env_value_ref(r0, env);
+#endif
+				r0 = LOCAL_VPOP_RAW;
 
 				r1 = local_vref(code, ++pc);	// next code is entity(continuation itself)
 
@@ -479,10 +492,11 @@ apply:
 				// fall through to RET
 
 			case IS_RET: TRACE("RET");
-				env   = LOCAL_VPOP_RET_RAW;
-				pc    = INTOF(LOCAL_VPOP_RET_RAW);
-				debug = LOCAL_VPOP_RET_RAW;
-				code  = LOCAL_VPOP_RET_RAW;
+				env    = LOCAL_VPOP_RET_RAW;
+				argnum = INTOF(LOCAL_VPOP_RET_RAW);
+				pc     = INTOF(LOCAL_VPOP_RET_RAW);
+				debug  = LOCAL_VPOP_RET_RAW;
+				code   = LOCAL_VPOP_RET_RAW;
 				break;
 
 			case IS_DUP: TRACE("DUP");
@@ -617,6 +631,32 @@ apply:
 				LOCAL_VPUSH_RAW(r1);
 				break;
 
+			case IS_ARGNUM: TRACE1("ARGNUM %d", op.op.operand);
+				argnum = op.op.operand;
+				break;
+
+			case IS_DEC_ARGNUM: TRACE("DEC_ARGNUM");
+				argnum -= 1;
+				break;
+
+			case IS_VPUSH_REST: TRACE("VPUSH_REST");
+				r0 = LOCAL_VPOP_RAW;	// KEY
+				r1 = LOCAL_VPOP_RAW;	// VEC
+				CONS(r2, r0, NIL);
+				r3 = r2;
+				while(argnum-- > 0)
+				{
+					CONS_AND_CDR(LOCAL_VPOP_RAW, r3);
+				}
+				local_vpush(r2, r1);
+				break;
+
+			case IS_ISZERO_ARGNUM: TRACE1("ISZERO_ARGNUM %d", argnum);
+				if(argnum != 0) THROW(pr_str(RERR_ARG_PC, NIL, false));
+				break;
+
+
+
 			case IS_ATOM: TRACE("ATOM");
 				OP_1P1P(atom(r0) ? g_t : NIL);
 				break;
@@ -717,6 +757,7 @@ apply:
 				LOCAL_VPUSH_RET_RAW(code);
 				LOCAL_VPUSH_RET_RAW(debug);
 				LOCAL_VPUSH_RET_RAW(RINT(pc));
+				LOCAL_VPUSH_RET_RAW(RINT(argnum));
 				LOCAL_VPUSH_RET_RAW(env);
 
 				// set new execute contexts
@@ -793,6 +834,7 @@ apply:
 					LOCAL_VPUSH_RET_RAW(code);
 					LOCAL_VPUSH_RET_RAW(debug);
 					LOCAL_VPUSH_RET_RAW(RINT(pc));
+					LOCAL_VPUSH_RET_RAW(RINT(argnum));
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
@@ -846,16 +888,26 @@ apply:
 			default:
 				THROW(pr_str(RERR_PC(ERR_INVALID_IS), NIL, false));
 throw:
+				// push exception handler
 				r1 = get_env_ref(str_to_sym("*exception-stack*"), env);
 				r2 = local_get_env_value_ref(r1, env);
 				r3 = car(r2);
-				if(!clojurep(r3)) return RERR_PC(ERR_EXCEPTION);
+				if(!clojurep(r3))
+				{
+					pop_root(9);
+					return RERR_PC(ERR_EXCEPTION);
+				}
 				LOCAL_VPUSH_RAW(r3);
+
+				// pop *exception-stack*
 				r3 = cdr(r2);
 				local_set_env_ref(r1, r3, env);
+
+#if 0
 				r3 = local_make_vector(1);
 				local_vpush(cons(NIL, r0), r3);
 				LOCAL_VPUSH_RAW(r3);
+#endif
 				goto apply;
 		}
 

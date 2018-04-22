@@ -24,8 +24,8 @@ void repl(value_t env)
 	// build terminate-catcher code
 	value_t str = STR("exception caches at root: ");
 	value_t catch = make_vector(8);
-	vpush(ROP (IS_PUSH),		catch);
-	vpush(RREF(0, 0),		catch);
+//	vpush(ROP (IS_PUSH),		catch);
+//	vpush(RREF(0, 0),		catch);
 	vpush(ROP (IS_PUSH),		catch);
 	vpush(str,			catch);
 	vpush(ROP(IS_VCONC),		catch);
@@ -75,6 +75,7 @@ void repl(value_t env)
 	vpush(code,     ret);
 	vpush(code,     ret);
 	vpush(RINT(-1), ret);
+	vpush(RINT(0),  ret);
 	vpush(env,      ret);
 	vpush(stack,    ret);
 

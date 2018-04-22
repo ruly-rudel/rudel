@@ -313,7 +313,7 @@ static value_t pr_err_cause(value_t e)
 			return str_to_rstr("symbol or variable is not found.");
 
 		    case ERR_ARG:
-			return str_to_rstr("too few argument.");
+			return str_to_rstr("invalid number of arguments.");
 
 		    case ERR_NOTFN:
 			return str_to_rstr("first element of the list is not a function.");
@@ -482,6 +482,10 @@ static value_t pr_vmis(value_t s)
 		case IS_SETSYM:		return str_to_rstr("IS_SETSYM");
 		case IS_RESTPARAM:	return str_to_rstr("IS_RESTPARAM");
 		case IS_SWAP:		return str_to_rstr("IS_SWAP");
+		case IS_ARGNUM:		return str_to_rstr("IS_ARGNUM");
+		case IS_DEC_ARGNUM:	return str_to_rstr("IS_DEC_ARGNUM");
+		case IS_VPUSH_REST:	return str_to_rstr("IS_VPUSH_REST");
+		case IS_ISZERO_ARGNUM:	return str_to_rstr("IS_ISZERO_ARGNUM");
 		case IS_ATOM:		return str_to_rstr("IS_ATOM");
 		case IS_CONSP:		return str_to_rstr("IS_CONSP");
 		case IS_CLOJUREP:	return str_to_rstr("IS_CLOJUREP");
