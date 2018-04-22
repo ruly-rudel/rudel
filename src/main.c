@@ -73,7 +73,6 @@ void repl(value_t env)
 	vpush(code,     ret);
 	vpush(code,     ret);
 	vpush(RINT(-1), ret);
-	vpush(RINT(0),  ret);
 	vpush(env,      ret);
 	vpush(stack,    ret);
 

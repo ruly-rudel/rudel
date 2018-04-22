@@ -411,7 +411,6 @@ again:
 				local_vpush(code,         r1);
 				local_vpush(debug,        r1);
 				local_vpush(RINT(pc),     r1);
-				local_vpush(RINT(argnum), r1);
 				local_vpush(env,          r1);
 				local_vpush(r0,           r1);
 
@@ -424,9 +423,11 @@ again:
 				CONS(r0, r2, r2);
 				r0 = cloj(NIL, NIL, r0, NIL, NIL);
 
+				// fix stack and argnum for AP
 				r1 = LOCAL_VPOP_RAW;
 				LOCAL_VPUSH_RAW(r0);
 				LOCAL_VPUSH_RAW(r1);
+
 				argnum = 1;
 				// fall-through to AP
 
@@ -444,7 +445,6 @@ apply:
 					LOCAL_VPUSH_RET_RAW(code);
 					LOCAL_VPUSH_RET_RAW(debug);
 					LOCAL_VPUSH_RET_RAW(RINT(pc));
-					LOCAL_VPUSH_RET_RAW(RINT(argnum));
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
@@ -491,7 +491,6 @@ apply:
 
 			case IS_RET: TRACE("RET");
 				env    = LOCAL_VPOP_RET_RAW;
-				argnum = INTOF(LOCAL_VPOP_RET_RAW);
 				pc     = INTOF(LOCAL_VPOP_RET_RAW);
 				debug  = LOCAL_VPOP_RET_RAW;
 				code   = LOCAL_VPOP_RET_RAW;
@@ -722,7 +721,6 @@ apply:
 				LOCAL_VPUSH_RET_RAW(code);
 				LOCAL_VPUSH_RET_RAW(debug);
 				LOCAL_VPUSH_RET_RAW(RINT(pc));
-				LOCAL_VPUSH_RET_RAW(RINT(argnum));
 				LOCAL_VPUSH_RET_RAW(env);
 
 				// set new execute contexts
@@ -799,7 +797,6 @@ apply:
 					LOCAL_VPUSH_RET_RAW(code);
 					LOCAL_VPUSH_RET_RAW(debug);
 					LOCAL_VPUSH_RET_RAW(RINT(pc));
-					LOCAL_VPUSH_RET_RAW(RINT(argnum));
 					LOCAL_VPUSH_RET_RAW(env);
 
 					// set new execute contexts
