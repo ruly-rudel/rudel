@@ -287,7 +287,7 @@ static value_t compile_vm_lambda(value_t ast, value_t env)
 	if(errp(lambda_code)) goto cleanup;
 
 	// lambda is clojure call
-	vpush(ROP(IS_RET), lambda_code);	vpush(ast, lambda_debug);	// RET
+	vpush(ROPD(IS_RET, count(def)), lambda_code);	vpush(ast, lambda_debug);	// RET
 	lambda_code = cons(lambda_code, lambda_debug);
 
 cleanup:
@@ -418,36 +418,28 @@ cleanup:
 
 /////////////////////////////////////////////////////////////////////
 // apply
-static value_t compile_vm_check_builtin(value_t atom, value_t env)
+static value_t compile_vm_check_builtin(value_t atom)
 {
-	assert(consp(env));
-
-	if(symbolp(atom))
+	assert(symbolp(atom));
+	for(int i = 0; i < g_istbl_size; i += 3)
 	{
-		for(int i = 0; i < g_istbl_size; i += 3)
+		if(EQ(g_istbl[i], atom))
 		{
-			if(EQ(g_istbl[i], atom))
-			{
-				return g_istbl[i + 1];
-			}
+			return g_istbl[i + 1];
 		}
 	}
 
 	return NIL;
 }
 
-static int compile_vm_get_builtin_argnum(value_t atom, value_t env)
+static int compile_vm_get_builtin_argnum(value_t atom)
 {
-	assert(consp(env));
-
-	if(symbolp(atom))
+	assert(symbolp(atom));
+	for(int i = 0; i < g_istbl_size; i += 3)
 	{
-		for(int i = 0; i < g_istbl_size; i += 3)
+		if(EQ(g_istbl[i], atom))
 		{
-			if(EQ(g_istbl[i], atom))
-			{
-				return INTOF(g_istbl[i + 2]);
-			}
+			return INTOF(g_istbl[i + 2]);
 		}
 	}
 
@@ -455,7 +447,7 @@ static int compile_vm_get_builtin_argnum(value_t atom, value_t env)
 }
 
 // applicative order
-static value_t compile_vm_builtin_arg(value_t code, value_t debug, value_t ast, value_t env)
+static value_t compile_vm_builtin_arg(bool eval_it, value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
 	assert(consp(ast) || nilp(ast));
@@ -468,10 +460,18 @@ static value_t compile_vm_builtin_arg(value_t code, value_t debug, value_t ast, 
 
 	if(!nilp(ast))
 	{
-		code = compile_vm_builtin_arg(code, debug, cdr(ast), env);
+		code = compile_vm_builtin_arg(eval_it, code, debug, cdr(ast), env);
 		if(errp(code)) goto cleanup;
-		code = compile_vm1(code, debug, car(ast), env);
-		if(errp(code)) goto cleanup;
+		if(eval_it)
+		{
+			code = compile_vm1(code, debug, car(ast), env);
+			if(errp(code)) goto cleanup;
+		}
+		else
+		{
+			vpush(ROP(IS_PUSHR), code);	vpush(ast, debug);
+			vpush(car(ast), code);		vpush(ast, debug);
+		}
 	}
 
 cleanup:
@@ -566,40 +566,29 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	push_root(&env);
 	push_root(&fn);
 
+	int argnum = count(cdr(ast));
+
 	/////////////////////////////////////
 	// CASE 2:builtin function or some optimizes
 	if(symbolp(fn))
 	{
-		value_t bfn = compile_vm_check_builtin(fn, env);
+		value_t bfn = compile_vm_check_builtin(fn);
 		if(!nilp(bfn))			// apply builtin
 		{
 			push_root(&bfn);
-			code = compile_vm_builtin_arg(code, debug, cdr(ast), env);		// arguments
+			int n = compile_vm_get_builtin_argnum(fn);
+			if(n != argnum)
+			{
+				pop_root(6);
+				return RERR(ERR_ARG, NIL);
+			}
+			code = compile_vm_builtin_arg(true, code, debug, cdr(ast), env);		// arguments
 			if(errp(code))
 			{
 				pop_root(6);
 				return code;
 			}
-			vpush(bfn, code);		vpush(ast, debug);
-			pop_root(6);
-			return code;
-		}
-	}
-#if 0
-	/////////////////////////////////////
-	// CASE 2:builtin function or some optimizes
-	if(symbolp(fn))
-	{
-		value_t bfn = compile_vm_check_builtin(fn, env);
-		if(!nilp(bfn))			// apply builtin
-		{
-			push_root(&bfn);
-			code = compile_vm_builtin_arg(code, debug, cdr(ast), env);		// arguments
-			if(errp(code))
-			{
-				pop_root(5);
-				return code;
-			}
+			vpush(ROPD(IS_ARGNUM, argnum), code);		vpush(ast, debug);
 			vpush(bfn, code);		vpush(ast, debug);
 			pop_root(6);
 			return code;
@@ -614,50 +603,36 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 				{
 					if(clojurep(sym))	// is clojure call
 					{
-						vpush(ROP(IS_PUSH), code);	vpush(ast, debug);
-						vpush(ref,          code);	vpush(ast, debug);
+						code = compile_vm_builtin_arg(true, code, debug, cdr(ast), env);
+						if(errp(code)) goto cleanup;
 
-						code = compile_vm_apply_arg(code, debug, cdr(ast), env);	// arguments
-						if(errp(code))
-						{
-							pop_root(5);
-							return code;
-						}
-						vpush(ROP(IS_AP), code);		vpush(ast, debug);
+						vpush(ROPD(IS_ARGNUM, argnum), code);	vpush(ast, debug);
 
-						pop_root(5);
-						return code;
+						vpush(ROP(IS_PUSH), code);		vpush(ast, debug);
+						vpush(ref,          code);		vpush(ast, debug);
+						vpush(ROP(IS_AP),   code);		vpush(ast, debug);
+
+						goto cleanup;
 					}
 					else if(macrop(sym))	// is macro call
 					{
-						vpush(ROP(IS_PUSH), code);	vpush(ast, debug);
-						vpush(ref,          code);	vpush(ast, debug);
+						code = compile_vm_builtin_arg(false, code, debug, cdr(ast), env);
+						if(errp(code)) goto cleanup;
 
-						code = compile_vm_macro_arg(code, debug, cdr(ast), env);	// arguments
-						if(errp(code))
-						{
-							pop_root(5);
-							return code;
-						}
+						vpush(ROPD(IS_ARGNUM, argnum), code);	vpush(ast, debug);
+
+						vpush(ROP(IS_PUSH),        code);	vpush(ast, debug);
+						vpush(ref,                 code);	vpush(ast, debug);
 						vpush(ROP(IS_AP),          code);	vpush(ast, debug);
 						vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
 						vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
 
-						pop_root(5);
-						return code;
-#if 0
-						value_t r = compile_vm_eval_macro(sym, cdr(ast), env);
-						fprintf(stderr, "macro expantion: ");
-						print(r, stderr);
-						pop_root(5);
-						return compile_vm1(code, debug, r, env);
-#endif
+						goto cleanup;
 					}
 				}
 			}
 		}
 	}
-#endif
 
 	/////////////////////////////////////
 	// CASE 3:normal apply
@@ -679,7 +654,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	code = compile_vm_arg(false, code, debug, cdr(ast), env);	// arguments
 	if(errp(code)) goto cleanup;
 
-	vpush(ROPD(IS_ARGNUM, count(cdr(ast))), code);		vpush(ast, debug);
+	vpush(ROPD(IS_ARGNUM, argnum), code);	vpush(ast, debug);
 	vpush(ROP(IS_AP),          code);	vpush(ast, debug);
 	vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
 	vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
@@ -692,7 +667,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	code = compile_vm_arg(true, code, debug, cdr(ast), env);	// arguments
 	if(errp(code)) goto cleanup;
 
-	vpush(ROPD(IS_ARGNUM, count(cdr(ast))), code);		vpush(ast, debug);
+	vpush(ROPD(IS_ARGNUM, argnum), code);	vpush(ast, debug);
 	vpush(ROP(IS_AP), code);		vpush(ast, debug);
 
 	int next_addr = vsize(code);
@@ -729,7 +704,7 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 			break;
 
 		case SYM_T:
-			r = compile_vm_check_builtin(ast, env); // Builtin Function (is one VM Instruction)
+			r = compile_vm_check_builtin(ast);	// Builtin Function (is one VM Instruction)
 			if(nilp(r))
 			{
 				r = get_env_ref(ast, env);

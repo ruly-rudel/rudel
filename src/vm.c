@@ -716,6 +716,7 @@ apply:
 			case IS_EVAL: TRACE("EVAL");
 				r0 = LOCAL_VPOP_RAW;
 				r1 = compile_vm(r0, env);
+				if(errp(r1)) THROW(pr_str(r1, NIL, false));
 
 				// save contexts
 				LOCAL_VPUSH_RET_RAW(code);
