@@ -937,7 +937,7 @@ x
 (eq nil nil)
 ;=>t
 (eq cons cons)
-;=>nil
+;=>t
 (eq cons or)
 ;=>nil
 
@@ -1117,7 +1117,7 @@ x
 (exec-vm (compile-vm "hoge"))
 ;=>"hoge"
 (exec-vm (compile-vm 'cons))
-;=>#<CLOJURE>
+;=>IS_CONS
 (exec-vm (compile-vm 'cond))
 ;=>#<MACRO>
 (exec-vm (compile-vm 'list))
@@ -1153,7 +1153,7 @@ x
 (exec-vm (compile-vm '(vpush cons (make-vector 0))))
 ;=>#<VECTOR>
 (exec-vm (compile-vm '(vpop (vpush cons (make-vector 0)))))
-;=>#<CLOJURE>
+;=>IS_CONS
 (exec-vm (compile-vm '(vpop "abcd")))
 ;=>'d'
 (exec-vm (compile-vm '(vref "abcd" 1)))

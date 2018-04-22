@@ -11,7 +11,6 @@
 // private:
 
 static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env);
-static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t env);
 
 /////////////////////////////////////////////////////////////////////
 // special form: setq
@@ -398,7 +397,7 @@ static value_t compile_vm_macroexpand(value_t code, value_t debug, value_t ast, 
 
 	if(consp(ast))
 	{
-		code = compile_vm1_fn(code, debug, car(ast), env);
+		code = compile_vm1(code, debug, car(ast), env);
 		if(errp(code)) goto cleanup;
 
 		code = compile_vm_arg(false, code, debug, cdr(ast), env);	// arguments
@@ -664,30 +663,19 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	// CASE 3:normal apply
 
 	// evaluate 1st element of apply list
-	code = compile_vm1_fn(code, debug, fn, env);
+	code = compile_vm1(code, debug, fn, env);
 	if(errp(code)) goto cleanup;
 
 	///////////////////
 	// check function type and select call type
 	vpush(ROP(IS_DUP), code);		vpush(ast, debug);
-	vpush(ROP(IS_CLOJUREP), code);		vpush(ast, debug);
+	vpush(ROP(IS_MACROP), code);		vpush(ast, debug);
 
 	int cond_br = vsize(code);
 	vpush(ROP(IS_BNIL), code);		vpush(ast, debug);	// dummy operand(0)
 
 	///////////////////
-	// true situation: clojure call
-	code = compile_vm_arg(true, code, debug, cdr(ast), env);	// arguments
-	if(errp(code)) goto cleanup;
-
-	vpush(ROPD(IS_ARGNUM, count(cdr(ast))), code);		vpush(ast, debug);
-	vpush(ROP(IS_AP), code);		vpush(ast, debug);
-
-	int true_br = vsize(code);
-	vpush(ROP(IS_BR), code);		vpush(ast, debug);	// dummy operand(0)
-
-	///////////////////
-	// false situation: macro call
+	// true situation: macro call
 	code = compile_vm_arg(false, code, debug, cdr(ast), env);	// arguments
 	if(errp(code)) goto cleanup;
 
@@ -695,6 +683,17 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 	vpush(ROP(IS_AP),          code);	vpush(ast, debug);
 	vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
 	vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
+
+	int true_br = vsize(code);
+	vpush(ROP(IS_BR), code);		vpush(ast, debug);	// dummy operand(0)
+
+	///////////////////
+	// false situation: clojure call
+	code = compile_vm_arg(true, code, debug, cdr(ast), env);	// arguments
+	if(errp(code)) goto cleanup;
+
+	vpush(ROPD(IS_ARGNUM, count(cdr(ast))), code);		vpush(ast, debug);
+	vpush(ROP(IS_AP), code);		vpush(ast, debug);
 
 	int next_addr = vsize(code);
 
@@ -710,7 +709,7 @@ cleanup:
 
 /////////////////////////////////////////////////////////////////////
 // compile one term
-static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t env)
+static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
 	assert(consp(env));
@@ -802,43 +801,6 @@ static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t 
 
 	pop_root(5);
 	return code;
-}
-
-static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env)
-{
-	assert(vectorp(code));
-	assert(consp(env));
-
-	push_root(&code);
-	push_root(&debug);
-	push_root(&ast);
-	push_root(&env);
-
-	if(symbolp(ast))
-	{
-		value_t op = compile_vm_check_builtin(ast, env); // Builtin Function (is one VM Instruction)
-		if(!nilp(op))
-		{
-			// create clojure calling built-in function
-			int n = compile_vm_get_builtin_argnum(ast, env);
-			assert(n >= 0);
-			value_t b_code  = make_vector(2);
-			push_root(&b_code);
-			value_t b_debug = make_vector(2);
-			push_root(&b_debug);
-			vpush(op,          b_code);		vpush(ast, b_debug);
-			vpush(ROP(IS_RET), b_code);		vpush(ast, b_debug);
-
-			// generate push-clojure code
-			vpush(ROP(IS_PUSH),                  code);			vpush(ast, debug);
-			vpush(cloj(NIL, env, cons(b_code, b_debug), NIL, NIL), code);	vpush(ast, debug);
-			pop_root(6);
-			return code;
-		}
-	}
-
-	pop_root(4);
-	return compile_vm1_fn(code, debug, ast, env);
 }
 
 /////////////////////////////////////////////////////////////////////

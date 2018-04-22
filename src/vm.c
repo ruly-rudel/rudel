@@ -345,6 +345,7 @@ value_t exec_vm(value_t c, value_t e)
 		value_t op = local_vref(code, pc);
 		assert(rtypeof(op) == VMIS_T);
 
+again:
 		switch(op.op.mnem)
 		{
 			// core functions
@@ -451,6 +452,11 @@ apply:
 					debug = UNSAFE_CDR(THIRD(r1));	// clojure debug symbols
 					env   = FOURTH(r1);		// clojure environment
 					pc    = -1;
+				}
+				else if(rtypeof(r1) == VMIS_T)	// VM IS
+				{
+					op = r1;
+					goto again;
 				}
 				else
 				{
