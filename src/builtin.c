@@ -244,6 +244,37 @@ int	count(value_t x)
 	}
 }
 
+value_t reverse(value_t x)
+{
+	assert(is_cons_pair_or_nil(x));
+
+	if(nilp(x))
+	{
+		return x;
+	}
+	else
+	{
+		value_t r = NIL;
+		push_root(&x);
+		push_root(&r);
+		for(; !nilp(x); x = cdr(x))
+		{
+			if(consp(x))
+			{
+				r = cons(car(x), r);
+			}
+			else
+			{
+				r = rerr(RINT(ERR_TYPE), NIL);
+				break;
+			}
+		}
+
+		pop_root(2);
+		return r;
+	}
+}
+
 value_t symbol_string(value_t sym)
 {
 	assert(symbolp(sym));
@@ -306,6 +337,19 @@ value_t rerr_add_pos(value_t pos, value_t e)
 	value_t cause = car(e);
 	push_root(&cause);
 	value_t newpos = cons(pos, cdr(e));
+	pop_root(1);
+	value_t r = cons(cause, newpos);
+	r.type.main = ERR_T;
+#ifdef DEBUG
+	abort();
+#endif
+	return r;
+}
+
+value_t rerr_pos(value_t cause, value_t pos)
+{
+	push_root(&cause);
+	value_t newpos = cons(pos, NIL);
 	pop_root(1);
 	value_t r = cons(cause, newpos);
 	r.type.main = ERR_T;

@@ -53,11 +53,6 @@
 (defun fourth (x) (car (cdr (cdr (cdr x)))))
 (defun fifth  (x) (car (cdr (cdr (cdr (cdr x))))))
 
-;(defun nth (x n)
-;	(if (eq n 0)
-;	  (car x)
-;	  (nth (cdr x) (- n 1))))
-
 (defun nthcdr (n x)
 	(if n
 	  (if (eq n 0)
@@ -72,16 +67,6 @@
 	      (last (cdr x))
 	      x))
 	  nil))
-
-;(defun count (x)
-;	(if x
-;	  (if (consp x) (+ 1 (count (cdr x))))))
-
-(defun count (x)
-	(if x
-	  (if (consp x) (+ 1 (count (cdr x)))
-	    0)
-	  0))
 
 ;; list duplication functions
 
@@ -210,6 +195,26 @@
 
 (defun *shift (f)
   (callcc (\k (*abort (\ () (f (\v (reset (k v)))))))))
+
+(defun macroexpand-all (ast)
+  (if (consp ast)
+    (let* ((fn (car ast)))
+      (if (specialp fn)
+	(cond
+	  (eq fn 'setq)   (nconc (list 'setq (second ast)) (mapcar macroexpand-all (cddr ast)))
+	  (eq fn 'let*)   (nconc (list 'let*
+				       (mapcar (\x (list (car x) (macroexpand-all (cadr x))))
+					       (second ast)))
+				 (mapcar macroexpand-all (cddr ast)))
+	  (eq fn 'progn)  (cons 'progn (mapcar macroexpand-all (cdr ast)))
+	  (eq fn 'if)     (cons 'if    (mapcar macroexpand-all (cdr ast)))
+	  (eq fn 'lambda) (nconc (list 'lambda (second ast)) (mapcar macroexpand-all (cddr ast)))
+	  (eq fn 'macro)  (nconc (list 'macro  (second ast)) (mapcar macroexpand-all (cddr ast)))
+	  t ast)
+	(if (macrop (eval fn))
+	  (macroexpand-all (macroexpand ast))
+	  (mapcar macroexpand-all ast))))
+    ast))
 
 ;; rudel-specific functions
 (defun load-file (f)

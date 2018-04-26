@@ -68,11 +68,13 @@ typedef enum {
 	IS_DEC_ARGNUM,
 	IS_VPUSH_REST,
 	IS_ISZERO_ARGNUM,
+	IS_ROTL,
 
 	IS_ATOM,
 	IS_CONSP,
 	IS_CLOJUREP,
 	IS_MACROP,
+	IS_SPECIALP,
 	IS_STRP,
 	IS_ERRP,
 	IS_CONS,
@@ -116,6 +118,8 @@ typedef enum {
 	IS_READ,
 	IS_MVFL,
 	IS_MLFV,
+	IS_COUNT,
+	IS_REVERSE,
 } vmis_t;
 
 #if __WORDSIZE == 32
@@ -211,7 +215,7 @@ typedef struct _vector_t
 #define ROP(X)       ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand =  0  })
 #define ROPD(X, Y)   ((value_t){ .op.main     = OTH_T,  .op.sub   = VMIS_T,    .op.mnem    = (X), .op.operand = (Y) })
 #define RREF(X, Y)   ((value_t){ .ref .main   = OTH_T,  .ref .sub = REF_T,     .ref .depth = (X), .ref.width  = (Y) })
-#define RERR(X, Y)   rerr(RINT(X), (Y))
+#define RERR(X, Y)   rerr_pos(RINT(X), (Y))
 
 #define INTOF(X)        (((intptr_t)(X).raw) >> 8)
 #define REF_D(X)        ((X).ref.depth)
@@ -294,11 +298,13 @@ value_t nconc		(value_t a, value_t b);
 value_t list		(int n, ...);
 value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
 int	count		(value_t x);
+value_t reverse		(value_t x);
 value_t symbol_string	(value_t sym);
 value_t copy_list	(value_t lst);
 
 value_t rerr		(value_t cause, value_t pos);
 value_t rerr_alloc	(void);
+value_t rerr_pos	(value_t cause, value_t pos);
 value_t rerr_add_pos	(value_t pos, value_t e);
 value_t	cfn		(value_t fn, value_t env);
 value_t	cloj		(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug);

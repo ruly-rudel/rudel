@@ -38,6 +38,7 @@ void init_global(void)
 		str_to_sym("consp"),		ROP(IS_CONSP),		RINT(1),
 		str_to_sym("clojurep"),		ROP(IS_CLOJUREP),	RINT(1),
 		str_to_sym("macrop"),		ROP(IS_MACROP),		RINT(1),
+		str_to_sym("specialp"),		ROP(IS_SPECIALP),	RINT(1),
 		str_to_sym("strp"),		ROP(IS_STRP),		RINT(1),
 		str_to_sym("errp"),		ROP(IS_ERRP),		RINT(1),
 		str_to_sym("cons"),		ROP(IS_CONS),		RINT(2),
@@ -82,6 +83,9 @@ void init_global(void)
 		str_to_sym("read"),		ROP(IS_READ),		RINT(0),
 		str_to_sym("make-vector-from-list"),		ROP(IS_MVFL),		RINT(1),
 		str_to_sym("make-list-from-vector"),		ROP(IS_MLFV),		RINT(1),
+		str_to_sym("count"),		ROP(IS_COUNT),		RINT(1),
+		str_to_sym("reverse"),		ROP(IS_REVERSE),	RINT(1),
+		str_to_sym("nconc"),		ROP(IS_NCONC),		RINT(2),
 	};
 
 	g_istbl_size = sizeof(tbl) / sizeof(tbl[0]);

@@ -595,8 +595,9 @@ apply:
 				LOCAL_VPUSH_RAW(r1);
 				break;
 
-			case IS_ARGNUM: TRACE1("ARGNUM %d", op.op.operand);
-				argnum = op.op.operand;
+			case IS_ARGNUM: TRACE("ARGNUM");
+				r0 = LOCAL_VPOP_RAW;
+				argnum = INTOF(r0);
 				break;
 
 			case IS_DEC_ARGNUM: TRACE("DEC_ARGNUM");
@@ -619,6 +620,15 @@ apply:
 				if(argnum != 0) THROW(pr_str(RERR_ARG_PC, NIL, false));
 				break;
 
+			case IS_ROTL: TRACE("ROTL");
+				r0 = LOCAL_VPOP_RAW;
+				r1 = LOCAL_VPOP_RAW;
+				r2 = LOCAL_VPOP_RAW;
+				LOCAL_VPUSH_RAW(r0);
+				LOCAL_VPUSH_RAW(r2);
+				LOCAL_VPUSH_RAW(r1);
+				break;
+
 
 
 			case IS_ATOM: TRACE("ATOM");
@@ -635,6 +645,10 @@ apply:
 
 			case IS_MACROP: TRACE("MACROP");
 				OP_1P1P(macrop(r0) ? g_t : NIL);
+				break;
+
+			case IS_SPECIALP: TRACE("SPECIALP");
+				OP_1P1P(specialp(r0) ? g_t : NIL);
 				break;
 
 			case IS_STRP: TRACE("STRP");
@@ -846,6 +860,14 @@ apply:
 
 			case IS_MLFV: TRACE("MLFV");
 				OP_1P1P(vectorp(r0) ? make_list_from_vector(r0) : RERR_TYPE_PC);
+				break;
+
+			case IS_COUNT: TRACE("COUNT");
+				OP_1P1P(RINT(count(r0)));
+				break;
+
+			case IS_REVERSE: TRACE("REVERSE");
+				OP_1P1P(consp(r0) ? reverse(r0) : RERR_TYPE_PC);
 				break;
 
 			default:

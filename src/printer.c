@@ -484,10 +484,14 @@ static value_t pr_vmis(value_t s)
 		case IS_DEC_ARGNUM:	return str_to_rstr("IS_DEC_ARGNUM");
 		case IS_VPUSH_REST:	return str_to_rstr("IS_VPUSH_REST");
 		case IS_ISZERO_ARGNUM:	return str_to_rstr("IS_ISZERO_ARGNUM");
+		case IS_ROTL:		return str_to_rstr("IS_ROTL");
+
 		case IS_ATOM:		return str_to_rstr("IS_ATOM");
 		case IS_CONSP:		return str_to_rstr("IS_CONSP");
 		case IS_CLOJUREP:	return str_to_rstr("IS_CLOJUREP");
 		case IS_MACROP:		return str_to_rstr("IS_MACROP");
+		case IS_SPECIALP:	return str_to_rstr("IS_SPECIALP");
+		case IS_STRP:		return str_to_rstr("IS_STRP");
 		case IS_CONS:		return str_to_rstr("IS_CONS");
 		case IS_CAR:		return str_to_rstr("IS_CAR");
 		case IS_CDR:		return str_to_rstr("IS_CDR");
@@ -528,6 +532,8 @@ static value_t pr_vmis(value_t s)
 		case IS_READ:		return str_to_rstr("IS_READ");
 		case IS_MVFL:		return str_to_rstr("IS_MVFL");
 		case IS_MLFV:		return str_to_rstr("IS_MLFV");
+		case IS_COUNT:		return str_to_rstr("IS_COUNT");
+		case IS_REVERSE:	return str_to_rstr("IS_REVERSE");
 		default:		return RERR(ERR_NOTIMPL, str_to_rstr("VMIS"));
 	}
 }
