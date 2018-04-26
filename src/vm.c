@@ -680,11 +680,11 @@ apply:
 				break;
 
 			case IS_RPLACA: TRACE("RPLACA");
-				OP_2P1P(consp(r0) ? rplaca(r0, r1) : RERR_TYPE_PC);
+				OP_2P1P(consp(r0) || macrop(r0) || clojurep(r0) || errp(r0) ? rplaca(r0, r1) : RERR_TYPE_PC);
 				break;
 
 			case IS_RPLACD: TRACE("RPLACD");
-				OP_2P1P(consp(r0) ? rplacd(r0, r1) : RERR_TYPE_PC);
+				OP_2P1P(consp(r0) || macrop(r0) || clojurep(r0) || errp(r0) ? rplacd(r0, r1) : RERR_TYPE_PC);
 				break;
 
 			case IS_GENSYM: TRACE("GENSYM");

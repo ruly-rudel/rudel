@@ -269,8 +269,12 @@ static value_t compile_vm_lambda(value_t ast, value_t env)
 
 	if(!consp(ast)) return RERR(ERR_ARG, ast);
 
+	// check if lambda or macro
+	value_t fn = first(ast);
+	if(!(EQ(fn, RSPECIAL(SP_LAMBDA)) || EQ(fn, RSPECIAL(SP_MACRO)))) return rerr_pos(RINT(ERR_ARG), ast);
+
 	// allocate new environment for compilation
-	value_t def = first(ast);
+	value_t def = second(ast);
 	if(rtypeof(def) != CONS_T) return RERR(ERR_ARG, ast);
 
 	push_root(&ast);
@@ -288,7 +292,7 @@ static value_t compile_vm_lambda(value_t ast, value_t env)
 	lambda_code = compile_vm_arg_lambda(lambda_code, lambda_debug, def);	// with rest parameter support
 	if(errp(lambda_code)) goto cleanup;
 
-	lambda_code = compile_vm1(lambda_code, lambda_debug, second(ast), lambda_env);
+	lambda_code = compile_vm1(lambda_code, lambda_debug, third(ast), lambda_env);
 	if(errp(lambda_code)) goto cleanup;
 
 	// lambda is clojure call
@@ -557,12 +561,12 @@ static value_t compile_vm_special(value_t code, value_t debug, value_t ast, valu
 
 		case SP_LAMBDA:		// set only s-expression
 			vpush(ROP(IS_PUSH), code);				vpush(ast, debug);
-			vpush(cloj (cdr(ast), env, NIL, NIL, NIL), code);	vpush(ast, debug);
+			vpush(cloj (ast, env, NIL, NIL, NIL), code);		vpush(ast, debug);
 			break;
 
 		case SP_MACRO:		// set only s-expression
 			vpush(ROP(IS_PUSH), code);				vpush(ast, debug);
-			vpush(macro(cdr(ast), env, NIL, NIL, NIL), code);	vpush(ast, debug);
+			vpush(macro(ast, env, NIL, NIL, NIL), code);		vpush(ast, debug);
 			break;
 
 		case SP_QUOTE:

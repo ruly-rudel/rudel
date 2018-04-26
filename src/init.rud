@@ -211,7 +211,7 @@
 	  (eq fn 'lambda) (nconc (list 'lambda (second ast)) (mapcar macroexpand-all (cddr ast)))
 	  (eq fn 'macro)  (nconc (list 'macro  (second ast)) (mapcar macroexpand-all (cddr ast)))
 	  t ast)
-	(if (macrop (eval fn))
+	(if (try (macrop (eval fn)) (\x nil))
 	  (macroexpand-all (macroexpand ast))
 	  (mapcar macroexpand-all ast))))
     ast))
@@ -295,8 +295,13 @@
 	  (rec 0)))
 
 (defun compile-env ()
-  (vmap (lambda (x) (compile-vm (cdr x)))
+  (vmap (lambda (x)
+	  (if (clojurep (cdr x))
+	    (progn
+	      (rplaca (cdr x) (macroexpand-all (cadr x)))
+	      (compile-vm (cdr x)))))
 	(car (last env))))
+
 
 (defun initcore ()
   (progn
