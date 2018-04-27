@@ -1104,8 +1104,6 @@ x
 ;=>'e'
 (vref x 4)
 ; range exceeded\..*
-(make-list-from-vector x)
-;=>('h' 'o' 'g' 'e')
 
 ;; Testing VM
 (exec-vm (compile-vm nil))
@@ -1272,3 +1270,13 @@ x
 ;=>6
 (+ 1 (try (if nil (try (if nil 5 (throw 7)) (\ (x) (throw (+ x 2)))) (throw 1)) (\ (x) (+ 10 x))))
 ;=>12
+
+;; Testing some functions
+(list*)
+;=>nil
+(list* 1)
+;=>(1)
+(list* 1 2)
+;=>(1 . 2)
+(list* 1 2 3)
+;=>(1 2 . 3)

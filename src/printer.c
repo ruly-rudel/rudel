@@ -530,8 +530,6 @@ static value_t pr_vmis(value_t s)
 		case IS_PRINTLINE:	return str_to_rstr("IS_PRINTLINE");
 		case IS_PRINT:		return str_to_rstr("IS_PRINT");
 		case IS_READ:		return str_to_rstr("IS_READ");
-		case IS_MVFL:		return str_to_rstr("IS_MVFL");
-		case IS_MLFV:		return str_to_rstr("IS_MLFV");
 		case IS_COUNT:		return str_to_rstr("IS_COUNT");
 		case IS_REVERSE:	return str_to_rstr("IS_REVERSE");
 		default:		return RERR(ERR_NOTIMPL, str_to_rstr("VMIS"));

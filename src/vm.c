@@ -854,14 +854,6 @@ apply:
 				LOCAL_VPUSH_RAW(READ(PROMPT, stdin));
 				break;
 
-			case IS_MVFL: TRACE("MVFL");
-				OP_1P1P(consp(r0) || nilp(r0) ? make_vector_from_list(r0) : RERR_TYPE_PC);
-				break;
-
-			case IS_MLFV: TRACE("MLFV");
-				OP_1P1P(vectorp(r0) ? make_list_from_vector(r0) : RERR_TYPE_PC);
-				break;
-
 			case IS_COUNT: TRACE("COUNT");
 				OP_1P1P(RINT(count(r0)));
 				break;

@@ -116,8 +116,6 @@ typedef enum {
 	IS_PRINTLINE,
 	IS_PRINT,
 	IS_READ,
-	IS_MVFL,
-	IS_MLFV,
 	IS_COUNT,
 	IS_REVERSE,
 } vmis_t;

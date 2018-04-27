@@ -81,8 +81,6 @@ void init_global(void)
 		str_to_sym("print"),		ROP(IS_PRINT),		RINT(1),
 		str_to_sym("callcc"),		ROP(IS_CALLCC),		RINT(1),
 		str_to_sym("read"),		ROP(IS_READ),		RINT(0),
-		str_to_sym("make-vector-from-list"),		ROP(IS_MVFL),		RINT(1),
-		str_to_sym("make-list-from-vector"),		ROP(IS_MLFV),		RINT(1),
 		str_to_sym("count"),		ROP(IS_COUNT),		RINT(1),
 		str_to_sym("reverse"),		ROP(IS_REVERSE),	RINT(1),
 		str_to_sym("nconc"),		ROP(IS_NCONC),		RINT(2),
