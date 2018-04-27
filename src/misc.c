@@ -27,6 +27,8 @@ void init_global(void)
 	g_macro		 = str_to_sym("macro");
 	g_macroexpand	 = str_to_sym("macroexpand");
 	g_rest		 = str_to_sym("&rest");
+	g_optional	 = str_to_sym("&optional");
+	g_key		 = str_to_sym("&key");
 	g_trace		 = str_to_sym("*trace*");
 	g_debug		 = str_to_sym("*debug*");
 	g_gensym_counter = str_to_sym("*gensym-counter*");

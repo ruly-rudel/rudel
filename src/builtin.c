@@ -95,7 +95,7 @@ bool equal(value_t x, value_t y)
 			return equal(car(x), car(y)) && equal(cdr(x), cdr(y));
 		}
 	}
-	else if(vectorp(x) || symbolp(x))
+	else if(vectorp(x))
 	{
 		return veq(x, y);
 	}
@@ -428,7 +428,7 @@ void rep_file(char* fn, value_t env)
 	vpush(ROP(IS_HALT),		catch);
 
 	value_t clojure = cloj(NIL, NIL, cons(catch, catch), NIL, NIL);
-	set_env(str_to_sym("*exception-stack*"), cons(clojure, NIL), last(env));
+	set_env(g_exception_stack, cons(clojure, NIL), last(env));
 
 	// build rep code
 	value_t rfn   = str_to_rstr(fn);
@@ -933,6 +933,21 @@ value_t str_to_sym	(const char* s)
 	}
 }
 
+value_t str_to_key	(const char* s)
+{
+	value_t r = str_to_rstr(s);
+	if(errp(r))
+	{
+		return r;
+	}
+	else
+	{
+		r.type.main = SYM_T;
+
+		return register_key(r);
+	}
+}
+
 char*   rstr_to_str	(value_t s)
 {
 	assert(vectorp(s));
@@ -961,13 +976,13 @@ value_t gensym	(value_t env)
 	push_root(&env);
 	value_t r = str_to_rstr("#:G");
 	push_root(&r);
-	value_t n = get_env_ref(str_to_sym("*gensym-counter*"), env);
+	value_t n = get_env_ref(g_gensym_counter, env);
 	push_root(&n);
 	n         = get_env_value_ref(n, env);
 	r         = vnconc(r, pr_str(n, NIL, false));
 	r.type.main = SYM_T;
 
-	set_env(str_to_sym("*gensym-counter*"), RINT(INTOF(n) + 1), env);
+	set_env(g_gensym_counter, RINT(INTOF(n) + 1), env);
 
 	pop_root(3);
 	return r;	// gensym symbol is unregisterd: so same name doesn't cause eq.

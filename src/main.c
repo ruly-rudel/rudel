@@ -31,7 +31,7 @@ void repl(value_t env)
 	vpush(ROP(IS_GOTO),		catch);
 
 	value_t clojure = cloj(NIL, NIL, cons(catch, catch), env, NIL);
-	set_env(str_to_sym("*exception-stack*"), cons(clojure, NIL), last(env));
+	set_env(g_exception_stack, cons(clojure, NIL), last(env));
 
 	// build repl code
 	value_t code = make_vector(27);
@@ -39,7 +39,7 @@ void repl(value_t env)
 	vpush(ROP (IS_PUSH),		code);
 	vpush(cons(clojure, NIL),       code);
 	vpush(ROP (IS_PUSHR),		code);
-	vpush(str_to_sym("*exception-stack*"), code);
+	vpush(g_exception_stack,        code);
 	vpush(ROP (IS_SETENV),		code);
 
 	vpush(ROP (IS_READ),		code);

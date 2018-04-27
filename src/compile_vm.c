@@ -583,6 +583,8 @@ static value_t compile_vm_special(value_t code, value_t debug, value_t ast, valu
 			break;
 
 		case SP_REST:	//******* ad-hock: ignore it
+		case SP_OPTIONAL:
+		case SP_KEY:
 			break;
 
 		default:
@@ -825,9 +827,17 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 			break;
 
 		case SPECIAL_T:
-			if(INTOF(ast) != SP_REST)	//****** ignore '&' for dummy compilation: it is not evaluate.
+			switch(INTOF(ast))
 			{
-				code = RERR(ERR_NOTIMPL, ast);
+				//****** ignore '&xxx' for dummy compilation: it is not evaluate.
+				case SP_REST:
+				case SP_OPTIONAL:
+				case SP_KEY:
+					break;
+
+				default:
+					code = RERR(ERR_NOTIMPL, ast);
+					break;
 			}
 			break;
 

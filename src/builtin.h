@@ -41,6 +41,8 @@ typedef enum {
 	SP_UNQUOTE,
 	SP_SPLICE_UNQUOTE,
 	SP_REST,
+	SP_OPTIONAL,
+	SP_KEY,
 } special_t;
 
 typedef enum {
@@ -338,11 +340,11 @@ value_t str_to_rstr	(const char* s);
 value_t mbstr_to_rstr	(const char* s);
 value_t wcstr_to_rstr	(const wchar_t* s);
 value_t str_to_sym	(const char* s);
+value_t str_to_key	(const char* s);
 char*   rstr_to_str	(value_t s);
 
 value_t gensym		(value_t env);
 
-//value_t* nconc_and_last	(value_t v, value_t* c);
 bool	is_str		(value_t v);
 
 EXTERN value_t g_nil;
@@ -360,6 +362,8 @@ EXTERN value_t g_quasiquote;
 EXTERN value_t g_macro;
 EXTERN value_t g_macroexpand;
 EXTERN value_t g_rest;
+EXTERN value_t g_optional;
+EXTERN value_t g_key;
 EXTERN value_t g_trace;
 EXTERN value_t g_debug;
 EXTERN value_t g_gensym_counter;

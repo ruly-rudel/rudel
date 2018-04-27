@@ -14,6 +14,7 @@ typedef struct
 } root_t;
 
 static value_t	s_symbol_pool		= NIL;
+static value_t	s_key_pool		= NIL;
 static root_t	s_root[ROOT_SIZE]	= { 0 };
 static int	s_root_ptr		=   0;
 
@@ -170,6 +171,9 @@ static void exec_gc_root(void)
 	// copy symbol pool to memory pool
 	copy1(&g_memory_top, &s_symbol_pool);
 
+	// copy keyword pool to memory pool
+	copy1(&g_memory_top, &s_key_pool);
+
 	// scan and copy rest
 	value_t* scanned = g_memory_pool;
 	while(scanned != g_memory_top)
@@ -267,6 +271,7 @@ bool check_sanity(void)
 	}
 
 	is_sanity(s_symbol_pool);
+	is_sanity(s_key_pool);
 
 	return true;
 }
@@ -277,6 +282,7 @@ bool check_sanity(void)
 void clear_symtbl(void)
 {
 	s_symbol_pool = NIL;
+	s_key_pool    = NIL;
 }
 
 value_t register_sym(value_t s)
@@ -291,6 +297,27 @@ value_t register_sym(value_t s)
 		snew.cons->cdr = s_symbol_pool;
 		snew.type.main = CONS_T;
 		s_symbol_pool = snew;
+		pop_root(1);
+		return s;
+	}
+	else
+	{
+		return sym;
+	}
+}
+
+value_t register_key(value_t s)
+{
+	value_t sym = find(s, s_key_pool, veq);
+	if(nilp(sym))
+	{
+		push_root(&s);
+		value_t snew;
+		snew.cons      = alloc_cons();
+		snew.cons->car = s;
+		snew.cons->cdr = s_key_pool;
+		snew.type.main = CONS_T;
+		s_key_pool = snew;
 		pop_root(1);
 		return s;
 	}
@@ -320,6 +347,7 @@ value_t save_core(value_t fn, value_t root)
 	swap_buffer();
 	copy1(&g_memory_top, &root);
 	copy1(&g_memory_top, &s_symbol_pool);
+	copy1(&g_memory_top, &s_key_pool);
 
 	// scan and copy rest
 	value_t* scanned = g_memory_pool;
@@ -437,9 +465,12 @@ value_t load_core(const char* fn)
 				// restore env
 				value_t env;
 				env.raw                 = (uintptr_t) g_memory_pool;
-				env.type.main           = CONS_T;
+				env.type.main           = CONS_T;	//**** ad-hock: error when empty env
 				s_symbol_pool.raw       = (uintptr_t)(g_memory_pool + 2);
-				s_symbol_pool.type.main = CONS_T;
+				s_symbol_pool.type.main = CONS_T;	//**** ad-hock: error when empty symbol pool
+				//s_key_pool.raw          = (uintptr_t)(g_memory_pool + 4);
+				//s_key_pool.type.main    = CONS_T;
+				s_key_pool    = NIL;	//**** ad-hock
 
 				init_global();
 				return env;

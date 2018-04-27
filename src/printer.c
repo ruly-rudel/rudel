@@ -447,6 +447,8 @@ static value_t pr_special(value_t s)
 		case SP_UNQUOTE:	return symbol_string(g_unquote);
 		case SP_SPLICE_UNQUOTE:	return symbol_string(g_splice_unquote);
 		case SP_REST:		return symbol_string(g_rest);
+		case SP_OPTIONAL:	return symbol_string(g_optional);
+		case SP_KEY:		return symbol_string(g_key);
 		default:		return RERR(ERR_NOTIMPL, str_to_rstr("special"));
 	}
 }

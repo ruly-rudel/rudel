@@ -11,8 +11,8 @@
 ;=>#:G2
 (eq x '#:G2)
 ;=>nil
-(equal x '#:G2)	;; must be nil, but now t. fix it later.
-;=>t
+(equal x '#:G2)
+;=>nil
 
 ;; Testing evaluation of arithmetic operations
 (+ 1 2)
