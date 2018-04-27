@@ -237,7 +237,7 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key)
 
 		key_car = car(key);
 
-		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
+		if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
 		{
 			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 			vpush(second(key),           code);	vpush(key, debug);
@@ -582,7 +582,7 @@ static value_t compile_vm_special(value_t code, value_t debug, value_t ast, valu
 			code = compile_vm_macroexpand(code, debug, second(ast), env);
 			break;
 
-		case SP_AMP:	//******* ad-hock: ignore it
+		case SP_REST:	//******* ad-hock: ignore it
 			break;
 
 		default:
@@ -825,7 +825,7 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 			break;
 
 		case SPECIAL_T:
-			if(INTOF(ast) != SP_AMP)	//****** ignore '&' for dummy compilation: it is not evaluate.
+			if(INTOF(ast) != SP_REST)	//****** ignore '&' for dummy compilation: it is not evaluate.
 			{
 				code = RERR(ERR_NOTIMPL, ast);
 			}

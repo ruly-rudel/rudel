@@ -89,7 +89,7 @@ static value_t read_atom(scan_t* st)
 				g_macroexpand,    RSPECIAL(SP_MACROEXPAND),
 				g_unquote,        RSPECIAL(SP_UNQUOTE),
 				g_splice_unquote, RSPECIAL(SP_SPLICE_UNQUOTE),
-				g_amp,            RSPECIAL(SP_AMP),
+				g_rest,           RSPECIAL(SP_REST),
 			};
 			for(int i = 0; i < sizeof(tbl) / sizeof(tbl[0]); i += 2)
 			{

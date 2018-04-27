@@ -1,13 +1,13 @@
 
 (setq defun
-	   (macro (name arg & body)
+	   (macro (name arg &rest body)
 		`(setq ,name (lambda ,arg (progn ,@body)))))
 
 (setq defmacro
-	   (macro (name arg & body)
+	   (macro (name arg &rest body)
 		`(setq ,name (macro ,arg (progn ,@body)))))
 
-(defmacro \ (arg & body)
+(defmacro \ (arg &rest body)
   (if (or (consp arg) (not arg))
     `(lambda  ,arg  (progn ,@body))
     `(lambda (,arg) (progn ,@body))))
@@ -16,7 +16,7 @@
 (defun not (a)
 	(if a nil t))
 
-(defmacro and (& xs)
+(defmacro and (&rest xs)
     (if (not xs)
       t
       (if (equal 1 (count xs))
@@ -25,7 +25,7 @@
           `(let* ((,condvar ,(car xs)))
             (if ,condvar (and ,@(cdr xs)) ,condvar))))))
 
-(defmacro or (& xs)
+(defmacro or (&rest xs)
     (if (not xs)
       nil
       (if (equal 1 (count xs))
@@ -34,7 +34,7 @@
           `(let* ((,condvar ,(car xs)))
              (if ,condvar ,condvar (or ,@(cdr xs))))))))
 
-(defmacro cond (& clauses)
+(defmacro cond (&rest clauses)
     (if (> (count clauses) 0)
       (list 'if (car clauses)
             (if (> (count clauses) 1)
@@ -70,8 +70,8 @@
 
 ;; list duplication functions
 
-;(defun list (& body) body)
-(defun list (& body) (copy-list body))
+;(defun list (&rest body) body)
+(defun list (&rest body) (copy-list body))
 
 (defun copy-list-n (x n)
 	(if (and n (eq n 0)) nil
@@ -91,7 +91,7 @@
 	    (remove x (cdr lst))
 	    (cons (car lst) (remove x (cdr lst))))))
 
-(defun concat (& body)
+(defun concat (&rest body)
 	(let* ((rec (\x
 			(if (not x) nil
 			  (if (consp x)
@@ -123,13 +123,13 @@
 	(if (<= n 1) x
 	  (fn x (repeat (- n 1) x fn))))
 
-(defun str (& body)
+(defun str (&rest body)
   (if body
     (reduce (\ (x y) (vconc x y))
 	    (mapcar (\x (pr_str x nil)) body))
     ""))
 
-(defun pr-str (& body)
+(defun pr-str (&rest body)
   (if body
     (reduce (\ (x y) (vconc (vconc x " ") y))
 	    (mapcar (\x (pr_str x t)) body))
@@ -139,10 +139,10 @@
   (reduce (\ (x y) (vconc (vconc x " ") y))
 	  (mapcar (\x (pr_str x nil)) body)))
 
-(defun println (& body)
+(defun println (&rest body)
   (printline (println-str body)))
 
-(defmacro prn (& body)
+(defmacro prn (&rest body)
   `(printline (pr-str ,@body)))
 
 (defmacro push (value place)
@@ -196,7 +196,7 @@
 (defun *shift (f)
   (callcc (\k (*abort (\ () (f (\v (reset (k v)))))))))
 
-(defun list* (& lst)
+(defun list* (&rest lst)
   (let* ((rec (lambda (x)
 		(if (cddr x)
 		  (cons (car x) (rec (cdr x)))
@@ -284,7 +284,7 @@
 (defun ppln (tree)
 	(println (pp tree 0)))
 
-(defun vector (& lst)
+(defun vector (&rest lst)
   (let* ((rec (lambda (x v)
 		(if x
 		  (rec (cdr x) (vpush (car x) v))

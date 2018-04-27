@@ -60,7 +60,7 @@ value_t	create_env	(value_t key, value_t val, value_t outer)
 		value_t key_car = UNSAFE_CAR(key);
 		value_t val_car = car(val);
 
-		if(EQ(key_car, RSPECIAL(SP_AMP)))	// rest parameter
+		if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
 		{
 			key_car = second(key);
 			rplacv(alist, i, cons(key_car, val));		// for resolv order.

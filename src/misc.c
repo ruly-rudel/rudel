@@ -26,7 +26,7 @@ void init_global(void)
 	g_quasiquote	 = str_to_sym("quasiquote");
 	g_macro		 = str_to_sym("macro");
 	g_macroexpand	 = str_to_sym("macroexpand");
-	g_amp		 = str_to_sym("&");
+	g_rest		 = str_to_sym("&rest");
 	g_trace		 = str_to_sym("*trace*");
 	g_debug		 = str_to_sym("*debug*");
 	g_gensym_counter = str_to_sym("*gensym-counter*");

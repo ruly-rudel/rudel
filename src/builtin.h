@@ -40,7 +40,7 @@ typedef enum {
 	SP_MACROEXPAND,
 	SP_UNQUOTE,
 	SP_SPLICE_UNQUOTE,
-	SP_AMP,
+	SP_REST,
 } special_t;
 
 typedef enum {
@@ -359,7 +359,7 @@ EXTERN value_t g_quote;
 EXTERN value_t g_quasiquote;
 EXTERN value_t g_macro;
 EXTERN value_t g_macroexpand;
-EXTERN value_t g_amp;
+EXTERN value_t g_rest;
 EXTERN value_t g_trace;
 EXTERN value_t g_debug;
 EXTERN value_t g_gensym_counter;

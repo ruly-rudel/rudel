@@ -332,21 +332,21 @@ a
 
 ;; Testing variable length arguments
 
-( (lambda (& more) (count more)) 1 2 3)
+( (lambda (&rest more) (count more)) 1 2 3)
 ;=>3
-( (lambda (& more) (consp more)) 1 2 3)
+( (lambda (&rest more) (consp more)) 1 2 3)
 ;=>t
-( (lambda (& more) (count more)) 1)
+( (lambda (&rest more) (count more)) 1)
 ;=>1
-( (lambda (& more) (count more)) )
+( (lambda (&rest more) (count more)) )
 ;=>0
-( (lambda (& more) (consp more)) )
+( (lambda (&rest more) (consp more)) )
 ;=>nil
-( (lambda (a & more) (count more)) 1 2 3)
+( (lambda (a &rest more) (count more)) 1 2 3)
 ;=>2
-( (lambda (a & more) (count more)) 1)
+( (lambda (a &rest more) (count more)) 1)
 ;=>0
-( (lambda (a & more) (consp more)) 1)
+( (lambda (a &rest more) (consp more)) 1)
 ;=>nil
 
 
@@ -1238,7 +1238,7 @@ x
 (exec-vm (compile-vm '(mnot nil)))
 ;=>t
 
-(exec-vm (compile-vm '(defun tlist (& a) a)))
+(exec-vm (compile-vm '(defun tlist (&rest a) a)))
 ;=>#<CLOJURE>
 (exec-vm (compile-vm '(tlist 1 2 3)))
 ;=>(1 2 3)

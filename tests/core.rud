@@ -30,7 +30,7 @@
       nil)))
 
 
-(defmacro -> (x & xs)
+(defmacro -> (x &rest xs)
     (if (not xs)
       x
       (let* ((form (car xs))
@@ -41,7 +41,7 @@
             (list form x))
           `(-> (-> ,x ,form) ,@more)))))
 
-(defmacro ->> (x & xs)
+(defmacro ->> (x &rest xs)
     (if (not xs)
       x
       (let* ((form (car xs))
