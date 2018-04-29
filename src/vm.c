@@ -129,7 +129,8 @@
 
 #define THROW(X) \
 { \
-	LOCAL_VPUSH_RAW(X); \
+	r1 = (X); \
+	LOCAL_VPUSH_RAW(r1); \
 	goto throw; \
 }
 
@@ -163,7 +164,7 @@
 #define RERR_TYPE_PC	RERR(ERR_TYPE,      cons(local_vref(debug, pc), NIL))
 #define RERR_ARG_PC	RERR(ERR_ARG,       cons(local_vref(debug, pc), NIL))
 #define RERR_PC(X)	RERR((X),           cons(local_vref(debug, pc), NIL))
-#define RERR_OVW_PC(X)	rerr(RERR_CAUSE(X), cons(local_vref(debug, pc), NIL))
+#define RERR_OVW_PC(X)	rerr_add_pos(local_vref(debug, pc), (X))
 
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
