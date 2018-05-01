@@ -310,7 +310,7 @@ value_t	cfn		(value_t fn, value_t env);
 value_t	cloj		(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug);
 value_t	macro		(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug);
 value_t slurp		(char* fn);
-value_t init		(value_t env);
+value_t init		(void);
 void	rep_file	(char* fn, value_t env);
 
 value_t make_vector	(unsigned n);
@@ -339,7 +339,8 @@ value_t wcstr_to_vec	(const wchar_t* s);
 value_t str_to_rstr	(const char* s);
 value_t mbstr_to_rstr	(const char* s);
 value_t wcstr_to_rstr	(const wchar_t* s);
-value_t str_to_sym	(const char* s);
+value_t make_symbol	(const char* s);
+value_t intern		(const char* s, value_t package);
 value_t str_to_key	(const char* s);
 char*   rstr_to_str	(value_t s);
 
@@ -368,6 +369,10 @@ EXTERN value_t g_trace;
 EXTERN value_t g_debug;
 EXTERN value_t g_gensym_counter;
 EXTERN value_t g_exception_stack;
+EXTERN value_t g_package;
+
+EXTERN value_t g_package_list;
+EXTERN value_t g_current_package;
 
 EXTERN value_t* g_istbl;
 EXTERN int      g_istbl_size;

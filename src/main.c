@@ -6,6 +6,7 @@
 #include "allocator.h"
 #include "reader.h"
 #include "printer.h"
+#include "package.h"
 #include "env.h"
 #include "vm.h"
 #include "compile_vm.h"
@@ -106,6 +107,7 @@ int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "");
 	init_allocator();
+#if 0
 	value_t env = load_core("init.rudc");
 	push_root(&env);
 	if(errp(env))
@@ -122,6 +124,23 @@ int main(int argc, char* argv[])
 	{
 		print(env, stdout);
 	}
+#endif
+	g_package_list    = NIL;
+	g_current_package = NIL;
+	push_root(&g_package_list);
+	push_root(&g_current_package);
+
+	lock_gc();
+	g_current_package = create_package(str_to_rstr("user"));
+	init_global(g_current_package);
+	g_current_package = init_root_env(g_current_package);
+	g_current_package = init_global(g_current_package);
+	g_current_package = init();
+	print(g_current_package, stdout);
+	unlock_gc();
+
+	value_t env = car(cdr(g_current_package));
+	push_root(&env);
 
 	if(argc == 1)
 	{
@@ -129,11 +148,11 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		set_env(str_to_sym("*ARGV*"), cdr(parse_arg(argc, argv)), env);
+		set_env(intern("*ARGV*", g_current_package), cdr(parse_arg(argc, argv)), env);
 		rep_file(argv[1], env);
 	}
 
-	pop_root(1);
+	pop_root(3);
 	assert(g_lock_cnt == 0);
 	assert(check_lock());
 	return 0;

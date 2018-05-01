@@ -4,6 +4,7 @@
 #include "reader.h"
 #include "scanner.h"
 #include "allocator.h"
+#include "package.h"
 #include "../linenoise/linenoise.h"
 
 
@@ -76,7 +77,7 @@ static value_t read_atom(scan_t* st)
 		}
 		else
 		{
-			token = register_sym(token);
+			token = register_sym(token, g_current_package);
 			value_t tbl[] = {
 				g_setq,           RSPECIAL(SP_SETQ),
 				g_let,            RSPECIAL(SP_LET),

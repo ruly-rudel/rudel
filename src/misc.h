@@ -25,6 +25,7 @@
 
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
 
-void	init_global	(void);
+union _value_t;
+union _value_t	init_global	(union _value_t pkg);
 
 #endif  // _MISC_H_

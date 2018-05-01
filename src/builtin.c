@@ -8,6 +8,7 @@
 #include "compile_vm.h"
 #include "reader.h"
 #include "env.h"
+#include "package.h"
 #include "printer.h"
 
 /////////////////////////////////////////////////////////////////////
@@ -401,17 +402,14 @@ value_t slurp(char* fn)
 	}
 }
 
-value_t init(value_t env)
+value_t init(void)
 {
-	push_root(&env);
-	env = last(env);
-	rplaca(env, car(create_root_env()));
+	g_current_package = init_root_env(g_current_package);
 
 #ifndef NOINIT
-	rep_file("init.rud", env);
+	rep_file("init.rud", UNSAFE_CAR(UNSAFE_CDR(g_current_package)));
 #endif // NOINIT
-	pop_root(1);
-	return NIL;
+	return g_current_package;
 }
 
 void rep_file(char* fn, value_t env)
@@ -918,34 +916,21 @@ value_t wcstr_to_rstr	(const wchar_t* s)
 	return r;
 }
 
-value_t str_to_sym	(const char* s)
+value_t make_symbol	(const char* s)
 {
 	value_t r = str_to_rstr(s);
-	if(errp(r))
-	{
-		return r;
-	}
-	else
+	if(!errp(r))
 	{
 		r.type.main = SYM_T;
 
-		return register_sym(r);
 	}
+	return r;
 }
 
-value_t str_to_key	(const char* s)
+value_t intern	(const char* s, value_t package)
 {
-	value_t r = str_to_rstr(s);
-	if(errp(r))
-	{
-		return r;
-	}
-	else
-	{
-		r.type.main = SYM_T;
-
-		return register_key(r);
-	}
+	value_t r = make_symbol(s);
+	return errp(r) ? r : register_sym(r, package);
 }
 
 char*   rstr_to_str	(value_t s)

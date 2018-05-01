@@ -32,10 +32,7 @@ INLINE(int	unlock_gc(void),	g_lock_cnt--)
 bool		check_lock		(void);
 bool		check_sanity		(void);
 
-void		clear_symtbl		(void);
-value_t		register_sym		(value_t s);
-value_t		register_key		(value_t s);
-value_t		save_core		(value_t fn, value_t root);
+value_t		save_core		(value_t fn);
 value_t		load_core		(const char* fn);
 
 void		init_allocator		(void);

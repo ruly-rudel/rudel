@@ -754,11 +754,11 @@ apply:
 				break;
 
 			case IS_INIT: TRACE("INIT");
-				OP_0P1P(init(env));
+				OP_0P1P(init());
 				break;
 
 			case IS_SAVECORE: TRACE("SAVECORE");
-				OP_1P1P(is_str(r0) ? save_core(r0, last(env)) : RERR_TYPE_PC);
+				OP_1P1P(is_str(r0) ? save_core(r0) : RERR_TYPE_PC);
 				break;
 
 			case IS_MAKE_VECTOR: TRACE("MAKE_VECTOR");
@@ -867,7 +867,7 @@ apply:
 				THROW(pr_str(RERR_PC(ERR_INVALID_IS), NIL, false));
 throw:
 				// push exception handler
-				r1 = get_env_ref(str_to_sym("*exception-stack*"), env);
+				r1 = get_env_ref(g_exception_stack, env);
 				r2 = local_get_env_value_ref(r1, env);
 				r3 = car(r2);
 				if(!clojurep(r3))

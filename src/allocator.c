@@ -4,7 +4,7 @@
 
 
 /////////////////////////////////////////////////////////////////////
-// private: memory and symbol pool
+// private: GC root
 
 
 typedef struct
@@ -13,8 +13,6 @@ typedef struct
 	int*		size;
 } root_t;
 
-static value_t	s_symbol_pool		= NIL;
-static value_t	s_key_pool		= NIL;
 static root_t	s_root[ROOT_SIZE]	= { 0 };
 static int	s_root_ptr		=   0;
 
@@ -168,11 +166,8 @@ static void exec_gc_root(void)
 		}
 	}
 
-	// copy symbol pool to memory pool
-	copy1(&g_memory_top, &s_symbol_pool);
-
-	// copy keyword pool to memory pool
-	copy1(&g_memory_top, &s_key_pool);
+	// copy package list to memory pool
+	copy1(&g_memory_top, &g_package_list);
 
 	// scan and copy rest
 	value_t* scanned = g_memory_pool;
@@ -184,7 +179,7 @@ static void exec_gc_root(void)
 #ifdef TRACE_GC
 	fprintf(stderr, " Replacing symbols...\n");
 #endif
-	init_global();
+	init_global(g_current_package);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -270,67 +265,16 @@ bool check_sanity(void)
 		is_sanity(*i);
 	}
 
-	is_sanity(s_symbol_pool);
-	is_sanity(s_key_pool);
+	//*** g_package_list is included in root.
+	//is_sanity(g_package_list);
 
 	return true;
 }
 
 /////////////////////////////////////////////////////////////////////
-// public: symbol pool
-
-void clear_symtbl(void)
-{
-	s_symbol_pool = NIL;
-	s_key_pool    = NIL;
-}
-
-value_t register_sym(value_t s)
-{
-	value_t sym = find(s, s_symbol_pool, veq);
-	if(nilp(sym))
-	{
-		push_root(&s);
-		value_t snew;
-		snew.cons      = alloc_cons();
-		snew.cons->car = s;
-		snew.cons->cdr = s_symbol_pool;
-		snew.type.main = CONS_T;
-		s_symbol_pool = snew;
-		pop_root(1);
-		return s;
-	}
-	else
-	{
-		return sym;
-	}
-}
-
-value_t register_key(value_t s)
-{
-	value_t sym = find(s, s_key_pool, veq);
-	if(nilp(sym))
-	{
-		push_root(&s);
-		value_t snew;
-		snew.cons      = alloc_cons();
-		snew.cons->car = s;
-		snew.cons->cdr = s_key_pool;
-		snew.type.main = CONS_T;
-		s_key_pool = snew;
-		pop_root(1);
-		return s;
-	}
-	else
-	{
-		return sym;
-	}
-}
-
-/////////////////////////////////////////////////////////////////////
 // public: core image functions
 
-value_t save_core(value_t fn, value_t root)
+value_t save_core(value_t fn)
 {
 	assert(is_str(fn));
 
@@ -345,9 +289,8 @@ value_t save_core(value_t fn, value_t root)
 
 	// swap buffer and gc partial root
 	swap_buffer();
-	copy1(&g_memory_top, &root);
-	copy1(&g_memory_top, &s_symbol_pool);
-	copy1(&g_memory_top, &s_key_pool);
+	copy1(&g_memory_top, &g_current_package);
+	copy1(&g_memory_top, &g_package_list);
 
 	// scan and copy rest
 	value_t* scanned = g_memory_pool;
@@ -424,7 +367,7 @@ value_t save_core(value_t fn, value_t root)
 #ifdef TRACE_GC
 	fprintf(stderr, " Replacing symbols...\n");
 #endif
-	init_global();
+	init_global(g_current_package);
 
 #ifdef TRACE_GC
 	fprintf(stderr, "Executing GC Done.\n");
@@ -462,18 +405,15 @@ value_t load_core(const char* fn)
 					}
 				}
 
-				// restore env
-				value_t env;
-				env.raw                 = (uintptr_t) g_memory_pool;
-				env.type.main           = CONS_T;	//**** ad-hock: error when empty env
-				s_symbol_pool.raw       = (uintptr_t)(g_memory_pool + 2);
-				s_symbol_pool.type.main = CONS_T;	//**** ad-hock: error when empty symbol pool
-				//s_key_pool.raw          = (uintptr_t)(g_memory_pool + 4);
-				//s_key_pool.type.main    = CONS_T;
-				s_key_pool    = NIL;	//**** ad-hock
+				// restore pakage list
+				g_current_package.raw       = (uintptr_t) g_memory_pool;
+				g_current_package.type.main = CONS_T;	//**** ad-hock: error when empty env
 
-				init_global();
-				return env;
+				g_package_list.raw          = (uintptr_t)(g_memory_pool + 2);
+				g_package_list.type.main    = CONS_T;
+
+				init_global(g_current_package);
+				return g_t;
 			}
 			else
 			{

@@ -9,83 +9,85 @@
 /////////////////////////////////////////////////////////////////////
 // public: initialize well-known symbols
 
-void init_global(void)
+union _value_t init_global(union _value_t pkg)
 {
 	lock_gc();
-	g_nil		 = str_to_sym("nil");
-	g_t		 = str_to_sym("t");
-	g_env		 = str_to_sym("env");
-	g_unquote	 = str_to_sym("unquote");
-	g_splice_unquote = str_to_sym("splice-unquote");
-	g_setq		 = str_to_sym("setq");
-	g_let		 = str_to_sym("let*");
-	g_progn		 = str_to_sym("progn");
-	g_if		 = str_to_sym("if");
-	g_lambda	 = str_to_sym("lambda");
-	g_quote		 = str_to_sym("quote");
-	g_quasiquote	 = str_to_sym("quasiquote");
-	g_macro		 = str_to_sym("macro");
-	g_macroexpand	 = str_to_sym("macroexpand");
-	g_rest		 = str_to_sym("&rest");
-	g_optional	 = str_to_sym("&optional");
-	g_key		 = str_to_sym("&key");
-	g_trace		 = str_to_sym("*trace*");
-	g_debug		 = str_to_sym("*debug*");
-	g_gensym_counter = str_to_sym("*gensym-counter*");
-	g_exception_stack= str_to_sym("*exception-stack*");
+
+	g_nil		 = intern("nil",		pkg);
+	g_t		 = intern("t",			pkg);
+	g_env		 = intern("env",		pkg);
+	g_unquote	 = intern("unquote",		pkg);
+	g_splice_unquote = intern("splice-unquote",	pkg);
+	g_setq		 = intern("setq",		pkg);
+	g_let		 = intern("let*",		pkg);
+	g_progn		 = intern("progn",		pkg);
+	g_if		 = intern("if",			pkg);
+	g_lambda	 = intern("lambda",		pkg);
+	g_quote		 = intern("quote",		pkg);
+	g_quasiquote	 = intern("quasiquote",		pkg);
+	g_macro		 = intern("macro",		pkg);
+	g_macroexpand	 = intern("macroexpand",	pkg);
+	g_rest		 = intern("&rest",		pkg);
+	g_optional	 = intern("&optional",		pkg);
+	g_key		 = intern("&key",		pkg);
+	g_trace		 = intern("*trace*",		pkg);
+	g_debug		 = intern("*debug*",		pkg);
+	g_gensym_counter = intern("*gensym-counter*",	pkg);
+	g_exception_stack= intern("*exception-stack*",	pkg);
+	g_package        = intern("*package*",		pkg);
 
 
 	value_t tbl[] = {
-		str_to_sym("atom"),		ROP(IS_ATOM),		RINT(1),
-		str_to_sym("consp"),		ROP(IS_CONSP),		RINT(1),
-		str_to_sym("clojurep"),		ROP(IS_CLOJUREP),	RINT(1),
-		str_to_sym("macrop"),		ROP(IS_MACROP),		RINT(1),
-		str_to_sym("specialp"),		ROP(IS_SPECIALP),	RINT(1),
-		str_to_sym("strp"),		ROP(IS_STRP),		RINT(1),
-		str_to_sym("errp"),		ROP(IS_ERRP),		RINT(1),
-		str_to_sym("cons"),		ROP(IS_CONS),		RINT(2),
-		str_to_sym("car"),		ROP(IS_CAR),		RINT(1),
-		str_to_sym("cdr"),		ROP(IS_CDR),		RINT(1),
-		str_to_sym("eq"),		ROP(IS_EQ),		RINT(2),
-		str_to_sym("equal"),		ROP(IS_EQUAL),		RINT(2),
-		str_to_sym("rplaca"),		ROP(IS_RPLACA),		RINT(2),
-		str_to_sym("rplacd"),		ROP(IS_RPLACD),		RINT(2),
-		str_to_sym("gensym"),		ROP(IS_GENSYM),		RINT(0),
-		str_to_sym("+"),		ROP(IS_ADD),		RINT(2),
-		str_to_sym("-"),		ROP(IS_SUB),		RINT(2),
-		str_to_sym("*"),		ROP(IS_MUL),		RINT(2),
-		str_to_sym("/"),		ROP(IS_DIV),		RINT(2),
-		str_to_sym("<"),		ROP(IS_LT),		RINT(2),
-		str_to_sym("<="),		ROP(IS_ELT),		RINT(2),
-		str_to_sym(">"),		ROP(IS_MT),		RINT(2),
-		str_to_sym(">="),		ROP(IS_EMT),		RINT(2),
-		str_to_sym("read-string"),	ROP(IS_READ_STRING),	RINT(1),
-		str_to_sym("slurp"),		ROP(IS_SLURP),		RINT(1),
-		str_to_sym("eval"),		ROP(IS_EVAL),		RINT(1),
-		str_to_sym("err"),		ROP(IS_ERR),		RINT(1),
-		str_to_sym("nth"),		ROP(IS_NTH),		RINT(2),
-		str_to_sym("init"),		ROP(IS_INIT),		RINT(0),
-		str_to_sym("save-core"),	ROP(IS_SAVECORE),	RINT(1),
-		str_to_sym("make-vector"),	ROP(IS_MAKE_VECTOR),	RINT(1),
-		str_to_sym("vref"),		ROP(IS_VREF),		RINT(2),
-		str_to_sym("rplacv"),		ROP(IS_RPLACV),		RINT(3),
-		str_to_sym("vsize"),		ROP(IS_VSIZE),		RINT(1),
-		str_to_sym("veq"),		ROP(IS_VEQ),		RINT(2),
-		str_to_sym("vpush"),		ROP(IS_VPUSH),		RINT(2),
-		str_to_sym("vpop"),		ROP(IS_VPOP),		RINT(1),
-		str_to_sym("copy-vector"),	ROP(IS_COPY_VECTOR),	RINT(1),
-		str_to_sym("vconc"),		ROP(IS_VCONC),		RINT(2),
-		str_to_sym("vnconc"),		ROP(IS_VNCONC),		RINT(2),
-		str_to_sym("compile-vm"),	ROP(IS_COMPILE_VM),	RINT(1),
-		str_to_sym("exec-vm"),		ROP(IS_EXEC_VM),	RINT(1),
-		str_to_sym("pr_str"),		ROP(IS_PR_STR),		RINT(2),
-		str_to_sym("printline"),	ROP(IS_PRINTLINE),	RINT(1),
-		str_to_sym("print"),		ROP(IS_PRINT),		RINT(1),
-		str_to_sym("callcc"),		ROP(IS_CALLCC),		RINT(1),
-		str_to_sym("read"),		ROP(IS_READ),		RINT(0),
-		str_to_sym("count"),		ROP(IS_COUNT),		RINT(1),
-		str_to_sym("reverse"),		ROP(IS_REVERSE),	RINT(1),
-		str_to_sym("nconc"),		ROP(IS_NCONC),		RINT(2),
+		intern("atom",		pkg),		ROP(IS_ATOM),		RINT(1),
+		intern("consp",		pkg),		ROP(IS_CONSP),		RINT(1),
+		intern("clojurep",	pkg),		ROP(IS_CLOJUREP),	RINT(1),
+		intern("macrop",	pkg),		ROP(IS_MACROP),		RINT(1),
+		intern("specialp",	pkg),		ROP(IS_SPECIALP),	RINT(1),
+		intern("strp",		pkg),		ROP(IS_STRP),		RINT(1),
+		intern("errp",		pkg),		ROP(IS_ERRP),		RINT(1),
+		intern("cons",		pkg),		ROP(IS_CONS),		RINT(2),
+		intern("car",		pkg),		ROP(IS_CAR),		RINT(1),
+		intern("cdr",		pkg),		ROP(IS_CDR),		RINT(1),
+		intern("eq",		pkg),		ROP(IS_EQ),		RINT(2),
+		intern("equal",		pkg),		ROP(IS_EQUAL),		RINT(2),
+		intern("rplaca",	pkg),		ROP(IS_RPLACA),		RINT(2),
+		intern("rplacd",	pkg),		ROP(IS_RPLACD),		RINT(2),
+		intern("gensym",	pkg),		ROP(IS_GENSYM),		RINT(0),
+		intern("+",		pkg),		ROP(IS_ADD),		RINT(2),
+		intern("-",		pkg),		ROP(IS_SUB),		RINT(2),
+		intern("*",		pkg),		ROP(IS_MUL),		RINT(2),
+		intern("/",		pkg),		ROP(IS_DIV),		RINT(2),
+		intern("<",		pkg),		ROP(IS_LT),		RINT(2),
+		intern("<=",		pkg),		ROP(IS_ELT),		RINT(2),
+		intern(">",		pkg),		ROP(IS_MT),		RINT(2),
+		intern(">=",		pkg),		ROP(IS_EMT),		RINT(2),
+		intern("read-string",	pkg),		ROP(IS_READ_STRING),	RINT(1),
+		intern("slurp",		pkg),		ROP(IS_SLURP),		RINT(1),
+		intern("eval",		pkg),		ROP(IS_EVAL),		RINT(1),
+		intern("err",		pkg),		ROP(IS_ERR),		RINT(1),
+		intern("nth",		pkg),		ROP(IS_NTH),		RINT(2),
+		intern("init",		pkg),		ROP(IS_INIT),		RINT(0),
+		intern("save-core",	pkg),		ROP(IS_SAVECORE),	RINT(1),
+		intern("make-vector",	pkg),		ROP(IS_MAKE_VECTOR),	RINT(1),
+		intern("vref",		pkg),		ROP(IS_VREF),		RINT(2),
+		intern("rplacv",	pkg),		ROP(IS_RPLACV),		RINT(3),
+		intern("vsize",		pkg),		ROP(IS_VSIZE),		RINT(1),
+		intern("veq",		pkg),		ROP(IS_VEQ),		RINT(2),
+		intern("vpush",		pkg),		ROP(IS_VPUSH),		RINT(2),
+		intern("vpop",		pkg),		ROP(IS_VPOP),		RINT(1),
+		intern("copy-vector",	pkg),		ROP(IS_COPY_VECTOR),	RINT(1),
+		intern("vconc",		pkg),		ROP(IS_VCONC),		RINT(2),
+		intern("vnconc",	pkg),		ROP(IS_VNCONC),		RINT(2),
+		intern("compile-vm",	pkg),		ROP(IS_COMPILE_VM),	RINT(1),
+		intern("exec-vm",	pkg),		ROP(IS_EXEC_VM),	RINT(1),
+		intern("pr_str",	pkg),		ROP(IS_PR_STR),		RINT(2),
+		intern("printline",	pkg),		ROP(IS_PRINTLINE),	RINT(1),
+		intern("print",		pkg),		ROP(IS_PRINT),		RINT(1),
+		intern("callcc",	pkg),		ROP(IS_CALLCC),		RINT(1),
+		intern("read",		pkg),		ROP(IS_READ),		RINT(0),
+		intern("count",		pkg),		ROP(IS_COUNT),		RINT(1),
+		intern("reverse",	pkg),		ROP(IS_REVERSE),	RINT(1),
+		intern("nconc",		pkg),		ROP(IS_NCONC),		RINT(2),
 	};
 
 	g_istbl_size = sizeof(tbl) / sizeof(tbl[0]);
@@ -96,6 +98,8 @@ void init_global(void)
 		g_istbl[i] = tbl[i];
 	}
 	unlock_gc();
+
+	return pkg;
 }
 
 // End of File

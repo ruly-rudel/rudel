@@ -144,7 +144,6 @@ value_t	find_env_all	(value_t key, value_t env)
 	}
 }
 
-#if 0
 // search whole environment
 value_t	get_env_value	(value_t key, value_t env)
 {
@@ -154,20 +153,30 @@ value_t	get_env_value	(value_t key, value_t env)
 	for(; !nilp(env); env = UNSAFE_CDR(env))
 	{
 		assert(consp(env));
-		value_t s = vassoceq(key, UNSAFE_CAR(env));
-		if(!nilp(s))
+		value_t alist = car(env);
+		assert(vectorp(alist));
+
+		for(int width = 0; width < vsize(alist); width++)
 		{
-			return UNSAFE_CDR(s);
+			value_t pair = vref(alist, width);
+			assert(consp(pair));
+
+			if(UNSAFE_CAR(pair).raw == key.raw)
+			{
+				return UNSAFE_CDR(pair);
+			}
 		}
 	}
 
+	push_root(&key);
 	value_t r = str_to_rstr("variable ");
+	push_root(&r);
 	r = vnconc(r, symbol_string(key));
 	r = vnconc(r, str_to_rstr(" is not found."));
+	pop_root(2);
 
 	return rerr(r, NIL);
 }
-#endif
 
 // search whole environment
 value_t	get_env_ref	(value_t key, value_t env)
@@ -217,6 +226,7 @@ value_t	get_env_value_ref(value_t ref, value_t env)
 	return UNSAFE_CDR(vref(env, REF_W(ref)));
 }
 
+#if 0
 value_t	create_root_env	(void)
 {
 	value_t key = list(6, g_nil, g_t, g_gensym_counter, g_exception_stack, g_debug, g_trace);
@@ -226,6 +236,25 @@ value_t	create_root_env	(void)
 	pop_root(1);
 
 	return create_env(key, val, NIL);
+}
+#endif
+
+value_t	init_root_env	(value_t pkg)
+{
+	assert(consp(pkg));
+
+	value_t pkg_val = UNSAFE_CDR(pkg);
+	assert(consp(pkg_val));
+	push_root(&pkg_val);
+
+	value_t key = list(6, g_nil, g_t, g_gensym_counter, g_exception_stack, g_debug, g_trace);
+	push_root(&key);
+
+	value_t val = list(6, NIL,   g_t, RINT(0),          NIL,               NIL,     NIL);
+	rplaca(pkg_val, create_env(key, val, NIL));
+	pop_root(2);
+
+	return pkg;
 }
 
 // End of File
