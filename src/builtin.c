@@ -402,17 +402,20 @@ value_t slurp(char* fn)
 	}
 }
 
-value_t init(void)
+value_t init(value_t pkg)
 {
-	g_current_package = init_root_env(g_current_package);
+	push_root(&pkg);
+	init_root_env(pkg);
 
 #ifndef NOINIT
-	rep_file("init.rud", UNSAFE_CAR(UNSAFE_CDR(g_current_package)));
+	rep_file("init.rud", pkg);
 #endif // NOINIT
-	return g_current_package;
+
+	pop_root(1);
+	return pkg;
 }
 
-void rep_file(char* fn, value_t env)
+void rep_file(char* fn, value_t pkg)
 {
 	lock_gc();
 
@@ -425,8 +428,9 @@ void rep_file(char* fn, value_t env)
 	vpush(ROP(IS_PRINTLINE),	catch);
 	vpush(ROP(IS_HALT),		catch);
 
+	value_t env = get_pkg_env(pkg);
 	value_t clojure = cloj(NIL, NIL, cons(catch, catch), NIL, NIL);
-	set_env(g_exception_stack, cons(clojure, NIL), last(env));
+	set_env(g_exception_stack, cons(clojure, NIL), env);
 
 	// build rep code
 	value_t rfn   = str_to_rstr(fn);
@@ -462,7 +466,7 @@ void rep_file(char* fn, value_t env)
 	unlock_gc();
 
 	// exec rep
-	exec_vm(cd, env);
+	exec_vm(cd, pkg);
 }
 
 /////////////////////////////////////////////////////////////////////

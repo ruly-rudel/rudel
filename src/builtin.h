@@ -310,8 +310,8 @@ value_t	cfn		(value_t fn, value_t env);
 value_t	cloj		(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug);
 value_t	macro		(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug);
 value_t slurp		(char* fn);
-value_t init		(void);
-void	rep_file	(char* fn, value_t env);
+value_t init		(value_t pkg);
+void	rep_file	(char* fn, value_t pkg);
 
 value_t make_vector	(unsigned n);
 value_t vref		(value_t v, unsigned pos);
@@ -372,7 +372,6 @@ EXTERN value_t g_exception_stack;
 EXTERN value_t g_package;
 
 EXTERN value_t g_package_list;
-EXTERN value_t g_current_package;
 
 EXTERN value_t* g_istbl;
 EXTERN int      g_istbl_size;

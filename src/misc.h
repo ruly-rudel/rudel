@@ -27,5 +27,6 @@
 
 union _value_t;
 union _value_t	init_global	(union _value_t pkg);
+void		release_global	(void);
 
 #endif  // _MISC_H_

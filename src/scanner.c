@@ -194,11 +194,13 @@ static value_t scan1(scan_t* s)
 
 /////////////////////////////////////////////////////////////////////
 // public: scanner interface
-scan_t* scan_init(scan_t* r, value_t str)
+scan_t* scan_init(scan_t* r, value_t pkg, value_t str)
 {
+	r->pkg    = pkg;
 	r->buf    = str;
 	r->rptr   = 0;
 	r->token  = NIL;
+	push_root(&r->pkg);
 	push_root(&r->buf);
 	push_root(&r->token);
 	r->token  = scan1(r);
@@ -223,7 +225,7 @@ value_t scan_peek(scan_t *s)
 
 void scan_close(void)
 {
-	pop_root(2);
+	pop_root(3);
 }
 
 // End of File

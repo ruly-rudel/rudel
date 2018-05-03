@@ -469,7 +469,7 @@ cleanup:
 static value_t compile_vm_check_builtin(value_t atom)
 {
 	assert(symbolp(atom));
-	for(int i = 0; i < g_istbl_size; i += 3)
+	for(int i = 0; i <= g_istbl_size; i += 3)
 	{
 		if(EQ(g_istbl[i], atom))
 		{
@@ -483,7 +483,7 @@ static value_t compile_vm_check_builtin(value_t atom)
 static int compile_vm_get_builtin_argnum(value_t atom)
 {
 	assert(symbolp(atom));
-	for(int i = 0; i < g_istbl_size; i += 3)
+	for(int i = 0; i <= g_istbl_size; i += 3)
 	{
 		if(EQ(g_istbl[i], atom))
 		{

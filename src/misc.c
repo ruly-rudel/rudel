@@ -5,6 +5,7 @@
 #include "misc.h"
 #include "allocator.h"
 #include "env.h"
+#include "package.h"
 
 /////////////////////////////////////////////////////////////////////
 // public: initialize well-known symbols
@@ -13,28 +14,28 @@ union _value_t init_global(union _value_t pkg)
 {
 	lock_gc();
 
-	g_nil		 = intern("nil",		pkg);
-	g_t		 = intern("t",			pkg);
-	g_env		 = intern("env",		pkg);
-	g_unquote	 = intern("unquote",		pkg);
-	g_splice_unquote = intern("splice-unquote",	pkg);
-	g_setq		 = intern("setq",		pkg);
-	g_let		 = intern("let*",		pkg);
-	g_progn		 = intern("progn",		pkg);
-	g_if		 = intern("if",			pkg);
-	g_lambda	 = intern("lambda",		pkg);
-	g_quote		 = intern("quote",		pkg);
-	g_quasiquote	 = intern("quasiquote",		pkg);
-	g_macro		 = intern("macro",		pkg);
-	g_macroexpand	 = intern("macroexpand",	pkg);
-	g_rest		 = intern("&rest",		pkg);
-	g_optional	 = intern("&optional",		pkg);
-	g_key		 = intern("&key",		pkg);
-	g_trace		 = intern("*trace*",		pkg);
-	g_debug		 = intern("*debug*",		pkg);
-	g_gensym_counter = intern("*gensym-counter*",	pkg);
-	g_exception_stack= intern("*exception-stack*",	pkg);
-	g_package        = intern("*package*",		pkg);
+	g_nil		 = intern("nil",		pkg);	push_root(&g_nil);
+	g_t		 = intern("t",			pkg);	push_root(&g_t);
+	g_env		 = intern("env",		pkg);	push_root(&g_env);
+	g_unquote	 = intern("unquote",		pkg);	push_root(&g_unquote);
+	g_splice_unquote = intern("splice-unquote",	pkg);	push_root(&g_splice_unquote);
+	g_setq		 = intern("setq",		pkg);	push_root(&g_setq);
+	g_let		 = intern("let*",		pkg);	push_root(&g_let);
+	g_progn		 = intern("progn",		pkg);	push_root(&g_progn);
+	g_if		 = intern("if",			pkg);	push_root(&g_if);
+	g_lambda	 = intern("lambda",		pkg);	push_root(&g_lambda);
+	g_quote		 = intern("quote",		pkg);	push_root(&g_quote);
+	g_quasiquote	 = intern("quasiquote",		pkg);	push_root(&g_quasiquote);
+	g_macro		 = intern("macro",		pkg);	push_root(&g_macro);
+	g_macroexpand	 = intern("macroexpand",	pkg);	push_root(&g_macroexpand);
+	g_rest		 = intern("&rest",		pkg);	push_root(&g_rest);
+	g_optional	 = intern("&optional",		pkg);	push_root(&g_optional);
+	g_key		 = intern("&key",		pkg);	push_root(&g_key);
+	g_trace		 = intern("*trace*",		pkg);	push_root(&g_trace);
+	g_debug		 = intern("*debug*",		pkg);	push_root(&g_debug);
+	g_gensym_counter = intern("*gensym-counter*",	pkg);	push_root(&g_gensym_counter);
+	g_exception_stack= intern("*exception-stack*",	pkg);	push_root(&g_exception_stack);
+	g_package        = intern("*package*",		pkg);	push_root(&g_package);
 
 
 	value_t tbl[] = {
@@ -90,16 +91,22 @@ union _value_t init_global(union _value_t pkg)
 		intern("nconc",		pkg),		ROP(IS_NCONC),		RINT(2),
 	};
 
-	g_istbl_size = sizeof(tbl) / sizeof(tbl[0]);
-	g_istbl      = (value_t*)malloc(sizeof(value_t) * g_istbl_size);
+	g_istbl_size = sizeof(tbl) / sizeof(tbl[0]) - 1;
+	g_istbl      = (value_t*)malloc(sizeof(value_t) * (g_istbl_size + 1));
 
-	for(int i = 0; i < g_istbl_size; i++)
+	for(int i = 0; i <= g_istbl_size; i++)
 	{
 		g_istbl[i] = tbl[i];
 	}
+	push_root_raw_vec(g_istbl, &g_istbl_size);
 	unlock_gc();
 
 	return pkg;
+}
+
+void release_global(void)
+{
+	pop_root(23);
 }
 
 // End of File

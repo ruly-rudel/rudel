@@ -77,7 +77,7 @@ static value_t read_atom(scan_t* st)
 		}
 		else
 		{
-			token = register_sym(token, g_current_package);
+			token = register_sym(token, st->pkg);
 			value_t tbl[] = {
 				g_setq,           RSPECIAL(SP_SETQ),
 				g_let,            RSPECIAL(SP_LET),
@@ -298,20 +298,27 @@ value_t read_line_prompt(prompt_t prompt, FILE* fp)
 #endif  // USE LINENOISE
 }
 
-value_t read_str(value_t s)
+value_t read_str(value_t s, value_t pkg)
 {
 	scan_t st = { 0 };
-	scan_init(&st, s);
+	scan_init(&st, pkg, s);
 	value_t r = read_form(&st);
 	scan_close();
 	return r;
 }
 
-value_t READ(prompt_t prompt, FILE* fp)
+value_t READ(prompt_t prompt, value_t pkg, FILE* fp)
 {
+	push_root(&pkg);
 	value_t r = read_line_prompt(prompt, fp);
 
-	return errp(r) ? r : read_str(r);
+	if(!errp(r))
+	{
+		r = read_str(r, pkg);
+	}
+	pop_root(1);
+
+	return r;
 }
 
 

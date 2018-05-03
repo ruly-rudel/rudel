@@ -6,12 +6,13 @@
 
 typedef struct
 {
+	value_t		pkg;
 	value_t		buf;
 	unsigned	rptr;
 	value_t		token;
 } scan_t;
 
-scan_t* scan_init(scan_t* r, value_t str);
+scan_t* scan_init(scan_t* r, value_t pkg, value_t str);
 value_t	scan_next(scan_t *s);
 value_t	scan_peek(scan_t *s);
 void	scan_close(void);

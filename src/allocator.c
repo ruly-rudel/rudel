@@ -150,6 +150,9 @@ static void swap_buffer(void)
 
 static void exec_gc_root(void)
 {
+	// copy g_package_list to memory pool
+	copy1(&g_memory_top, &g_package_list);
+
 	// copy root to memory pool
 	for(int i = 0; i < s_root_ptr; i++)
 	{
@@ -166,9 +169,6 @@ static void exec_gc_root(void)
 		}
 	}
 
-	// copy package list to memory pool
-//	copy1(&g_memory_top, &g_package_list);
-
 	// scan and copy rest
 	value_t* scanned = g_memory_pool;
 	while(scanned != g_memory_top)
@@ -179,7 +179,6 @@ static void exec_gc_root(void)
 #ifdef TRACE_GC
 	fprintf(stderr, " Replacing symbols...\n");
 #endif
-	init_global(g_current_package);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -265,16 +264,13 @@ bool check_sanity(void)
 		is_sanity(*i);
 	}
 
-	//*** g_package_list is included in root.
-	//is_sanity(g_package_list);
-
 	return true;
 }
 
 /////////////////////////////////////////////////////////////////////
 // public: core image functions
 
-value_t save_core(value_t fn)
+value_t save_core(value_t fn, value_t pkg)
 {
 	assert(is_str(fn));
 
@@ -289,7 +285,7 @@ value_t save_core(value_t fn)
 
 	// swap buffer and gc partial root
 	swap_buffer();
-	copy1(&g_memory_top, &g_current_package);
+	copy1(&g_memory_top, &pkg);
 	copy1(&g_memory_top, &g_package_list);
 
 	// scan and copy rest
@@ -365,11 +361,6 @@ value_t save_core(value_t fn)
 	}
 
 #ifdef TRACE_GC
-	fprintf(stderr, " Replacing symbols...\n");
-#endif
-	init_global(g_current_package);
-
-#ifdef TRACE_GC
 	fprintf(stderr, "Executing GC Done.\n");
 #endif
 
@@ -406,14 +397,15 @@ value_t load_core(const char* fn)
 				}
 
 				// restore pakage list
-				g_current_package.raw       = (uintptr_t) g_memory_pool;
-				g_current_package.type.main = CONS_T;	//**** ad-hock: error when empty env
+				value_t pkg;
+				pkg.raw                  = (uintptr_t) g_memory_pool;
+				pkg.type.main            = CONS_T;	//**** ad-hock: error when empty env
 
-				g_package_list.raw          = (uintptr_t)(g_memory_pool + 2);
-				g_package_list.type.main    = CONS_T;
+				g_package_list.raw       = (uintptr_t)(g_memory_pool + 2);
+				g_package_list.type.main = CONS_T;
 
-				init_global(g_current_package);
-				return g_t;
+				init_global(pkg);
+				return pkg;
 			}
 			else
 			{

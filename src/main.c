@@ -14,7 +14,7 @@
 #define SYM(X) str_to_sym(X)
 #define STR(X) str_to_rstr(X)
 
-void repl(value_t env)
+void repl(value_t pkg)
 {
 #ifdef USE_LINENOISE
 	init_linenoise();
@@ -31,8 +31,9 @@ void repl(value_t env)
 	vpush(ROP(IS_PRINTLINE),	catch);
 	vpush(ROP(IS_GOTO),		catch);
 
+	value_t env = get_pkg_env(pkg);
 	value_t clojure = cloj(NIL, NIL, cons(catch, catch), env, NIL);
-	set_env(g_exception_stack, cons(clojure, NIL), last(env));
+	set_env(g_exception_stack, cons(clojure, NIL), env);
 
 	// build repl code
 	value_t code = make_vector(27);
@@ -84,11 +85,12 @@ void repl(value_t env)
 	unlock_gc();
 
 	// exec repl
-	exec_vm(cd, env);
+	exec_vm(cd, pkg);
 }
 
-value_t parse_arg(int argc, char* argv[])
+value_t parse_arg(int argc, char* argv[], value_t pkg)
 {
+	push_root(&pkg);
 	value_t  r   = cons(NIL, NIL);
 	value_t  cur = r;
 	push_root(&r);
@@ -96,10 +98,10 @@ value_t parse_arg(int argc, char* argv[])
 
 	for(int i = 0; i < argc; i++)
 	{
-		CONS_AND_CDR(read_str(str_to_rstr(argv[i])), cur)
+		CONS_AND_CDR(read_str(str_to_rstr(argv[i]), pkg), cur)
 	}
 
-	pop_root(2);
+	pop_root(3);
 	return cdr(r);
 }
 
@@ -108,37 +110,38 @@ int main(int argc, char* argv[])
 	setlocale(LC_ALL, "");
 	init_allocator();
 
-	g_package_list    = NIL;
-	g_current_package = NIL;
-	push_root(&g_package_list);
-	push_root(&g_current_package);
+	g_package_list = NIL;
+	value_t pkg    = NIL;
+	push_root(&pkg);
 
-	value_t r = load_core("init.rudc");
-	if(errp(r))
+	pkg = load_core("init.rudc");
+	if(errp(pkg))
 	{
 		lock_gc();
-		g_current_package = create_package(str_to_rstr("user"));
-		init_global(g_current_package);
-		init_root_env(g_current_package);
-		init();
-		print(g_current_package, stdout);
+		pkg = create_package(str_to_rstr("user"));
+		init_global(pkg);
+		init(pkg);
+		print(pkg, stdout);
 		unlock_gc();
 	}
 
-	value_t env = car(cdr(g_current_package));
-	push_root(&env);
-
 	if(argc == 1)
 	{
-		repl(env);
+		repl(pkg);
 	}
 	else
 	{
-		set_env(intern("*ARGV*", g_current_package), cdr(parse_arg(argc, argv)), env);
-		rep_file(argv[1], env);
+		value_t val = cdr(parse_arg(argc, argv, pkg));
+		push_root(&val);
+		value_t key = intern("*ARGV*", pkg);
+		value_t env = get_pkg_env(pkg);
+		set_env(key, val, env);
+		pop_root(1);
+		rep_file(argv[1], pkg);
 	}
 
-	pop_root(3);
+	release_global();
+	pop_root(1);
 	assert(g_lock_cnt == 0);
 	assert(check_lock());
 	return 0;

@@ -4,6 +4,7 @@
 #include "vm.h"
 #include "allocator.h"
 #include "env.h"
+#include "package.h"
 #include "reader.h"
 #include "printer.h"
 #include "compile_vm.h"
@@ -299,11 +300,11 @@ static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
 
 /////////////////////////////////////////////////////////////////////
 // public: VM
-value_t exec_vm(value_t c, value_t e)
+value_t exec_vm(value_t c, value_t p)
 {
 	assert(consp(c));
 	assert(vectorp(car(c)));
-	assert(consp(e));
+	assert(consp(p));
 
 #ifdef CHECK_GC_SANITY
 	check_sanity();
@@ -321,7 +322,9 @@ value_t exec_vm(value_t c, value_t e)
 
 	value_t debug      = cdr(c);
 
-	value_t env	   = e;
+	value_t env	   = get_pkg_env(p);
+
+	value_t pkg	   = p;
 
 	value_t r0    = NIL;
 	value_t r1    = NIL;
@@ -334,6 +337,7 @@ value_t exec_vm(value_t c, value_t e)
 	push_root        (&code);
 	push_root        (&debug);
 	push_root        (&env);
+	push_root        (&pkg);
 	push_root        (&r0);
 	push_root        (&r1);
 	push_root        (&r2);
@@ -355,7 +359,7 @@ again:
 				fprintf(stderr, "VM stack usage: stack %d, return %d\n", alloc, ralloc);
 #endif // PRINT_STACK_USAGE
 				// pop root
-				pop_root(9);
+				pop_root(10);
 				return LOCAL_VPOP_RAW;
 
 			case IS_BR: TRACE1("BR %x", pc + op.op.operand);
@@ -725,7 +729,7 @@ apply:
 				break;
 
 			case IS_READ_STRING: TRACE("READ_STRING");
-				OP_1P1P(vectorp(r0) ? read_str(r0) : RERR_TYPE_PC);
+				OP_1P1P(vectorp(r0) ? read_str(r0, pkg) : RERR_TYPE_PC);
 				break;
 
 			case IS_EVAL: TRACE("EVAL");
@@ -754,11 +758,11 @@ apply:
 				break;
 
 			case IS_INIT: TRACE("INIT");
-				OP_0P1P(init());
+				OP_0P1P(init(pkg));
 				break;
 
 			case IS_SAVECORE: TRACE("SAVECORE");
-				OP_1P1P(is_str(r0) ? save_core(r0) : RERR_TYPE_PC);
+				OP_1P1P(is_str(r0) ? save_core(r0, pkg) : RERR_TYPE_PC);
 				break;
 
 			case IS_MAKE_VECTOR: TRACE("MAKE_VECTOR");
@@ -852,7 +856,7 @@ apply:
 			break;
 
 			case IS_READ: TRACE("READ");
-				LOCAL_VPUSH_RAW(READ(PROMPT, stdin));
+				LOCAL_VPUSH_RAW(READ(PROMPT, pkg, stdin));
 				break;
 
 			case IS_COUNT: TRACE("COUNT");
@@ -872,7 +876,7 @@ throw:
 				r3 = car(r2);
 				if(!clojurep(r3))
 				{
-					pop_root(9);
+					pop_root(10);
 					return RERR_PC(ERR_EXCEPTION);
 				}
 				LOCAL_VPUSH_RAW(r3);

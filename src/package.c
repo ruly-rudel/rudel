@@ -5,22 +5,10 @@
 
 
 /////////////////////////////////////////////////////////////////////
-// private: symbol pool
-
-//static value_t	s_symbol_pool		= NIL;
-
-/////////////////////////////////////////////////////////////////////
 // private: support functions
 
 /////////////////////////////////////////////////////////////////////
 // public: package and symbol
-
-#if 0
-void clear_symtbl(void)
-{
-	s_symbol_pool = NIL;
-}
-#endif
 
 value_t register_sym(value_t s, value_t pkg)
 {
@@ -56,7 +44,7 @@ value_t	create_package	(value_t name)
 {
 	assert(is_str(name));
 	push_root(&name);
-	
+
 	value_t r = cons(name, cons(NIL, NIL));
 	push_root(&r);
 	g_package_list = cons(r, g_package_list);
