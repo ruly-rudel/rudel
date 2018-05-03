@@ -167,7 +167,7 @@ static void exec_gc_root(void)
 	}
 
 	// copy package list to memory pool
-	copy1(&g_memory_top, &g_package_list);
+//	copy1(&g_memory_top, &g_package_list);
 
 	// scan and copy rest
 	value_t* scanned = g_memory_pool;

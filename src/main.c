@@ -107,37 +107,23 @@ int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "");
 	init_allocator();
-#if 0
-	value_t env = load_core("init.rudc");
-	push_root(&env);
-	if(errp(env))
-	{
-		lock_gc();
-		init_global();
-		unlock_gc();
-		env = create_env(NIL, NIL, NIL);
-		value_t ini = init(env);
 
-		print(ini, stdout);
-	}
-	else
-	{
-		print(env, stdout);
-	}
-#endif
 	g_package_list    = NIL;
 	g_current_package = NIL;
 	push_root(&g_package_list);
 	push_root(&g_current_package);
 
-	lock_gc();
-	g_current_package = create_package(str_to_rstr("user"));
-	init_global(g_current_package);
-	g_current_package = init_root_env(g_current_package);
-	g_current_package = init_global(g_current_package);
-	g_current_package = init();
-	print(g_current_package, stdout);
-	unlock_gc();
+	value_t r = load_core("init.rudc");
+	if(errp(r))
+	{
+		lock_gc();
+		g_current_package = create_package(str_to_rstr("user"));
+		init_global(g_current_package);
+		init_root_env(g_current_package);
+		init();
+		print(g_current_package, stdout);
+		unlock_gc();
+	}
 
 	value_t env = car(cdr(g_current_package));
 	push_root(&env);
