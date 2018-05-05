@@ -300,11 +300,11 @@ static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
 
 /////////////////////////////////////////////////////////////////////
 // public: VM
-value_t exec_vm(value_t c, value_t p)
+value_t exec_vm(value_t c, value_t e)
 {
 	assert(consp(c));
 	assert(vectorp(car(c)));
-	assert(consp(p));
+	assert(consp(e));
 
 #ifdef CHECK_GC_SANITY
 	check_sanity();
@@ -322,9 +322,9 @@ value_t exec_vm(value_t c, value_t p)
 
 	value_t debug      = cdr(c);
 
-	value_t env	   = get_pkg_env(p);
+	value_t env	   = e;
 
-	value_t pkg	   = p;
+	value_t pkg	   = NIL;
 
 	value_t r0    = NIL;
 	value_t r1    = NIL;
@@ -344,6 +344,8 @@ value_t exec_vm(value_t c, value_t p)
 	push_root        (&r3);
 	push_root_raw_vec(stack_raw, &sp);
 	push_root_raw_vec(ret_raw,   &rsp);
+
+	pkg = get_env_pkg(env);
 
 	for(int pc = 0; true; pc++)
 	{
@@ -762,7 +764,7 @@ apply:
 				break;
 
 			case IS_SAVECORE: TRACE("SAVECORE");
-				OP_1P1P(is_str(r0) ? save_core(r0, pkg) : RERR_TYPE_PC);
+				OP_1P1P(is_str(r0) ? save_core(r0, last(env)) : RERR_TYPE_PC);
 				break;
 
 			case IS_MAKE_VECTOR: TRACE("MAKE_VECTOR");

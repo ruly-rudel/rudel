@@ -311,7 +311,7 @@ value_t	cloj		(value_t ast, value_t ast_env, value_t code, value_t vm_env, value
 value_t	macro		(value_t ast, value_t ast_env, value_t code, value_t vm_env, value_t debug);
 value_t slurp		(char* fn);
 value_t init		(value_t pkg);
-void	rep_file	(char* fn, value_t pkg);
+void	rep_file	(char* fn, value_t env);
 
 value_t make_vector	(unsigned n);
 value_t vref		(value_t v, unsigned pos);

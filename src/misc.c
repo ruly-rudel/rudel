@@ -10,9 +10,11 @@
 /////////////////////////////////////////////////////////////////////
 // public: initialize well-known symbols
 
-union _value_t init_global(union _value_t pkg)
+void init_global(void)
 {
 	lock_gc();
+
+	value_t pkg = car(last(g_package_list));
 
 	g_nil		 = intern("nil",		pkg);	push_root(&g_nil);
 	g_t		 = intern("t",			pkg);	push_root(&g_t);
@@ -100,8 +102,6 @@ union _value_t init_global(union _value_t pkg)
 	}
 	push_root_raw_vec(g_istbl, &g_istbl_size);
 	unlock_gc();
-
-	return pkg;
 }
 
 void release_global(void)

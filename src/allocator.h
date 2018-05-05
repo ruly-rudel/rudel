@@ -32,7 +32,7 @@ INLINE(int	unlock_gc(void),	g_lock_cnt--)
 bool		check_lock		(void);
 bool		check_sanity		(void);
 
-value_t		save_core		(value_t fn, value_t pkg);
+value_t		save_core		(value_t fn, value_t env);
 value_t		load_core		(const char* fn);
 
 void		init_allocator		(void);

@@ -14,7 +14,7 @@
 #define SYM(X) str_to_sym(X)
 #define STR(X) str_to_rstr(X)
 
-void repl(value_t pkg)
+void repl(value_t env)
 {
 #ifdef USE_LINENOISE
 	init_linenoise();
@@ -31,7 +31,6 @@ void repl(value_t pkg)
 	vpush(ROP(IS_PRINTLINE),	catch);
 	vpush(ROP(IS_GOTO),		catch);
 
-	value_t env = get_pkg_env(pkg);
 	value_t clojure = cloj(NIL, NIL, cons(catch, catch), env, NIL);
 	set_env(g_exception_stack, cons(clojure, NIL), env);
 
@@ -58,7 +57,7 @@ void repl(value_t pkg)
 	vpush(ROP (IS_PUSH),		code);
 	vpush(RINT(ERR_EOF),		code);
 	vpush(ROP (IS_EQ),		code);
-	vpush(ROPD(IS_BNIL, 6),	code);
+	vpush(ROPD(IS_BNIL, 6),		code);
 	vpush(ROP (IS_POP),		code);
 	vpush(ROP (IS_PUSH),		code);
 	vpush(g_t,			code);
@@ -85,7 +84,7 @@ void repl(value_t pkg)
 	unlock_gc();
 
 	// exec repl
-	exec_vm(cd, pkg);
+	exec_vm(cd, env);
 }
 
 value_t parse_arg(int argc, char* argv[], value_t pkg)
@@ -111,33 +110,36 @@ int main(int argc, char* argv[])
 	init_allocator();
 
 	g_package_list = NIL;
-	value_t pkg    = NIL;
-	push_root(&pkg);
+	value_t env    = NIL;
+	push_root(&env);
 
-	pkg = load_core("init.rudc");
-	if(errp(pkg))
+	env = load_core("init.rudc");
+	if(errp(env))
 	{
 		lock_gc();
-		pkg = create_package(str_to_rstr("user"));
-		init_global(pkg);
-		init(pkg);
-		print(pkg, stdout);
+		value_t pkg = create_package(str_to_rstr("user"));
+		init_global();
+		env = init(pkg);
 		unlock_gc();
+	}
+	else
+	{
+		print(env, stdout);
 	}
 
 	if(argc == 1)
 	{
-		repl(pkg);
+		repl(env);
 	}
 	else
 	{
+		lock_gc();
+		value_t pkg = get_env_pkg(env);
 		value_t val = cdr(parse_arg(argc, argv, pkg));
-		push_root(&val);
 		value_t key = intern("*ARGV*", pkg);
-		value_t env = get_pkg_env(pkg);
 		set_env(key, val, env);
-		pop_root(1);
-		rep_file(argv[1], pkg);
+		unlock_gc();
+		rep_file(argv[1], env);
 	}
 
 	release_global();

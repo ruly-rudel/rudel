@@ -270,7 +270,7 @@ bool check_sanity(void)
 /////////////////////////////////////////////////////////////////////
 // public: core image functions
 
-value_t save_core(value_t fn, value_t pkg)
+value_t save_core(value_t fn, value_t env)
 {
 	assert(is_str(fn));
 
@@ -285,7 +285,7 @@ value_t save_core(value_t fn, value_t pkg)
 
 	// swap buffer and gc partial root
 	swap_buffer();
-	copy1(&g_memory_top, &pkg);
+	copy1(&g_memory_top, &env);
 	copy1(&g_memory_top, &g_package_list);
 
 	// scan and copy rest
@@ -397,15 +397,15 @@ value_t load_core(const char* fn)
 				}
 
 				// restore pakage list
-				value_t pkg;
-				pkg.raw                  = (uintptr_t) g_memory_pool;
-				pkg.type.main            = CONS_T;	//**** ad-hock: error when empty env
+				value_t env;
+				env.raw                  = (uintptr_t) g_memory_pool;
+				env.type.main            = CONS_T;	//**** ad-hock: error when empty env
 
 				g_package_list.raw       = (uintptr_t)(g_memory_pool + 2);
 				g_package_list.type.main = CONS_T;
 
-				init_global(pkg);
-				return pkg;
+				init_global();
+				return env;
 			}
 			else
 			{

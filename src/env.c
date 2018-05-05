@@ -178,6 +178,35 @@ value_t	get_env_value	(value_t key, value_t env)
 	return rerr(r, NIL);
 }
 
+value_t	get_env_pkg	(value_t env)
+{
+	assert(consp(env));
+	env = last(env);
+	assert(consp(env));
+	value_t alist = car(env);
+	assert(vectorp(alist));
+	push_root(&alist);
+
+	value_t key = str_to_vec("*package*");
+
+	for(int width = 0; width < vsize(alist); width++)
+	{
+		value_t pair = vref(alist, width);
+		assert(consp(pair));
+
+		if(veq(UNSAFE_CAR(pair), key))
+		{
+			pop_root(1);
+			return UNSAFE_CDR(pair);
+		}
+	}
+
+	value_t r = str_to_rstr("cannot find *package*.");
+	pop_root(1);
+
+	return rerr(r, NIL);
+}
+
 // search whole environment
 value_t	get_env_ref	(value_t key, value_t env)
 {
@@ -226,19 +255,19 @@ value_t	get_env_value_ref(value_t ref, value_t env)
 	return UNSAFE_CDR(vref(env, REF_W(ref)));
 }
 
-#if 0
-value_t	create_root_env	(void)
+value_t	create_root_env	(value_t pkg)
 {
-	value_t key = list(6, g_nil, g_t, g_gensym_counter, g_exception_stack, g_debug, g_trace);
+	push_root(&pkg);
+	value_t key = list(7, g_nil, g_t, g_package, g_gensym_counter, g_exception_stack, g_debug, g_trace);
 	push_root(&key);
 
-	value_t val = list(6, NIL,   g_t, RINT(0),          NIL,               NIL,     NIL);
-	pop_root(1);
+	value_t val = list(7, NIL,   g_t, pkg,       RINT(0),          NIL,               NIL,     NIL);
+	pop_root(2);
 
 	return create_env(key, val, NIL);
 }
-#endif
 
+#if 0
 value_t	init_root_env	(value_t pkg)
 {
 	assert(consp(pkg));
@@ -256,6 +285,7 @@ value_t	init_root_env	(value_t pkg)
 
 	return pkg;
 }
+#endif
 
 // End of File
 /////////////////////////////////////////////////////////////////////
