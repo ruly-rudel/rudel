@@ -40,9 +40,18 @@ value_t register_sym(value_t s, value_t pkg)
 	}
 }
 
+value_t	init_package_list	(void)
+{
+	g_package_list = NIL;
+	value_t key = create_package(NIL);
+	value_t usr = create_package(intern(":user", key));
+
+	return usr;
+}
+
 value_t	create_package	(value_t name)
 {
-	assert(is_str(name));
+	assert(symbolp(name) || nilp(name));
 	push_root(&name);
 
 	value_t r = cons(name, NIL);
@@ -54,14 +63,14 @@ value_t	create_package	(value_t name)
 
 value_t in_package	(value_t name)
 {
-	assert(is_str(name));
+	assert(symbolp(name) || nilp(name));
 
 	for(value_t pkg = g_package_list; !nilp(pkg); pkg = UNSAFE_CDR(pkg))
 	{
 		assert(consp(pkg));
-		if(EQ(UNSAFE_CAR(pkg), name))
+		if(EQ(UNSAFE_CAR(UNSAFE_CAR(pkg)), name))
 		{
-			return pkg;
+			return UNSAFE_CAR(pkg);
 		}
 	}
 	return NIL;

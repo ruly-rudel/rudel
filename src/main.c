@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 	if(errp(env))
 	{
 		lock_gc();
-		value_t pkg = create_package(str_to_rstr("user"));
+		value_t pkg = init_package_list();
 		init_global();
 		env = init(pkg);
 		unlock_gc();

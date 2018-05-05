@@ -14,7 +14,7 @@ void init_global(void)
 {
 	lock_gc();
 
-	value_t pkg = car(last(g_package_list));
+	value_t pkg = in_package(intern(":user", car(last(g_package_list))));
 
 	g_nil		 = intern("nil",		pkg);	push_root(&g_nil);
 	g_t		 = intern("t",			pkg);	push_root(&g_t);
