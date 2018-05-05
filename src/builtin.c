@@ -912,6 +912,29 @@ value_t wcstr_to_rstr	(const wchar_t* s)
 	return r;
 }
 
+char*   rstr_to_str	(value_t s)
+{
+	assert(vectorp(s));
+
+	char* buf = (char*)malloc(vsize(s) + 1);
+	if(buf)
+	{
+		char *p = buf;
+		for(int i = 0; i < vsize(s); i++)
+		{
+			value_t c = vref(s, i);
+			assert(charp(c));
+			*p++ = INTOF(c);
+		}
+		*p = '\0';
+	}
+
+	return buf;
+}
+
+/////////////////////////////////////////////////////////////////////
+// public: symbol functions
+
 value_t make_symbol_r	(value_t name)
 {
 	value_t r = list(2, name, NIL);
@@ -959,38 +982,15 @@ value_t intern	(const char* s, value_t package)
 	return errp(r) ? r : register_sym(r, package);
 }
 
-char*   rstr_to_str	(value_t s)
-{
-	assert(vectorp(s));
-
-	char* buf = (char*)malloc(vsize(s) + 1);
-	if(buf)
-	{
-		char *p = buf;
-		for(int i = 0; i < vsize(s); i++)
-		{
-			value_t c = vref(s, i);
-			assert(charp(c));
-			*p++ = INTOF(c);
-		}
-		*p = '\0';
-	}
-
-	return buf;
-}
-
-/////////////////////////////////////////////////////////////////////
-// public: symbol functions
-
 value_t gensym	(value_t env)
 {
 	push_root(&env);
-	value_t r = str_to_rstr("#:G");
+	value_t r = str_to_rstr("G");
 	push_root(&r);
 	value_t n = get_env_ref(g_gensym_counter, env);
 	push_root(&n);
 	n         = get_env_value_ref(n, env);
-	r         = vnconc(r, pr_str(n, NIL, false));
+	r         = vnconc(r, pr_str(n, NIL, NIL, false));
 	r         = make_symbol_r(r);
 
 	set_env(g_gensym_counter, RINT(INTOF(n) + 1), env);

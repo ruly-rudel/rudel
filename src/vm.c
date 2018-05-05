@@ -68,7 +68,7 @@
 #define OP_0P1P(X) \
 { \
 	r0 = (X); \
-	if(errp(r0))  THROW(pr_str(RERR_OVW_PC(r0), NIL, false)); \
+	if(errp(r0))  THROW(pr_str(RERR_OVW_PC(r0), pkg, NIL, false)); \
 	LOCAL_VPUSH_RAW(r0); \
 }
 
@@ -76,7 +76,7 @@
 { \
 	r0 = LOCAL_VPEEK_RAW; \
 	r1 = (X); \
-	if(errp(r1))  THROW(pr_str(RERR_OVW_PC(r1), NIL, false)); \
+	if(errp(r1))  THROW(pr_str(RERR_OVW_PC(r1), pkg, NIL, false)); \
 	LOCAL_RPLACV_TOP_RAW(r1); \
 }
 
@@ -90,7 +90,7 @@
 	} \
 	else \
 	{ \
-		THROW(pr_str(RERR_TYPE_PC, NIL, false)); \
+		THROW(pr_str(RERR_TYPE_PC, pkg, NIL, false)); \
 	} \
 }
 
@@ -99,7 +99,7 @@
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = LOCAL_VPEEK_RAW; \
 	r2 = (X); \
-	if(errp(r2))  THROW(pr_str(RERR_OVW_PC(r2), NIL, false)); \
+	if(errp(r2))  THROW(pr_str(RERR_OVW_PC(r2), pkg, NIL, false)); \
 	LOCAL_RPLACV_TOP_RAW(r2); \
 }
 
@@ -114,7 +114,7 @@
 	} \
 	else \
 	{ \
-		THROW(pr_str(RERR_TYPE_PC, NIL, false)); \
+		THROW(pr_str(RERR_TYPE_PC, pkg, NIL, false)); \
 	} \
 }
 
@@ -124,7 +124,7 @@
 	r1 = LOCAL_VPOP_RAW; \
 	r2 = LOCAL_VPEEK_RAW; \
 	r3 = (X); \
-	if(errp(r3))  THROW(pr_str(RERR_OVW_PC(r3), NIL, false)); \
+	if(errp(r3))  THROW(pr_str(RERR_OVW_PC(r3), pkg, NIL, false)); \
 	LOCAL_RPLACV_TOP_RAW(r3); \
 }
 
@@ -446,7 +446,7 @@ apply:
 					if(nilp(THIRD(r1)))
 					{
 						r2 = compile_vm(r1, env);
-						if(errp(r2)) THROW(pr_str(r2, NIL, false));
+						if(errp(r2)) THROW(pr_str(r2, pkg, NIL, false));
 					}
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
@@ -467,7 +467,7 @@ apply:
 				}
 				else
 				{
-					THROW(pr_str(RERR_PC(ERR_INVALID_AP), NIL, false));
+					THROW(pr_str(RERR_PC(ERR_INVALID_AP), pkg, NIL, false));
 				}
 				break;
 
@@ -547,12 +547,12 @@ apply:
 					AVALUE(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0)))).cons->car = env;	// set current environment
 				}
 #ifdef TRACE_VM
-				print(r0, stderr);
+				print(r0, pkg, stderr);
 #endif // TRACE_VM
 				if(errp(r0))
 				{
 					r0 = RERR_OVW_PC(r0);
-					THROW(pr_str(r0, NIL, false));
+					THROW(pr_str(r0, pkg, NIL, false));
 				}
 				LOCAL_VPUSH_RAW(r0);
 				break;
@@ -560,7 +560,7 @@ apply:
 			case IS_PUSHR: TRACEN("PUSHR: ");
 				r0 = local_vref(code, ++pc);	// next code is entity
 #ifdef TRACE_VM
-				print(r0, stderr);
+				print(r0, pkg, stderr);
 #endif // TRACE_VM
 				LOCAL_VPUSH_RAW(r0);
 				break;
@@ -624,7 +624,7 @@ apply:
 				break;
 
 			case IS_ISZERO_ARGNUM: TRACE1("ISZERO_ARGNUM %d", argnum);
-				if(argnum != 0) THROW(pr_str(RERR_ARG_PC, NIL, false));
+				if(argnum != 0) THROW(pr_str(RERR_ARG_PC, pkg, NIL, false));
 				break;
 
 			case IS_ROTL: TRACE("ROTL");
@@ -737,7 +737,7 @@ apply:
 			case IS_EVAL: TRACE("EVAL");
 				r0 = LOCAL_VPOP_RAW;
 				r1 = compile_vm(r0, env);
-				if(errp(r1)) THROW(pr_str(r1, NIL, false));
+				if(errp(r1)) THROW(pr_str(r1, pkg, NIL, false));
 
 				// save contexts
 				LOCAL_VPUSH_RET_RAW(code);
@@ -828,12 +828,12 @@ apply:
 				}
 				else
 				{
-					THROW(pr_str(RERR_TYPE_PC, NIL, false));
+					THROW(pr_str(RERR_TYPE_PC, pkg, NIL, false));
 				}
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
-				OP_2P1P(pr_str(r0, NIL, !nilp(r1)));
+				OP_2P1P(pr_str(r0, pkg, NIL, !nilp(r1)));
 				break;
 
 			case IS_PRINTLINE: TRACE("PRINTLINE");
@@ -841,7 +841,7 @@ apply:
 				break;
 
 			case IS_PRINT: TRACE("PRINT");
-				OP_1P1P((print(r0, stdout), NIL));
+				OP_1P1P((print(r0, pkg, stdout), NIL));
 				break;
 
 			case IS_SLURP: TRACE("SLURP");
@@ -849,7 +849,7 @@ apply:
 				r0 = LOCAL_VPEEK_RAW;
 				if(!vectorp(r0))
 				{
-					THROW(pr_str(RERR_TYPE_PC, NIL, false));
+					THROW(pr_str(RERR_TYPE_PC, pkg, NIL, false));
 				}
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));
@@ -870,7 +870,7 @@ apply:
 				break;
 
 			default:
-				THROW(pr_str(RERR_PC(ERR_INVALID_IS), NIL, false));
+				THROW(pr_str(RERR_PC(ERR_INVALID_IS), pkg, NIL, false));
 throw:
 				// push exception handler
 				r1 = get_env_ref(g_exception_stack, env);

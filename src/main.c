@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		print(env, stdout);
+		print(env, get_env_pkg(env), stdout);
 	}
 
 	if(argc == 1)

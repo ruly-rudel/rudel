@@ -42,7 +42,7 @@ static value_t pr_str_int(int x)
 	return r;
 }
 
-static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
+static value_t pr_str_cons(value_t x, value_t pkg, value_t annotate, bool print_readably)
 {
 	assert(rtypeof(x) == CONS_T);
 	push_root(&x);
@@ -64,14 +64,14 @@ static value_t pr_str_cons(value_t x, value_t annotate, bool print_readably)
 			if(rtypeof(x) == CONS_T)
 			{
 				// append string
-				vnconc(r, pr_str(car(x), annotate, print_readably));
+				vnconc(r, pr_str(car(x), pkg, annotate, print_readably));
 				x = cdr(x);
 			}
 			else	// dotted
 			{
 				vpush(RCHAR('.'), r);
 				vpush(RCHAR(' '), r);
-				vnconc(r, pr_str(x, annotate, print_readably));
+				vnconc(r, pr_str(x, pkg, annotate, print_readably));
 				x = NIL;
 			}
 		} while(!nilp(x));
@@ -366,7 +366,7 @@ static value_t pr_err_cause(value_t e)
 		return str_to_rstr("invalid type of error.");
 	}
 }
-static value_t pr_err_pos(value_t e)
+static value_t pr_err_pos(value_t e, value_t pkg)
 {
 	value_t pos  = RERR_POS(e);
 	push_root(&pos);
@@ -376,30 +376,42 @@ static value_t pr_err_pos(value_t e)
 	for(; !nilp(pos); pos = cdr(pos))
 	{
 		vnconc(r, str_to_rstr("\nat "));
-		vnconc(r, pr_str(car(pos), NIL, true));
+		vnconc(r, pr_str(car(pos), pkg, NIL, true));
 	}
 
 	pop_root(2);
 	return r;
 }
 
-static value_t pr_err(value_t s)
+static value_t pr_err(value_t s, value_t pkg)
 {
 	assert(errp(s));
 
 	push_root(&s);
 	value_t r = pr_err_cause(s);
 	push_root(&r);
-	r = vnconc(r, pr_err_pos(s));
+	r = vnconc(r, pr_err_pos(s, pkg));
 	pop_root(2);
 	return r;
 }
 
-static value_t pr_sym(value_t s)
+static value_t pr_sym(value_t s, value_t pkg)
 {
 	assert(symbolp(s));
 
-	return symbol_string_c(s);
+	if(EQ(pkg, symbol_package(s)))
+	{
+		return symbol_string_c(s);
+	}
+	else if(EQ(symbol_package(s), NIL))	// uninterned symbol
+	{
+		return vnconc(str_to_rstr("#:"), symbol_string_c(s));
+	}
+	else
+	{
+		return vnconc(symbol_string_c(UNSAFE_CAR(symbol_package(s))),
+				vnconc(str_to_rstr("::"), symbol_string_c(s)));
+	}
 }
 
 static value_t pr_str_char(value_t s)
@@ -575,18 +587,18 @@ void printline(value_t s, FILE* fp)
 	return ;
 }
 
-value_t pr_str(value_t s, value_t annotate, bool print_readably)
+value_t pr_str(value_t s, value_t pkg, value_t annotate, bool print_readably)
 {
 	switch(rtypeof(s))
 	{
 	    case CONS_T:
-		return pr_str_cons(s, annotate, print_readably);
+		return pr_str_cons(s, pkg, annotate, print_readably);
 
 	    case VEC_T:
 		return is_str(s) ? pr_str_str(s, print_readably) : pr_vec(s);
 
 	    case SYM_T:
-		return pr_sym(s);
+		return pr_sym(s, pkg);
 
 	    case SPECIAL_T:
 		return pr_special(s);
@@ -607,7 +619,7 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 		return pr_str_char(s);
 
 	    case ERR_T:
-		return pr_err(s);
+		return pr_err(s, pkg);
 
 	    case REF_T:
 		return pr_ref(s);
@@ -620,16 +632,16 @@ value_t pr_str(value_t s, value_t annotate, bool print_readably)
 	}
 }
 
-void print(value_t s, FILE* fp)
+void print(value_t s, value_t pkg, FILE* fp)
 {
 	push_root(&s);
 	GCCONS(c, RINT(0), NIL);
 
-	value_t r = pr_str(s, c, true);
+	value_t r = pr_str(s, pkg, c, true);
 	if(errp(r))
 	{
 		push_root(&r);
-		printline(pr_str(r, NIL, true), stderr);
+		printline(pr_str(r, pkg, NIL, true), stderr);
 		pop_root(1);
 	}
 	else
@@ -638,6 +650,13 @@ void print(value_t s, FILE* fp)
 	}
 
 	pop_root(2);
+	return;
+}
+
+// debug print
+void pr(value_t s)
+{
+	print(s, NIL, stdout);
 	return;
 }
 
