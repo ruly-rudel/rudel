@@ -13,11 +13,11 @@ typedef enum _rtype_t {
 	// main 8types (content is address)
 	PTR_T = 0,
 	CONS_T,
+	SYM_T,
 	CLOJ_T,
 	MACRO_T,
 	ERR_T,
 	VEC_T,
-	SYM_T,
 	OTH_T,
 
 	// sub types (content is value)
@@ -299,7 +299,6 @@ value_t list		(int n, ...);
 value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
 int	count		(value_t x);
 value_t reverse		(value_t x);
-value_t symbol_string	(value_t sym);
 value_t copy_list	(value_t lst);
 
 value_t rerr		(value_t cause, value_t pos);
@@ -339,7 +338,11 @@ value_t wcstr_to_vec	(const wchar_t* s);
 value_t str_to_rstr	(const char* s);
 value_t mbstr_to_rstr	(const char* s);
 value_t wcstr_to_rstr	(const wchar_t* s);
+value_t make_symbol_r	(value_t name);
 value_t make_symbol	(const char* s);
+value_t symbol_string	(value_t sym);
+value_t symbol_string_c	(value_t sym);
+value_t symbol_package	(value_t sym);
 value_t intern		(const char* s, value_t package);
 value_t str_to_key	(const char* s);
 char*   rstr_to_str	(value_t s);

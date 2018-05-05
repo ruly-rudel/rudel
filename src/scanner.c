@@ -78,10 +78,9 @@ static value_t scan_to_whitespace(scan_t* s)
 	{
 		vpush(RCHAR('\0'), r);
 	}
-	r.type.main = SYM_T;
 
 	pop_root(1);
-	return r;
+	return make_symbol_r(r);
 }
 
 static value_t scan_to_doublequote(scan_t* s)
@@ -169,8 +168,7 @@ static value_t scan1(scan_t* s)
 			scan_nch(s);
 			value_t sr   = make_vector(1);
 			vpush(RCHAR(c), sr);
-			sr.type.main = SYM_T;
-			return sr;
+			return make_symbol_r(sr);
 
 		    // comment
 		    case ';':

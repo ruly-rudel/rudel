@@ -7,6 +7,14 @@
 /////////////////////////////////////////////////////////////////////
 // private: support functions
 
+static bool sym_name_eq(value_t x, value_t y)
+{
+	assert(symbolp(x));
+	assert(symbolp(y));
+
+	return veq(car(x), car(y));
+}
+
 /////////////////////////////////////////////////////////////////////
 // public: package and symbol
 
@@ -16,9 +24,10 @@ value_t register_sym(value_t s, value_t pkg)
 	assert(consp(pkg));
 
 	value_t sym_list = UNSAFE_CDR(pkg);
-	value_t sym = find(s, sym_list, veq);
+	value_t sym = find(s, sym_list, sym_name_eq);
 	if(nilp(sym))
 	{
+		rplaca(UNSAFE_CDR(s), pkg);	// set symbol package
 		push_root(&pkg);
 		push_root(&s);
 		push_root(&sym_list);
@@ -44,7 +53,7 @@ value_t	init_package_list	(void)
 {
 	g_package_list = NIL;
 	value_t key = create_package(NIL);
-	value_t usr = create_package(intern(":user", key));
+	value_t usr = create_package(intern("user", key));
 
 	return usr;
 }

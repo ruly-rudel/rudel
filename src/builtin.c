@@ -276,14 +276,6 @@ value_t reverse(value_t x)
 	}
 }
 
-value_t symbol_string(value_t sym)
-{
-	assert(symbolp(sym));
-
-	sym.type.main = VEC_T;
-	return copy_vector(sym);
-}
-
 value_t copy_list(value_t lst)
 {
 	push_root(&lst);
@@ -495,7 +487,7 @@ value_t make_vector(unsigned n)
 
 value_t vref(value_t v, unsigned pos)
 {
-	assert(vectorp(v) || symbolp(v));
+	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
 	v = AVALUE(v);
 
@@ -529,7 +521,7 @@ value_t rplacv(value_t v, unsigned pos, value_t data)
 
 int vsize(value_t v)
 {
-	assert(vectorp(v) || symbolp(v));
+	assert(vectorp(v));
 	v = AVALUE(v);
 	assert(INTOF(v.vector->size) <= INTOF(v.vector->alloc));
 	return INTOF(v.vector->size);
@@ -537,7 +529,7 @@ int vsize(value_t v)
 
 int vallocsize(value_t v)
 {
-	assert(vectorp(v) || symbolp(v));
+	assert(vectorp(v));
 	v = AVALUE(v);
 	assert(INTOF(v.vector->size) <= INTOF(v.vector->alloc));
 	return INTOF(v.vector->alloc);
@@ -545,14 +537,14 @@ int vallocsize(value_t v)
 
 value_t vtype(value_t v)
 {
-	assert(vectorp(v) || symbolp(v));
+	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
 	return AVALUE(v).vector->type;
 }
 
 value_t* vdata(value_t v)
 {
-	assert(vectorp(v) || symbolp(v));
+	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
 	return VPTROF(AVALUE(v).vector->data);
 }
@@ -590,8 +582,8 @@ value_t vresize(value_t v, int n)
 
 bool veq(value_t x, value_t y)
 {
-	assert(vectorp(x) || symbolp(x));
-	assert(vectorp(y) || symbolp(y));
+	assert(vectorp(x));
+	assert(vectorp(y));
 	assert(vsize(x) <= vallocsize(x));
 	assert(vsize(y) <= vallocsize(y));
 	x.type.main = VEC_T;
@@ -629,7 +621,7 @@ value_t vpush(value_t x, value_t v)
 
 value_t vpop(value_t v)
 {
-	assert(vectorp(v) || symbolp(v));
+	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
 	int s = vsize(v);
 
@@ -648,7 +640,7 @@ value_t vpop(value_t v)
 
 value_t vpeek(value_t v)
 {
-	assert(vectorp(v) || symbolp(v));
+	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
 	int s = vsize(v);
 
@@ -664,7 +656,7 @@ value_t vpeek(value_t v)
 
 value_t vpush_front(value_t v, value_t x)
 {
-	assert(vectorp(v) || symbolp(v));
+	assert(vectorp(v));
 	assert(vsize(v) <= vallocsize(v));
 	push_root(&v);
 	push_root(&x);
@@ -682,7 +674,7 @@ value_t vpush_front(value_t v, value_t x)
 
 value_t copy_vector(value_t src)
 {
-	assert(vectorp(src) || symbolp(src));
+	assert(vectorp(src));
 	assert(vsize(src) <= vallocsize(src));
 	push_root(&src);
 	value_t r = make_vector(vsize(src));
@@ -920,15 +912,45 @@ value_t wcstr_to_rstr	(const wchar_t* s)
 	return r;
 }
 
+value_t make_symbol_r	(value_t name)
+{
+	value_t r = list(2, name, NIL);
+	r.type.main = SYM_T;
+	return r;
+}
+
 value_t make_symbol	(const char* s)
 {
-	value_t r = str_to_rstr(s);
-	if(!errp(r))
+	value_t name = str_to_rstr(s);
+	if(!errp(name))
 	{
-		r.type.main = SYM_T;
-
+		return make_symbol_r(name);
 	}
-	return r;
+	else
+	{
+		return name;
+	}
+}
+
+value_t symbol_string(value_t sym)
+{
+	assert(symbolp(sym));
+
+	return UNSAFE_CAR(sym);
+}
+
+value_t symbol_string_c(value_t sym)
+{
+	assert(symbolp(sym));
+
+	return copy_vector(car(sym));
+}
+
+value_t symbol_package(value_t sym)
+{
+	assert(symbolp(sym));
+
+	return UNSAFE_CAR(UNSAFE_CDR(sym));
 }
 
 value_t intern	(const char* s, value_t package)
@@ -939,7 +961,7 @@ value_t intern	(const char* s, value_t package)
 
 char*   rstr_to_str	(value_t s)
 {
-	assert(vectorp(s) || symbolp(s));
+	assert(vectorp(s));
 
 	char* buf = (char*)malloc(vsize(s) + 1);
 	if(buf)
@@ -969,7 +991,7 @@ value_t gensym	(value_t env)
 	push_root(&n);
 	n         = get_env_value_ref(n, env);
 	r         = vnconc(r, pr_str(n, NIL, false));
-	r.type.main = SYM_T;
+	r         = make_symbol_r(r);
 
 	set_env(g_gensym_counter, RINT(INTOF(n) + 1), env);
 

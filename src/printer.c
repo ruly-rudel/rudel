@@ -399,8 +399,7 @@ static value_t pr_sym(value_t s)
 {
 	assert(symbolp(s));
 
-	s.type.main = VEC_T;
-	return copy_vector(s);
+	return symbol_string_c(s);
 }
 
 static value_t pr_str_char(value_t s)
@@ -435,20 +434,20 @@ static value_t pr_special(value_t s)
 	assert(specialp(s));
 	switch(SPECIAL(s))
 	{
-		case SP_SETQ:		return symbol_string(g_setq);
-		case SP_LET:		return symbol_string(g_let);
-		case SP_PROGN:		return symbol_string(g_progn);
-		case SP_IF:		return symbol_string(g_if);
-		case SP_LAMBDA:		return symbol_string(g_lambda);
-		case SP_QUOTE:		return symbol_string(g_quote);
-		case SP_QUASIQUOTE:	return symbol_string(g_quasiquote);
-		case SP_MACRO:		return symbol_string(g_macro);
-		case SP_MACROEXPAND:	return symbol_string(g_macroexpand);
-		case SP_UNQUOTE:	return symbol_string(g_unquote);
-		case SP_SPLICE_UNQUOTE:	return symbol_string(g_splice_unquote);
-		case SP_REST:		return symbol_string(g_rest);
-		case SP_OPTIONAL:	return symbol_string(g_optional);
-		case SP_KEY:		return symbol_string(g_key);
+		case SP_SETQ:		return symbol_string_c(g_setq);
+		case SP_LET:		return symbol_string_c(g_let);
+		case SP_PROGN:		return symbol_string_c(g_progn);
+		case SP_IF:		return symbol_string_c(g_if);
+		case SP_LAMBDA:		return symbol_string_c(g_lambda);
+		case SP_QUOTE:		return symbol_string_c(g_quote);
+		case SP_QUASIQUOTE:	return symbol_string_c(g_quasiquote);
+		case SP_MACRO:		return symbol_string_c(g_macro);
+		case SP_MACROEXPAND:	return symbol_string_c(g_macroexpand);
+		case SP_UNQUOTE:	return symbol_string_c(g_unquote);
+		case SP_SPLICE_UNQUOTE:	return symbol_string_c(g_splice_unquote);
+		case SP_REST:		return symbol_string_c(g_rest);
+		case SP_OPTIONAL:	return symbol_string_c(g_optional);
+		case SP_KEY:		return symbol_string_c(g_key);
 		default:		return RERR(ERR_NOTIMPL, str_to_rstr("special"));
 	}
 }

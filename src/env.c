@@ -194,7 +194,7 @@ value_t	get_env_pkg	(value_t env)
 		value_t pair = vref(alist, width);
 		assert(consp(pair));
 
-		if(veq(UNSAFE_CAR(pair), key))
+		if(veq(UNSAFE_CAR(UNSAFE_CAR(pair)), key))
 		{
 			pop_root(1);
 			return UNSAFE_CDR(pair);

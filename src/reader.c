@@ -14,9 +14,10 @@
 
 static value_t read_int(value_t token)
 {
-	assert(vectorp(token) || symbolp(token));
+	assert(symbolp(token));
 
 	// sign (if exists)
+	token = symbol_string(token);
 	int idx  = 0;
 	value_t c = vref(token, idx);
 	assert(charp(c));
@@ -140,7 +141,7 @@ static value_t read_list(scan_t* st)
 		}
 		else if(symbolp(token))
 		{
-			value_t c = vref(token, 0);	// first char of token
+			value_t c = vref(symbol_string(token), 0);	// first char of token
 
 			assert(charp(c));
 			if(INTOF(c) == ')')
@@ -183,7 +184,7 @@ static value_t read_form(scan_t* st)
 		assert(vectorp(token) || symbolp(token));
 		if(symbolp(token))
 		{
-			value_t c  = vref(token, 0);
+			value_t c  = vref(symbol_string(token), 0);
 			assert(charp(c));
 
 			if(INTOF(c) == '(')
@@ -211,7 +212,7 @@ static value_t read_form(scan_t* st)
 				assert(vectorp(token) || symbolp(token));
 				if(symbolp(token))
 				{
-					value_t c  = vref(token, 0);
+					value_t c  = vref(symbol_string(token), 0);
 					assert(charp(c));
 					if(!errp(c) && INTOF(c) == '@')
 					{
@@ -280,7 +281,7 @@ value_t read_line_prompt(value_t pkg, FILE* fp)
 {
 #ifdef USE_LINENOISE
 
-	char* pn = rstr_to_str(car(pkg));
+	char* pn = rstr_to_str(symbol_string(car(pkg)));
 	size_t len = strlen(pn);
 	char* p  = (char*)malloc(len + 3);
 	if(!p || !pn) abort();

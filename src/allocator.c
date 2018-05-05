@@ -61,6 +61,7 @@ inline static void copy1(value_t** top, value_t* v)
 		case ERR_T:
 		case CLOJ_T:
 		case MACRO_T:
+		case SYM_T:
 			if(cur.raw == 0) break;	// null value
 			if(ptrp(cur.cons->car))	// target cons is already copied
 			{
@@ -89,7 +90,6 @@ inline static void copy1(value_t** top, value_t* v)
 			break;
 
 		case VEC_T:
-		case SYM_T:
 			if(ptrp(cur.vector->type))	// target vector is already copied
 			{
 				// replace value itself to copyed to-space address
