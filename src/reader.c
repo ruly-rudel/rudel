@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <wchar.h>
+#include <string.h>
 #include "builtin.h"
 #include "reader.h"
 #include "scanner.h"
@@ -275,10 +276,21 @@ value_t read_line(FILE* fp)
 	}
 }
 
-value_t read_line_prompt(prompt_t prompt, FILE* fp)
+value_t read_line_prompt(value_t pkg, FILE* fp)
 {
 #ifdef USE_LINENOISE
-	char* line = linenoise(prompt);
+
+	char* pn = rstr_to_str(car(pkg));
+	size_t len = strlen(pn);
+	char* p  = (char*)malloc(len + 3);
+	if(!p || !pn) abort();
+	strncpy(p, pn, len);
+	p[len]     = '>';
+	p[len + 1] = ' ';
+	p[len + 2] = '\0';
+	char* line = linenoise(p);
+	free(pn);
+	free(p);
 	if(line)
 	{
 		linenoiseHistoryAdd(line);
@@ -307,10 +319,10 @@ value_t read_str(value_t s, value_t pkg)
 	return r;
 }
 
-value_t READ(prompt_t prompt, value_t pkg, FILE* fp)
+value_t READ(value_t pkg, FILE* fp)
 {
 	push_root(&pkg);
-	value_t r = read_line_prompt(prompt, fp);
+	value_t r = read_line_prompt(pkg, fp);
 
 	if(!errp(r))
 	{

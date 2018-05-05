@@ -247,7 +247,7 @@ def assert_prompt(runner, prompts, timeout):
 
 # Wait for the initial prompt
 try:
-    assert_prompt(r, ['user> ', 'mal-user> '], args.start_timeout)
+    assert_prompt(r, [':user> ', 'user> ', 'mal-user> '], args.start_timeout)
 except:
     _, exc, _ = sys.exc_info()
     log("\nException: %s" % repr(exc))
@@ -292,7 +292,8 @@ while t.next():
     r.writeline(t.form)
     try:
         test_cnt += 1
-        res = r.read_to_prompt(['\r\nuser> ', '\nuser> ',
+        res = r.read_to_prompt(['\r\n:user> ', '\n:user> ',
+                                '\r\nuser> ', '\nuser> ',
                                 '\r\nmal-user> ', '\nmal-user> '],
                                 timeout=args.test_timeout)
         #print "%s,%s,%s" % (idx, repr(p.before), repr(p.after))

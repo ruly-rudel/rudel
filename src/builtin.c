@@ -939,7 +939,7 @@ value_t intern	(const char* s, value_t package)
 
 char*   rstr_to_str	(value_t s)
 {
-	assert(vectorp(s));
+	assert(vectorp(s) || symbolp(s));
 
 	char* buf = (char*)malloc(vsize(s) + 1);
 	if(buf)

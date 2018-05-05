@@ -858,7 +858,7 @@ apply:
 			break;
 
 			case IS_READ: TRACE("READ");
-				LOCAL_VPUSH_RAW(READ(PROMPT, pkg, stdin));
+				LOCAL_VPUSH_RAW(READ(pkg, stdin));
 				break;
 
 			case IS_COUNT: TRACE("COUNT");
