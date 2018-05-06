@@ -745,43 +745,29 @@ value_t vnconc(value_t x, value_t y)
 	return x;
 }
 
-value_t make_vector_from_list(value_t x)
+value_t subvec(value_t v, int begin, int end)
 {
-	assert(is_cons_pair_or_nil(x));
+	assert(vectorp(v));
 
-	push_root(&x);
-	value_t r = make_vector(0);
-	push_root(&r);
-
-	for(; !nilp(x); x = cdr(x))
+	// argument check
+	int size = vsize(v);
+	if(begin >= size || end >= size)
 	{
-		vpush(car(x), r);
+		return RERR(ERR_RANGE, NIL);
+	}
+
+	if(end < 0) end = size - 1;
+	push_root(&v);
+	value_t r = make_vector(end - begin + 1);
+	push_root(&r);
+	for(int i = begin; i <= end; i++)
+	{
+		vpush(vref(v, i), r);
 	}
 
 	pop_root(2);
 	return r;
 }
-
-value_t make_list_from_vector(value_t x)
-{
-	assert(vectorp(x));
-	assert(vsize(x) <= vallocsize(x));
-
-	push_root(&x);
-	value_t r    = cons(NIL, NIL);
-	value_t cur  = r;
-	push_root(&r);
-	push_root(&cur);
-
-	for(int i = 0; i < vsize(x); i++)
-	{
-		CONS_AND_CDR(vref(x, i), cur);
-	}
-
-	pop_root(3);
-	return cdr(r);
-}
-
 
 /////////////////////////////////////////////////////////////////////
 // public: bridge functions from C to LISP
@@ -982,6 +968,12 @@ value_t intern	(const char* s, value_t package)
 	return errp(r) ? r : register_sym(r, package);
 }
 
+value_t intern_r(value_t s, value_t package)
+{
+	value_t r = make_symbol_r(s);
+	return errp(r) ? r : register_sym(r, package);
+}
+
 value_t gensym	(value_t env)
 {
 	push_root(&env);
@@ -1001,14 +993,6 @@ value_t gensym	(value_t env)
 
 /////////////////////////////////////////////////////////////////////
 // public: support functions writing LISP on C
-#if 0
-value_t* nconc_and_last(value_t v, value_t* c)
-{
-	*c = v;
-	return &AVALUE(last(v)).cons->cdr;
-}
-#endif
-
 bool is_str(value_t v)
 {
 #ifdef STR_EASY_CHECK

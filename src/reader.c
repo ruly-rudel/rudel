@@ -77,6 +77,11 @@ static value_t read_atom(scan_t* st)
 		{
 			token = rint;
 		}
+		else if(EQ(vref(symbol_string(token), 0), RCHAR(':')))	// keyword
+		{
+			token = subvec(symbol_string(token), 1, -1);
+			token = intern_r(token, in_package(NIL));
+		}
 		else
 		{
 			token = register_sym(token, st->pkg);

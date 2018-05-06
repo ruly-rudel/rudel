@@ -522,23 +522,27 @@ apply:
 					fprintf(stderr, "%s ", sn);
 					free(sn);
 #endif // TRACE_VM
-					r1 = get_env_ref(r0, env);
-					if(errp(r1))
+					r2 = symbol_package(r0);
+					if(!(!EQ(r2, NIL) && EQ(UNSAFE_CAR(r2), NIL)))	// keyword is self-evaluated
 					{
-						if(EQ(r0, g_env))
+						r1 = get_env_ref(r0, env);
+						if(errp(r1))
 						{
-							r0 = env;
+							if(EQ(r0, g_env))
+							{
+								r0 = env;
+							}
+							else
+							{
+								r0 = r1;
+							}
 						}
 						else
 						{
-							r0 = r1;
+							local_rplacv(code, pc, r1);		// replace symbol to reference
+							TRACE2N("-> #REF:%d,%d# ", REF_D(r1), REF_W(r1));
+							r0 = local_get_env_value_ref(r1, env);
 						}
-					}
-					else
-					{
-						local_rplacv(code, pc, r1);		// replace symbol to reference
-						TRACE2N("-> #REF:%d,%d# ", REF_D(r1), REF_W(r1));
-						r0 = local_get_env_value_ref(r1, env);
 					}
 				}
 				else if(clojurep(r0) || macrop(r0))

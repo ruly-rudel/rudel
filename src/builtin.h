@@ -328,8 +328,7 @@ value_t vpush_front	(value_t v, value_t x);
 value_t copy_vector	(value_t src);
 value_t vconc		(value_t x, value_t y);
 value_t vnconc		(value_t x, value_t y);
-value_t make_vector_from_list	(value_t x);
-value_t make_list_from_vector	(value_t x);
+value_t subvec		(value_t v, int begin, int end);
 
 value_t str_to_cons	(const char* s);
 value_t str_to_vec	(const char* s);
@@ -338,14 +337,15 @@ value_t wcstr_to_vec	(const wchar_t* s);
 value_t str_to_rstr	(const char* s);
 value_t mbstr_to_rstr	(const char* s);
 value_t wcstr_to_rstr	(const wchar_t* s);
+char*   rstr_to_str	(value_t s);
+
 value_t make_symbol_r	(value_t name);
 value_t make_symbol	(const char* s);
 value_t symbol_string	(value_t sym);
 value_t symbol_string_c	(value_t sym);
 value_t symbol_package	(value_t sym);
 value_t intern		(const char* s, value_t package);
-value_t str_to_key	(const char* s);
-char*   rstr_to_str	(value_t s);
+value_t intern_r	(value_t s, value_t package);
 
 value_t gensym		(value_t env);
 

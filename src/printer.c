@@ -399,7 +399,7 @@ static value_t pr_sym(value_t s, value_t pkg)
 {
 	assert(symbolp(s));
 
-	if(EQ(pkg, symbol_package(s)))
+	if(EQ(symbol_package(s), pkg))
 	{
 		return symbol_string_c(s);
 	}
@@ -409,8 +409,15 @@ static value_t pr_sym(value_t s, value_t pkg)
 	}
 	else
 	{
-		return vnconc(symbol_string_c(UNSAFE_CAR(symbol_package(s))),
-				vnconc(str_to_rstr("::"), symbol_string_c(s)));
+		value_t pkg_name = UNSAFE_CAR(symbol_package(s));
+		if(EQ(pkg_name, NIL))	// keyword
+		{
+			return vnconc(str_to_rstr(":"), symbol_string_c(s));
+		}
+		else
+		{
+			return vnconc(symbol_string_c(pkg_name), vnconc(str_to_rstr("::"), symbol_string_c(s)));
+		}
 	}
 }
 
