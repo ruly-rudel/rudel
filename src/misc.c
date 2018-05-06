@@ -91,6 +91,7 @@ void init_global(void)
 		intern("count",		pkg),		ROP(IS_COUNT),		RINT(1),
 		intern("reverse",	pkg),		ROP(IS_REVERSE),	RINT(1),
 		intern("nconc",		pkg),		ROP(IS_NCONC),		RINT(2),
+		intern("getf",		pkg),		ROP(IS_GETF),		RINT(3),
 	};
 
 	g_istbl_size = sizeof(tbl) / sizeof(tbl[0]) - 1;

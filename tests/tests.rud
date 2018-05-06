@@ -1280,3 +1280,14 @@ x
 ;=>(1 . 2)
 (list* 1 2 3)
 ;=>(1 2 . 3)
+(getf :key1 1 '(:key0 0 :key1 3 :key2 4))
+;=>3
+(getf :key2 1 '(:key0 0 :key1 3 :key2 4))
+;=>4
+(getf :key3 1 '(:key0 0 :key1 3 :key2 4))
+;=>1
+(getf :key0 1 '(:key0 0 :key1 3 :key2 4))
+;=>0
+
+;; Testing lambda list
+((lambda (&key ((:key1 key1) NIL)) key1) :key1 1)

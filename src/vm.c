@@ -627,6 +627,18 @@ apply:
 				local_vpush(r2, r1);
 				break;
 
+			case IS_CONS_REST: TRACE("CONS_REST");
+				r0 = LOCAL_VPOP_RAW;	// VEC
+				CONS(r2, NIL, NIL);
+				r3 = r2;
+				while(argnum-- > 0)
+				{
+					CONS_AND_CDR(LOCAL_VPOP_RAW, r3);
+				}
+				LOCAL_VPUSH_RAW(r0);
+				LOCAL_VPUSH_RAW(UNSAFE_CDR(r2));
+				break;
+
 			case IS_ISZERO_ARGNUM: TRACE1("ISZERO_ARGNUM %d", argnum);
 				if(argnum != 0) THROW(pr_str(RERR_ARG_PC, pkg, NIL, false));
 				break;
@@ -640,6 +652,9 @@ apply:
 				LOCAL_VPUSH_RAW(r1);
 				break;
 
+			case IS_GETF: TRACE("GETF");
+				OP_3P1P(getf(r0, r1, r2));
+				break;
 
 
 			case IS_ATOM: TRACE("ATOM");

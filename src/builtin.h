@@ -69,8 +69,10 @@ typedef enum {
 	IS_ARGNUM,
 	IS_DEC_ARGNUM,
 	IS_VPUSH_REST,
+	IS_CONS_REST,
 	IS_ISZERO_ARGNUM,
 	IS_ROTL,
+	IS_GETF,
 
 	IS_ATOM,
 	IS_CONSP,
@@ -300,6 +302,7 @@ value_t find		(value_t key, value_t list, bool (*test)(value_t, value_t));
 int	count		(value_t x);
 value_t reverse		(value_t x);
 value_t copy_list	(value_t lst);
+value_t getf		(value_t key, value_t def, value_t plist);
 
 value_t rerr		(value_t cause, value_t pos);
 value_t rerr_alloc	(void);

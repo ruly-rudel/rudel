@@ -298,6 +298,27 @@ value_t copy_list(value_t lst)
 	return r;
 }
 
+value_t getf(value_t key, value_t def, value_t plist)
+{
+	assert(symbolp(key));
+	assert(consp(plist) || nilp(plist));
+
+	if(nilp(plist))
+	{
+		return def;
+	}
+	else
+	{
+		for(value_t v = plist; !nilp(v); v = cdr(cdr(v)))
+		{
+			if(EQ(car(v), key))
+				return car(cdr(v));
+		}
+
+		return def;
+	}
+}
+
 
 /////////////////////////////////////////////////////////////////////
 // public: rudel-specific functions

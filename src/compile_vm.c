@@ -217,7 +217,7 @@ cleanup:
 
 /////////////////////////////////////////////////////////////////////
 // special form: lambda
-static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key)
+static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, value_t env)
 {
 	value_t key_car = NIL;
 	assert(vectorp(code));
@@ -226,39 +226,109 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key)
 	push_root(&code);
 	push_root(&debug);
 	push_root(&key);
+	push_root(&env);
 	push_root(&key_car);
 
 	vpush(ROPD(IS_MKVEC_ENV, count(key)), code);		vpush(key, debug);
 	vpush(ROP (IS_VPUSH_ENV),             code);		vpush(key, debug);	// duplicate ENV_VEC on stack top
 
+	int st = 0;
 	for(int i = 0; !nilp(key); i++, (key = cdr(key)))
 	{
 		assert(consp(key));
 
 		key_car = car(key);
+		switch(st)
+		{
+		case 0:	// normal parameter
+			if(EQ(key_car, RSPECIAL(SP_OPTIONAL)))	// optional parameter
+			{
+				st = 1;
+			}
+			else if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
+			{
+				st = 2;
+			}
+			else if(EQ(key_car, RSPECIAL(SP_KEY)))	// keyword parameter
+			{
+				st = 3;
+			}
+			else
+			{
+				vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
+				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+				vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
+				vpush(key_car,               code);	vpush(key, debug);
+				vpush(ROP (IS_CONS_VPUSH),   code);	vpush(key, debug);
+			}
+			break;
 
-		if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
-		{
-			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
-			vpush(second(key),           code);	vpush(key, debug);
-			vpush(ROP (IS_VPUSH_REST),   code);	vpush(key, debug);
-			goto cleanup;
-		}
-		else
-		{
-			vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
-			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+		case 1:	// optional parameter
+			if(EQ(key_car, RSPECIAL(SP_OPTIONAL)))	// optional parameter
+			{
+				code = RERR(ERR_ARG, key);
+				goto cleanup;
+			}
+			else if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
+			{
+				st = 2;
+			}
+			else if(EQ(key_car, RSPECIAL(SP_KEY)))	// keyword parameter
+			{
+				st = 3;
+			}
+			else
+			{
+				vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
+				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+				vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
+				vpush(key_car,               code);	vpush(key, debug);
+				vpush(ROP (IS_CONS_VPUSH),   code);	vpush(key, debug);
+			}
+			break;
+
+		case 2:	// rest parameter
 			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 			vpush(key_car,               code);	vpush(key, debug);
+			vpush(ROP (IS_VPUSH_REST),   code);	vpush(key, debug);
+			goto cleanup;
+
+		case 3:	// keyword parameter 1: push rest to env
+			vpush(ROP (IS_CONS_REST),    code);	vpush(key, debug);
+			st = 4;
+			// fall through
+
+		case 4:	// keyword parameter 2: push each keyword
+			vpush(ROP (IS_DUP),          code);	vpush(key, debug);
+			vpush(ROP (IS_ROTL),         code);	vpush(key, debug);
+
+			code = compile_vm1(code, debug, car(cdr(key_car)), env);
+			if(errp(code)) goto cleanup;
+
+			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
+			vpush(car(car(key_car)),     code);	vpush(key, debug);
+			vpush(ROP (IS_GETF),         code);	vpush(key, debug);
+			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
+			vpush(car(cdr(car(key_car))),code);	vpush(key, debug);
 			vpush(ROP (IS_CONS_VPUSH),   code);	vpush(key, debug);
+			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+			break;
 		}
 	}
 
-	vpush(ROP(IS_ISZERO_ARGNUM),   code);			vpush(key, debug);
-	vpush(ROP(IS_POP), code);				vpush(key, debug);	// pop environment
+	if(st == 4)
+	{
+		vpush(ROP(IS_POP), code);			vpush(key, debug);	// pop plist
+		vpush(ROP(IS_POP), code);			vpush(key, debug);	// pop environment
+	}
+	else
+	{
+		vpush(ROP(IS_ISZERO_ARGNUM),   code);		vpush(key, debug);
+		vpush(ROP(IS_POP), code);			vpush(key, debug);	// pop environment
+	}
 
 cleanup:
-	pop_root(4);
+	pop_root(5);
 	return code;
 }
 
@@ -289,7 +359,7 @@ static value_t compile_vm_lambda(value_t ast, value_t env)
 	push_root(&lambda_code);
 	value_t lambda_debug = make_vector(1);
 	push_root(&lambda_debug);
-	lambda_code = compile_vm_arg_lambda(lambda_code, lambda_debug, def);	// with rest parameter support
+	lambda_code = compile_vm_arg_lambda(lambda_code, lambda_debug, def, env);	// with rest parameter support
 	if(errp(lambda_code)) goto cleanup;
 
 	lambda_code = compile_vm1(lambda_code, lambda_debug, third(ast), lambda_env);
