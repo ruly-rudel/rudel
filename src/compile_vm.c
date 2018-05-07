@@ -154,7 +154,7 @@ static value_t compile_vm_let(value_t code, value_t debug, value_t ast, value_t 
 	push_root(&env);
 
 	// allocate new environment
-	value_t let_env = create_env(NIL, NIL, env);
+	value_t let_env = create_lambda_env(NIL, env);
 	push_root(&let_env);
 
 	// local symbols
@@ -351,7 +351,7 @@ static value_t compile_vm_lambda(value_t ast, value_t env)
 	push_root(&env);
 	push_root(&def);
 
-	value_t lambda_env = create_env(def, NIL, env);
+	value_t lambda_env = create_lambda_env(def, env);
 	push_root(&lambda_env);
 
 	// compile body
@@ -359,7 +359,7 @@ static value_t compile_vm_lambda(value_t ast, value_t env)
 	push_root(&lambda_code);
 	value_t lambda_debug = make_vector(1);
 	push_root(&lambda_debug);
-	lambda_code = compile_vm_arg_lambda(lambda_code, lambda_debug, def, env);	// with rest parameter support
+	lambda_code = compile_vm_arg_lambda(lambda_code, lambda_debug, def, lambda_env);	// with rest parameter support
 	if(errp(lambda_code)) goto cleanup;
 
 	lambda_code = compile_vm1(lambda_code, lambda_debug, third(ast), lambda_env);

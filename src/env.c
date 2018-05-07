@@ -44,37 +44,99 @@ static value_t	find_env	(value_t key, value_t env)
 /////////////////////////////////////////////////////////////////////
 // public: Environment create, search and modify functions
 
-value_t	create_env	(value_t key, value_t val, value_t outer)
+value_t	create_lambda_env	(value_t key, value_t outer)
 {
 	push_root(&key);
-	push_root(&val);
 	push_root(&outer);
 	value_t alist = make_vector(0);
 	push_root(&alist);
+	value_t key_car = NIL;
+	push_root(&key_car);
+	value_t r = cons(alist, outer);
+	push_root(&r);
 
-	for(int i = 0; !nilp(key); i++, key = UNSAFE_CDR(key), val = cdr(val))
+	int st = 0;
+	int i = 0;
+	for(; !nilp(key); key = UNSAFE_CDR(key))
 	{
 		assert(consp(key));
-		assert(consp(val) || nilp(val));	// nil is acceptable
+
+		key_car = UNSAFE_CAR(key);
+		switch(st)
+		{
+		case 0:	// normal parameter
+			if(EQ(key_car, RSPECIAL(SP_OPTIONAL)))	// optional parameter
+			{
+				st = 1;
+			}
+			else if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
+			{
+				st = 2;
+			}
+			else if(EQ(key_car, RSPECIAL(SP_KEY)))	// keyword parameter
+			{
+				st = 3;
+			}
+			else
+			{
+				if(!symbolp(key_car)) goto cleanup;
+				rplacv(alist, i++, cons(key_car, NIL));
+			}
+			break;
+
+		case 1:	// optional parameter
+			if(EQ(key_car, RSPECIAL(SP_OPTIONAL)))	// optional parameter
+			{
+				r = RERR(ERR_ARG, key);
+				goto cleanup;
+			}
+			else if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
+			{
+				st = 2;
+			}
+			else if(EQ(key_car, RSPECIAL(SP_KEY)))	// keyword parameter
+			{
+				st = 3;
+			}
+			else
+			{
+				if(!symbolp(key_car)) goto cleanup;
+				rplacv(alist, i++, cons(car(key_car), NIL));
+			}
+			break;
+
+		case 2:	// rest parameter
+			if(!symbolp(key_car)) goto cleanup;
+			rplacv(alist, i++, cons(key_car, NIL));
+			goto cleanup;
+
+		case 3:	// keyword parameter
+			rplacv(alist, i++, cons(car(cdr(car(key_car))), NIL));
+			break;
+		}
+
+#if 0
+		assert(consp(key));
 
 		value_t key_car = UNSAFE_CAR(key);
-		value_t val_car = car(val);
 
 		if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
 		{
 			key_car = second(key);
-			rplacv(alist, i, cons(key_car, val));		// for resolv order.
+			rplacv(alist, i, cons(key_car, NIL));
 			break;
 		}
 		else
 		{
 			assert(symbolp(key_car));
-			rplacv(alist, i, cons(key_car, val_car));		// for resolv order.
+			rplacv(alist, i, cons(key_car, NIL));
 		}
+#endif
 	}
 
-	pop_root(4);
-	return cons(alist, outer);
+cleanup:
+	pop_root(5);
+	return r;
 }
 
 // search only current environment, set only on current environment
@@ -91,18 +153,9 @@ value_t	set_env		(value_t key, value_t val, value_t env)
 	if(nilp(r))
 	{
 		r = cons(key, val);
-		if(nilp(UNSAFE_CAR(env)))
-		{
-			value_t alist = make_vector(1);
-			rplacv(alist, 0, r);
-			rplaca(env, alist);
-		}
-		else
-		{
-			value_t alist = UNSAFE_CAR(env);
-			assert(vectorp(alist));
-			rplacv(alist, vsize(alist), r);
-		}
+		value_t alist = UNSAFE_CAR(env);
+		assert(vectorp(alist));
+		rplacv(alist, vsize(alist), r);
 	}
 	else
 	{
@@ -258,13 +311,19 @@ value_t	get_env_value_ref(value_t ref, value_t env)
 value_t	create_root_env	(value_t pkg)
 {
 	push_root(&pkg);
-	value_t key = list(7, g_nil, g_t, g_package, g_gensym_counter, g_exception_stack, g_debug, g_trace);
-	push_root(&key);
+	value_t env = cons(make_vector(7), NIL);
+	push_root(&env);
 
-	value_t val = list(7, NIL,   g_t, pkg,       RINT(0),          NIL,               NIL,     NIL);
+	set_env(g_nil,			NIL, 		env);
+	set_env(g_t,			g_t,		env);
+	set_env(g_package,		pkg,		env);
+	set_env(g_gensym_counter,	RINT(0),	env);
+	set_env(g_exception_stack,	NIL, 		env);
+	set_env(g_debug,		NIL, 		env);
+	set_env(g_trace,		NIL, 		env);
+
 	pop_root(2);
-
-	return create_env(key, val, NIL);
+	return env;
 }
 
 #if 0

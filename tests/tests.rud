@@ -1290,4 +1290,9 @@ x
 ;=>0
 
 ;; Testing lambda list
-((lambda (&key ((:key1 key1) NIL)) key1) :key1 1)
+((lambda (&key ((:key1 key1) nil)) key1) :key1 1)
+;=>1
+((lambda (&key ((:key1 key1) 1) ((:key2 key2) nil)) (cons key1 key2)) )
+;=>(1)
+((lambda (&key ((:key1 key1) 1) ((:key2 key2) nil)) (cons key1 key2)) :key2 2 :key1 4)
+;=>(4 . 2)
