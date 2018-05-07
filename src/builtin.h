@@ -73,6 +73,7 @@ typedef enum {
 	IS_ISZERO_ARGNUM,
 	IS_ROTL,
 	IS_GETF,
+	IS_THROW,
 
 	IS_ATOM,
 	IS_CONSP,

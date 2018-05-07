@@ -351,6 +351,8 @@ value_t exec_vm(value_t c, value_t e)
 	{
 		value_t op = local_vref(code, pc);
 		assert(rtypeof(op) == VMIS_T);
+		assert(sp >= -1);
+		assert(rsp >= -1);
 
 again:
 		switch(op.op.mnem)
@@ -421,7 +423,8 @@ again:
 				local_vpush(env,          r1);
 				local_vpush(r0,           r1);
 
-				r2 = make_vector(2);				// code invoking continuation
+				r2 = make_vector(3);		// code invoking continuation
+				local_vpush(ROP(IS_POP),  r2);	// pop argnum
 				local_vpush(ROP(IS_GOTO), r2);
 				local_vpush(r1,           r2);	// continuation itself(is ret stack including stack)
 
@@ -433,9 +436,10 @@ again:
 				// fix stack and argnum for AP
 				r1 = LOCAL_VPOP_RAW;
 				LOCAL_VPUSH_RAW(r0);
+				LOCAL_VPUSH_RAW(RINT(1));	// argnum
 				LOCAL_VPUSH_RAW(r1);
 
-				argnum = 1;
+				//argnum = 1;
 				// fall-through to AP
 
 			case IS_AP: TRACE("AP");
@@ -640,7 +644,8 @@ apply:
 				break;
 
 			case IS_ISZERO_ARGNUM: TRACE1("ISZERO_ARGNUM %d", argnum);
-				if(argnum != 0) THROW(pr_str(RERR_ARG_PC, pkg, NIL, false));
+				//if(argnum != 0) THROW(pr_str(RERR_ARG_PC, pkg, NIL, false));
+				LOCAL_VPUSH_RAW(argnum == 0 ? g_t : NIL);
 				break;
 
 			case IS_ROTL: TRACE("ROTL");
@@ -656,6 +661,9 @@ apply:
 				OP_3P1P(getf(r0, r1, r2));
 				break;
 
+			case IS_THROW: TRACE("THROW");
+				r0 = LOCAL_VPOP_RAW;
+				goto throw;
 
 			case IS_ATOM: TRACE("ATOM");
 				OP_1P1P(atom(r0) ? g_t : NIL);
@@ -771,7 +779,7 @@ apply:
 				break;
 
 			case IS_ERR: TRACE("ERR");
-				OP_1P1P(rerr(r0, RINT(pc)));
+				OP_1P1P(rerr(r0, local_vref(debug, pc)));
 				break;
 
 			case IS_NTH: TRACE("NTH");
@@ -890,6 +898,7 @@ apply:
 
 			default:
 				THROW(pr_str(RERR_PC(ERR_INVALID_IS), pkg, NIL, false));
+
 throw:
 				// push exception handler
 				r1 = get_env_ref(g_exception_stack, env);

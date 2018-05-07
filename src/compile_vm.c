@@ -255,7 +255,29 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 			}
 			else
 			{
-				vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
+				// arg num check
+				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+				vpush(ROP (IS_DUP),          code);	vpush(key, debug);
+				vpush(ROP (IS_PUSH),         code);	vpush(key, debug);
+				vpush(RINT(0),               code);	vpush(key, debug);
+				vpush(ROP (IS_EQ),           code);	vpush(key, debug);
+				vpush(ROPD(IS_BNIL, 6),      code);	vpush(key, debug);
+
+				// too few argument: throw error
+				vpush(ROP (IS_PUSH),         code);	vpush(key, debug);
+				vpush(RINT(ERR_ARG),         code);	vpush(key, debug);
+				vpush(ROP (IS_ERR),          code);	vpush(key, debug);
+				vpush(ROP (IS_PR_STR),       code);	vpush(key, debug);
+				vpush(ROP (IS_THROW),        code);	vpush(key, debug);
+
+				// dec argnum
+				vpush(ROP (IS_PUSH),         code);	vpush(key, debug);
+				vpush(RINT(1),               code);	vpush(key, debug);
+				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+				vpush(ROP (IS_SUB),          code);	vpush(key, debug);
+
+				// insert to env
+				vpush(ROP (IS_ROTL),         code);	vpush(key, debug);
 				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 				vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 				vpush(key_car,               code);	vpush(key, debug);
@@ -279,6 +301,7 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 			}
 			else
 			{
+				//********** not work
 				vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
 				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 				vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
@@ -288,12 +311,16 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 			break;
 
 		case 2:	// rest parameter
+			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+			vpush(ROP (IS_ARGNUM),       code);	vpush(key, debug);
 			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 			vpush(key_car,               code);	vpush(key, debug);
 			vpush(ROP (IS_VPUSH_REST),   code);	vpush(key, debug);
 			goto cleanup;
 
 		case 3:	// keyword parameter 1: push rest to env
+			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+			vpush(ROP (IS_ARGNUM),       code);	vpush(key, debug);
 			vpush(ROP (IS_CONS_REST),    code);	vpush(key, debug);
 			st = 4;
 			// fall through
@@ -323,8 +350,18 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 	}
 	else
 	{
-		vpush(ROP(IS_ISZERO_ARGNUM),   code);		vpush(key, debug);
-		vpush(ROP(IS_POP), code);			vpush(key, debug);	// pop environment
+		vpush(ROP (IS_SWAP),            code);		vpush(key, debug);
+		vpush(ROP (IS_PUSH),            code);		vpush(key, debug);
+		vpush(RINT(0),                  code);		vpush(key, debug);
+		vpush(ROP (IS_EQ),              code);		vpush(key, debug);
+		vpush(ROPD(IS_BNIL, 3),         code);		vpush(key, debug);
+		vpush(ROP (IS_POP),             code);		vpush(key, debug);	// pop environment
+		vpush(ROPD(IS_BR, 6),           code);		vpush(key, debug);
+		vpush(ROP (IS_PUSH),            code);		vpush(key, debug);
+		vpush(RINT(ERR_ARG),            code);		vpush(key, debug);
+		vpush(ROP (IS_ERR),             code);		vpush(key, debug);
+		vpush(ROP (IS_PR_STR),          code);		vpush(key, debug);
+		vpush(ROP (IS_THROW),           code);		vpush(key, debug);
 	}
 
 cleanup:
@@ -523,7 +560,7 @@ static value_t compile_vm_macroexpand(value_t code, value_t debug, value_t ast, 
 	vpush(RINT(1),           code);	vpush(ast, debug);
 	vpush(ROP (IS_SWAP),     code);	vpush(ast, debug);
 	vpush(ROP (IS_SUB),      code);	vpush(ast, debug);
-	vpush(ROP (IS_ARGNUM),   code);	vpush(ast, debug);
+	vpush(ROP (IS_SWAP),     code);	vpush(ast, debug);
 
 	// expand macro and return to top (macro expantion result may be macro call)
 	vpush(ROP (IS_AP),       code);	vpush(ast, debug);
@@ -708,10 +745,9 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 				pop_root(6);
 				return code;
 			}
-			vpush(ROP(IS_PUSH),   code);		vpush(ast, debug);
-			vpush(RINT(argnum),   code);		vpush(ast, debug);
-			vpush(ROP(IS_ARGNUM), code);		vpush(ast, debug);
-			//vpush(ROPD(IS_ARGNUM, argnum), code);		vpush(ast, debug);
+			//vpush(ROP(IS_PUSH),   code);		vpush(ast, debug);
+			//vpush(RINT(argnum),   code);		vpush(ast, debug);
+			//vpush(ROP(IS_ARGNUM), code);		vpush(ast, debug);
 			vpush(bfn, code);		vpush(ast, debug);
 			pop_root(6);
 			return code;
@@ -731,8 +767,6 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 
 						vpush(ROP(IS_PUSH),   code);		vpush(ast, debug);
 						vpush(RINT(argnum),   code);		vpush(ast, debug);
-						vpush(ROP(IS_ARGNUM), code);		vpush(ast, debug);
-						//vpush(ROPD(IS_ARGNUM, argnum), code);	vpush(ast, debug);
 
 						vpush(ROP(IS_PUSH), code);		vpush(ast, debug);
 						vpush(ref,          code);		vpush(ast, debug);
@@ -747,8 +781,6 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 
 						vpush(ROP(IS_PUSH),   code);		vpush(ast, debug);
 						vpush(RINT(argnum),   code);		vpush(ast, debug);
-						vpush(ROP(IS_ARGNUM), code);		vpush(ast, debug);
-						//vpush(ROPD(IS_ARGNUM, argnum), code);	vpush(ast, debug);
 
 						vpush(ROP(IS_PUSH),        code);	vpush(ast, debug);
 						vpush(ref,                 code);	vpush(ast, debug);
@@ -785,8 +817,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 
 	vpush(ROP(IS_PUSH),   code);		vpush(ast, debug);
 	vpush(RINT(argnum),   code);		vpush(ast, debug);
-	vpush(ROP(IS_ARGNUM), code);		vpush(ast, debug);
-	//vpush(ROPD(IS_ARGNUM, argnum), code);	vpush(ast, debug);
+	vpush(ROP(IS_SWAP),   code);		vpush(ast, debug);
 	vpush(ROP(IS_AP),          code);	vpush(ast, debug);
 	vpush(ROP(IS_COMPILE_VM),  code);	vpush(ast, debug);
 	vpush(ROP(IS_EXEC_VM),     code);	vpush(ast, debug);
@@ -801,8 +832,7 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 
 	vpush(ROP(IS_PUSH),   code);		vpush(ast, debug);
 	vpush(RINT(argnum),   code);		vpush(ast, debug);
-	vpush(ROP(IS_ARGNUM), code);		vpush(ast, debug);
-	//vpush(ROPD(IS_ARGNUM, argnum), code);	vpush(ast, debug);
+	vpush(ROP(IS_SWAP),   code);		vpush(ast, debug);
 	vpush(ROP(IS_AP), code);		vpush(ast, debug);
 
 	int next_addr = vsize(code);
