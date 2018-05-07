@@ -46,13 +46,14 @@ static value_t pr_str_cons(value_t x, value_t pkg, value_t annotate, bool print_
 {
 	assert(rtypeof(x) == CONS_T);
 	push_root(&x);
+	push_root(&pkg);
 	push_root(&annotate);
 	value_t r    = make_vector(0);
 	push_root(&r);
 
 	if(nilp(x))
 	{
-		pop_root(3);
+		pop_root(4);
 		return str_to_rstr("nil");
 	}
 	else
@@ -78,7 +79,7 @@ static value_t pr_str_cons(value_t x, value_t pkg, value_t annotate, bool print_
 
 		vpush(RCHAR(')'), r);
 
-		pop_root(3);
+		pop_root(4);
 		return r;
 	}
 }
@@ -368,6 +369,7 @@ static value_t pr_err_cause(value_t e)
 }
 static value_t pr_err_pos(value_t e, value_t pkg)
 {
+	push_root(&pkg);
 	value_t pos  = RERR_POS(e);
 	push_root(&pos);
 	value_t r    = make_vector(0);
@@ -379,7 +381,7 @@ static value_t pr_err_pos(value_t e, value_t pkg)
 		vnconc(r, pr_str(car(pos), pkg, NIL, true));
 	}
 
-	pop_root(2);
+	pop_root(3);
 	return r;
 }
 
@@ -387,38 +389,50 @@ static value_t pr_err(value_t s, value_t pkg)
 {
 	assert(errp(s));
 
+	push_root(&pkg);
 	push_root(&s);
 	value_t r = pr_err_cause(s);
 	push_root(&r);
 	r = vnconc(r, pr_err_pos(s, pkg));
-	pop_root(2);
+	pop_root(3);
 	return r;
 }
 
 static value_t pr_sym(value_t s, value_t pkg)
 {
 	assert(symbolp(s));
+	value_t r = NIL;
+	push_root(&s);
+	push_root(&pkg);
+	push_root(&r);
 
 	if(EQ(symbol_package(s), pkg))
 	{
-		return symbol_string_c(s);
+		r = symbol_string_c(s);
 	}
 	else if(EQ(symbol_package(s), NIL))	// uninterned symbol
 	{
-		return vnconc(str_to_rstr("#:"), symbol_string_c(s));
+		r = str_to_rstr("#:");
+		r = vnconc(r, symbol_string_c(s));
 	}
 	else
 	{
 		value_t pkg_name = UNSAFE_CAR(symbol_package(s));
 		if(EQ(pkg_name, NIL))	// keyword
 		{
-			return vnconc(str_to_rstr(":"), symbol_string_c(s));
+			r = str_to_rstr(":");
+			r = vnconc(r, symbol_string_c(s));
 		}
 		else
 		{
-			return vnconc(symbol_string_c(pkg_name), vnconc(str_to_rstr("::"), symbol_string_c(s)));
+			r = symbol_string_c(pkg_name);
+			r = vnconc(r, str_to_rstr("::"));
+			r = vnconc(r, symbol_string_c(s));
 		}
 	}
+
+	pop_root(3);
+	return r;
 }
 
 static value_t pr_str_char(value_t s)
@@ -644,6 +658,7 @@ value_t pr_str(value_t s, value_t pkg, value_t annotate, bool print_readably)
 void print(value_t s, value_t pkg, FILE* fp)
 {
 	push_root(&s);
+	push_root(&pkg);
 	GCCONS(c, RINT(0), NIL);
 
 	value_t r = pr_str(s, pkg, c, true);
@@ -658,7 +673,7 @@ void print(value_t s, value_t pkg, FILE* fp)
 		printline(r, fp);
 	}
 
-	pop_root(2);
+	pop_root(3);
 	return;
 }
 

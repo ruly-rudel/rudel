@@ -985,14 +985,30 @@ value_t symbol_package(value_t sym)
 
 value_t intern	(const char* s, value_t package)
 {
+	push_root(&package);
+
 	value_t r = make_symbol(s);
-	return errp(r) ? r : register_sym(r, package);
+	if(!errp(r))
+	{
+		r = register_sym(r, package);
+	}
+
+	pop_root(1);
+	return r;
 }
 
 value_t intern_r(value_t s, value_t package)
 {
+	push_root(&package);
+
 	value_t r = make_symbol_r(s);
-	return errp(r) ? r : register_sym(r, package);
+	if(!errp(r))
+	{
+		r = register_sym(r, package);
+	}
+
+	pop_root(1);
+	return r;
 }
 
 value_t gensym	(value_t env)

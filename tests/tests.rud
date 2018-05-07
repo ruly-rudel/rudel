@@ -518,13 +518,13 @@ nil
 ;;
 ;; -------- Optional Functionality --------
 
-;;  ;; Testing keywords
-;;  (= :abc :abc)
-;;  ;=>t
-;;  (= :abc :def)
-;;  ;=>nil
-;;  (= :abc ":abc")
-;;  ;=>nil
+;; Testing keywords
+(equal :abc :abc)
+;=>t
+(equal :abc :def)
+;=>nil
+(equal :abc ":abc")
+;=>nil
 
 
 
