@@ -1296,3 +1296,9 @@ x
 ;=>(1)
 ((lambda (&key ((:key1 key1) 1) ((:key2 key2) nil)) (cons key1 key2)) :key2 2 :key1 4)
 ;=>(4 . 2)
+((lambda (arg1 &optional arg2 arg3) arg2) 1 2)
+;=>2
+((lambda (arg1 &optional arg2 arg3) arg2) 1)
+;=>nil
+((lambda (arg1 &optional arg2 arg3) arg2))
+; too few argument\..*

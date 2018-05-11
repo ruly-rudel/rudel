@@ -301,8 +301,28 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 			}
 			else
 			{
-				//********** not work
-				//vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
+				// arg num check
+				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+				vpush(ROP (IS_DUP),          code);	vpush(key, debug);
+				vpush(ROP (IS_PUSH),         code);	vpush(key, debug);
+				vpush(RINT(0),               code);	vpush(key, debug);
+				vpush(ROP (IS_EQ),           code);	vpush(key, debug);
+				vpush(ROPD(IS_BNIL, 5),      code);	vpush(key, debug);
+
+				// too few argument: use default
+				vpush(ROP (IS_PUSH),         code);	vpush(key, debug);
+				vpush(NIL,                   code);	vpush(key, debug);
+				vpush(ROP (IS_ROTL),         code);	vpush(key, debug);
+				vpush(ROPD(IS_BR, 5),        code);	vpush(key, debug);
+
+				// dec argnum
+				vpush(ROP (IS_PUSH),         code);	vpush(key, debug);
+				vpush(RINT(1),               code);	vpush(key, debug);
+				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
+				vpush(ROP (IS_SUB),          code);	vpush(key, debug);
+
+				// insert to env
+				vpush(ROP (IS_ROTL),         code);	vpush(key, debug);
 				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 				vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 				vpush(key_car,               code);	vpush(key, debug);
