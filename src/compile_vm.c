@@ -745,9 +745,6 @@ static value_t compile_vm_apply(value_t code, value_t debug, value_t ast, value_
 				pop_root(6);
 				return code;
 			}
-			//vpush(ROP(IS_PUSH),   code);		vpush(ast, debug);
-			//vpush(RINT(argnum),   code);		vpush(ast, debug);
-			//vpush(ROP(IS_ARGNUM), code);		vpush(ast, debug);
 			vpush(bfn, code);		vpush(ast, debug);
 			pop_root(6);
 			return code;
@@ -849,7 +846,7 @@ cleanup:
 
 /////////////////////////////////////////////////////////////////////
 // compile one term
-static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env)
+static value_t compile_vm1_fn(value_t code, value_t debug, value_t ast, value_t env)
 {
 	assert(vectorp(code));
 	assert(consp(env));
@@ -950,6 +947,59 @@ static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env
 	pop_root(5);
 	return code;
 }
+
+static value_t compile_vm1(value_t code, value_t debug, value_t ast, value_t env)
+{
+	assert(vectorp(code));
+	assert(consp(env));
+
+	push_root(&code);
+	push_root(&debug);
+	push_root(&ast);
+	push_root(&env);
+
+	if(symbolp(ast))
+	{
+		value_t op = compile_vm_check_builtin(ast); // Builtin Function (is one VM Instruction)
+		if(!nilp(op))
+		{
+			// create clojure calling built-in function
+			int n = compile_vm_get_builtin_argnum(ast);
+			assert(n >= 0);
+			value_t b_code  = make_vector(2);
+			push_root(&b_code);
+			value_t b_debug = make_vector(2);
+			push_root(&b_debug);
+
+			// arg num check
+			vpush(ROP(IS_PUSH),     b_code);	vpush(ast, b_debug);
+			vpush(RINT(n),          b_code);	vpush(ast, b_debug);	// argnum
+			vpush(ROP(IS_EQ),       b_code);	vpush(ast, b_debug);
+			vpush(ROPD(IS_BNIL, 3), b_code);	vpush(ast, b_debug);
+
+			// exec operation
+			vpush(op,               b_code);	vpush(ast, b_debug);
+			vpush(ROP(IS_RET),      b_code);	vpush(ast, b_debug);
+
+			// too few argument: throw error
+			vpush(ROP (IS_PUSH),    b_code);	vpush(ast, b_debug);
+			vpush(RINT(ERR_ARG),    b_code);	vpush(ast, b_debug);
+			vpush(ROP (IS_ERR),     b_code);	vpush(ast, b_debug);
+			vpush(ROP (IS_PR_STR),  b_code);	vpush(ast, b_debug);
+			vpush(ROP (IS_THROW),   b_code);	vpush(ast, b_debug);
+
+			// generate push-clojure code
+			vpush(ROP(IS_PUSH),                  code);			vpush(ast, debug);
+			vpush(cloj(NIL, env, cons(b_code, b_debug), NIL, NIL), code);	vpush(ast, debug);
+			pop_root(6);
+			return code;
+		}
+	}
+
+	pop_root(4);
+	return compile_vm1_fn(code, debug, ast, env);
+}
+
 
 /////////////////////////////////////////////////////////////////////
 // public: compile for VM
