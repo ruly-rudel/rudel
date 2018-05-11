@@ -65,7 +65,7 @@ librudel.a: $(LIBOBJS)
 
 test:	OPT=$(TEST_OPT)
 test:	$(TARGET)
-	../scr/runtest.py --test-timeout 120 ../tests/tests.rud ./$(TARGET)
+	../scr/runtest.py --test-timeout 180 ../tests/tests.rud ./$(TARGET)
 
 alloc: test_allocator.o librudel.a
 	$(LD) $^ -lcunit -o $@ $(LDFLAGS)

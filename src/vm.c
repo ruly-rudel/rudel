@@ -610,18 +610,12 @@ apply:
 				LOCAL_VPUSH_RAW(r1);
 				break;
 
-			case IS_ARGNUM: TRACE("ARGNUM");
-				r0 = LOCAL_VPOP_RAW;
-				argnum = INTOF(r0);
-				break;
-
-			case IS_DEC_ARGNUM: TRACE("DEC_ARGNUM");
-				argnum -= 1;
-				break;
-
 			case IS_VPUSH_REST: TRACE("VPUSH_REST");
 				r0 = LOCAL_VPOP_RAW;	// KEY
 				r1 = LOCAL_VPOP_RAW;	// VEC
+				r3 = LOCAL_VPOP_RAW;	// ARGNUM
+				assert(intp(r3));
+				argnum = INTOF(r3);
 				CONS(r2, r0, NIL);
 				r3 = r2;
 				while(argnum-- > 0)
@@ -633,6 +627,9 @@ apply:
 
 			case IS_CONS_REST: TRACE("CONS_REST");
 				r0 = LOCAL_VPOP_RAW;	// VEC
+				r3 = LOCAL_VPOP_RAW;	// ARGNUM
+				assert(intp(r3));
+				argnum = INTOF(r3);
 				CONS(r2, NIL, NIL);
 				r3 = r2;
 				while(argnum-- > 0)
@@ -641,11 +638,6 @@ apply:
 				}
 				LOCAL_VPUSH_RAW(r0);
 				LOCAL_VPUSH_RAW(UNSAFE_CDR(r2));
-				break;
-
-			case IS_ISZERO_ARGNUM: TRACE1("ISZERO_ARGNUM %d", argnum);
-				//if(argnum != 0) THROW(pr_str(RERR_ARG_PC, pkg, NIL, false));
-				LOCAL_VPUSH_RAW(argnum == 0 ? g_t : NIL);
 				break;
 
 			case IS_ROTL: TRACE("ROTL");

@@ -514,11 +514,8 @@ static value_t pr_vmis(value_t s)
 		case IS_SETENV:		return str_to_rstr("IS_SETENV");
 		case IS_NCONC:		return str_to_rstr("IS_NCONC");
 		case IS_SWAP:		return str_to_rstr("IS_SWAP");
-		case IS_ARGNUM:		return str_to_rstr("IS_ARGNUM");
-		case IS_DEC_ARGNUM:	return str_to_rstr("IS_DEC_ARGNUM");
 		case IS_VPUSH_REST:	return str_to_rstr("IS_VPUSH_REST");
 		case IS_CONS_REST:	return str_to_rstr("IS_CONS_REST");
-		case IS_ISZERO_ARGNUM:	return str_to_rstr("IS_ISZERO_ARGNUM");
 		case IS_ROTL:		return str_to_rstr("IS_ROTL");
 		case IS_GETF:		return str_to_rstr("IS_GETF");
 		case IS_THROW:		return str_to_rstr("IS_THROW");

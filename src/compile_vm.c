@@ -302,7 +302,7 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 			else
 			{
 				//********** not work
-				vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
+				//vpush(ROP (IS_DEC_ARGNUM),   code);	vpush(key, debug);
 				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 				vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 				vpush(key_car,               code);	vpush(key, debug);
@@ -311,16 +311,12 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 			break;
 
 		case 2:	// rest parameter
-			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
-			vpush(ROP (IS_ARGNUM),       code);	vpush(key, debug);
 			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
 			vpush(key_car,               code);	vpush(key, debug);
 			vpush(ROP (IS_VPUSH_REST),   code);	vpush(key, debug);
 			goto cleanup;
 
 		case 3:	// keyword parameter 1: push rest to env
-			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
-			vpush(ROP (IS_ARGNUM),       code);	vpush(key, debug);
 			vpush(ROP (IS_CONS_REST),    code);	vpush(key, debug);
 			st = 4;
 			// fall through
