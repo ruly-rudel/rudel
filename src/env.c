@@ -100,8 +100,9 @@ value_t	create_lambda_env	(value_t key, value_t outer)
 			}
 			else
 			{
+				key_car = consp(key_car) ? car(key_car) : key_car;
 				if(!symbolp(key_car)) goto cleanup;
-				rplacv(alist, i++, cons(car(key_car), NIL));
+				rplacv(alist, i++, cons(key_car, NIL));
 			}
 			break;
 
@@ -111,27 +112,15 @@ value_t	create_lambda_env	(value_t key, value_t outer)
 			goto cleanup;
 
 		case 3:	// keyword parameter
-			rplacv(alist, i++, cons(car(cdr(car(key_car))), NIL));
+			key_car = consp(key_car) ?
+					(consp(car(key_car)) && consp(cdr(car(key_car))) ?
+								 	car(cdr(car(key_car))) :
+									car(key_car)) :
+					key_car;
+			if(!symbolp(key_car)) goto cleanup;
+			rplacv(alist, i++, cons(key_car, NIL));
 			break;
 		}
-
-#if 0
-		assert(consp(key));
-
-		value_t key_car = UNSAFE_CAR(key);
-
-		if(EQ(key_car, RSPECIAL(SP_REST)))	// rest parameter
-		{
-			key_car = second(key);
-			rplacv(alist, i, cons(key_car, NIL));
-			break;
-		}
-		else
-		{
-			assert(symbolp(key_car));
-			rplacv(alist, i, cons(key_car, NIL));
-		}
-#endif
 	}
 
 cleanup:

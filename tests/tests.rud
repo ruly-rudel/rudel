@@ -1290,12 +1290,41 @@ x
 ;=>0
 
 ;; Testing lambda list
-((lambda (&key ((:key1 key1) nil)) key1) :key1 1)
+((lambda (&key ((:key1 akey1) nil)) akey1) :key1 1)
 ;=>1
-((lambda (&key ((:key1 key1) 1) ((:key2 key2) nil)) (cons key1 key2)) )
+((lambda (&key ((:key1 akey1) 1) ((:key2 akey2) nil)) (cons akey1 akey2)) )
 ;=>(1)
-((lambda (&key ((:key1 key1) 1) ((:key2 key2) nil)) (cons key1 key2)) :key2 2 :key1 4)
+((lambda (&key ((:key1 akey1) 1) ((:key2 akey2) nil)) (cons akey1 akey2)) :key2 2 :key1 4)
 ;=>(4 . 2)
+
+((lambda (&key ((:key1 akey1))) akey1) :key1 1)
+;=>1
+((lambda (&key ((:key1 akey1) 1) ((:key2 akey2))) (cons akey1 akey2)) )
+;=>(1)
+((lambda (&key ((:key1 akey1) 1) ((:key2 akey2))) (cons akey1 akey2)) :key2 2 :key1 4)
+;=>(4 . 2)
+
+((lambda (&key key1) key1) :key1 1)
+;=>1
+((lambda (&key (key1 1) key2) (cons key1 key2)) )
+;=>(1)
+((lambda (&key (key1 1) (key2)) (cons key1 key2)) :key2 2 :key1 4)
+;=>(4 . 2)
+
+((lambda (arg1 &optional (arg2 22) (arg3 33)) arg2) 1 2)
+;=>2
+((lambda (arg1 &optional (arg2 22) (arg3 33)) arg2) 1)
+;=>22
+((lambda (arg1 &optional (arg2 22) (arg3 33)) arg2))
+; too few argument\..*
+
+((lambda (arg1 &optional (arg2) (arg3)) arg2) 1 2)
+;=>2
+((lambda (arg1 &optional (arg2) (arg3)) arg2) 1)
+;=>nil
+((lambda (arg1 &optional (arg2) (arg3)) arg2))
+; too few argument\..*
+
 ((lambda (arg1 &optional arg2 arg3) arg2) 1 2)
 ;=>2
 ((lambda (arg1 &optional arg2 arg3) arg2) 1)

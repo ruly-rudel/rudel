@@ -3,6 +3,7 @@
 #include "builtin.h"
 #include "compile_vm.h"
 #include "env.h"
+#include "package.h"
 #include "allocator.h"
 #include "vm.h"
 #include "printer.h"
@@ -220,6 +221,9 @@ cleanup:
 static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, value_t env)
 {
 	value_t key_car = NIL;
+	value_t var     = NIL;
+	value_t keyword = NIL;
+	value_t init    = NIL;
 	assert(vectorp(code));
 	assert(consp(key) || nilp(key));
 
@@ -228,6 +232,9 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 	push_root(&key);
 	push_root(&env);
 	push_root(&key_car);
+	push_root(&var);
+	push_root(&keyword);
+	push_root(&init);
 
 	vpush(ROPD(IS_MKVEC_ENV, count(key)), code);		vpush(key, debug);
 	vpush(ROP (IS_VPUSH_ENV),             code);		vpush(key, debug);	// duplicate ENV_VEC on stack top
@@ -301,6 +308,9 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 			}
 			else
 			{
+				var  = consp(key_car) ? car(key_car) : key_car;
+				init = consp(key_car) && consp(cdr(key_car)) ? car(cdr(key_car)) : NIL;
+
 				// arg num check
 				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 				vpush(ROP (IS_DUP),          code);	vpush(key, debug);
@@ -310,8 +320,9 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 				vpush(ROPD(IS_BNIL, 5),      code);	vpush(key, debug);
 
 				// too few argument: use default
-				vpush(ROP (IS_PUSH),         code);	vpush(key, debug);
-				vpush(NIL,                   code);	vpush(key, debug);
+				code = compile_vm1(code, debug, init, env);
+				if(errp(code)) goto cleanup;
+
 				vpush(ROP (IS_ROTL),         code);	vpush(key, debug);
 				vpush(ROPD(IS_BR, 5),        code);	vpush(key, debug);
 
@@ -325,7 +336,7 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 				vpush(ROP (IS_ROTL),         code);	vpush(key, debug);
 				vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 				vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
-				vpush(key_car,               code);	vpush(key, debug);
+				vpush(var,                   code);	vpush(key, debug);
 				vpush(ROP (IS_CONS_VPUSH),   code);	vpush(key, debug);
 			}
 			break;
@@ -342,17 +353,21 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 			// fall through
 
 		case 4:	// keyword parameter 2: push each keyword
+			var     = consp(key_car) ? (consp(car(key_car)) ? car(cdr(car(key_car))) : car(key_car)) : key_car;
+			init    = consp(key_car) && consp(cdr(key_car)) ? car(cdr(key_car)) : NIL;
+			keyword = consp(key_car) && consp(car(key_car)) ? car(car(key_car)) : intern_r(symbol_string(var), in_package(NIL));
+
 			vpush(ROP (IS_DUP),          code);	vpush(key, debug);
 			vpush(ROP (IS_ROTL),         code);	vpush(key, debug);
 
-			code = compile_vm1(code, debug, car(cdr(key_car)), env);
+			code = compile_vm1(code, debug, init, env);
 			if(errp(code)) goto cleanup;
 
 			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
-			vpush(car(car(key_car)),     code);	vpush(key, debug);
+			vpush(keyword,               code);	vpush(key, debug);
 			vpush(ROP (IS_GETF),         code);	vpush(key, debug);
 			vpush(ROP (IS_PUSHR),        code);	vpush(key, debug);
-			vpush(car(cdr(car(key_car))),code);	vpush(key, debug);
+			vpush(var,                   code);	vpush(key, debug);
 			vpush(ROP (IS_CONS_VPUSH),   code);	vpush(key, debug);
 			vpush(ROP (IS_SWAP),         code);	vpush(key, debug);
 			break;
@@ -381,7 +396,7 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 	}
 
 cleanup:
-	pop_root(5);
+	pop_root(8);
 	return code;
 }
 
