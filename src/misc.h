@@ -23,6 +23,13 @@
 
 #endif // DEF_EXTERN
 
+#ifdef NO_INLINE
+	#define DECL_INLINE __attribute__((noinline))
+#else  // NO_INLINE
+	#define DECL_INLINE inline
+#endif // NO_INLINE
+
+
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
 
 void	init_global	(void);

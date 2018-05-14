@@ -12,6 +12,17 @@
 /////////////////////////////////////////////////////////////////////
 // macros
 
+#ifdef NO_INLINE
+
+#define LOCAL_VPUSH_RAW(X)	local_vpush((X), stack)
+#define LOCAL_VPOP_RAW		local_vpop(stack)
+#define LOCAL_VPEEK_RAW		local_vpeek(stack)
+#define LOCAL_RPLACV_TOP_RAW(X)	local_rplacv_top((X), stack)
+#define LOCAL_VPUSH_RET_RAW(X)	local_vpush((X), ret)
+#define LOCAL_VPOP_RET_RAW	local_vpop(ret)
+
+#else	// NO_INLINE
+
 #define LOCAL_VPUSH_RAW(X) \
 { \
 	if(sp + 2 >= alloc) { \
@@ -27,12 +38,9 @@
 	stack_raw[++sp] = (X); \
 }
 
-#define LOCAL_VPOP_RAW    (stack_raw[sp--])
-
-#define LOCAL_VPEEK_RAW   (stack_raw[sp])
-
-#define LOCAL_RPLACV_TOP_RAW(X)  stack_raw[sp] = (X)
-
+#define LOCAL_VPOP_RAW		(stack_raw[sp--])
+#define LOCAL_VPEEK_RAW		(stack_raw[sp])
+#define LOCAL_RPLACV_TOP_RAW(X)	 stack_raw[sp] = (X)
 
 #define LOCAL_VPUSH_RET_RAW(X) \
 { \
@@ -48,7 +56,10 @@
 	ret_raw[++rsp] = (X); \
 }
 
-#define LOCAL_VPOP_RET_RAW    (ret_raw[rsp--])
+#define LOCAL_VPOP_RET_RAW	(ret_raw[rsp--])
+
+#endif	// NO_INLINE
+
 
 
 
@@ -170,7 +181,7 @@
 /////////////////////////////////////////////////////////////////////
 // private: unroll inner-loop
 
-inline static value_t local_make_vector(unsigned n)
+DECL_INLINE static value_t local_make_vector(unsigned n)
 {
 	value_t v = { 0 };
 	v.vector  = alloc_vector();
@@ -191,13 +202,13 @@ inline static value_t local_make_vector(unsigned n)
 	}
 }
 
-inline static value_t local_vref(value_t v, unsigned pos)
+DECL_INLINE static value_t local_vref(value_t v, unsigned pos)
 {
 	assert(vectorp(v) || symbolp(v));
 	return VPTROF(AVALUE(v).vector->data)[pos];
 }
 
-inline static value_t local_vref_safe(value_t v, unsigned pos)
+DECL_INLINE static value_t local_vref_safe(value_t v, unsigned pos)
 {
 	assert(vectorp(v) || symbolp(v));
 	v = AVALUE(v);
@@ -212,7 +223,7 @@ inline static value_t local_vref_safe(value_t v, unsigned pos)
 	}
 }
 
-inline static value_t local_vpush(value_t x, value_t v)
+DECL_INLINE static value_t local_vpush(value_t x, value_t v)
 {
 	assert(vectorp(v));
 
@@ -238,7 +249,7 @@ inline static value_t local_vpush(value_t x, value_t v)
 	return v;
 }
 
-inline static value_t local_vpop(value_t v)
+DECL_INLINE static value_t local_vpop(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v = AVALUE(v);
@@ -247,27 +258,27 @@ inline static value_t local_vpop(value_t v)
 	return VPTROF(v.vector->data)[s];
 }
 
-inline static value_t local_vpeek(value_t v)
+DECL_INLINE static value_t local_vpeek(value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v = AVALUE(v);
 	return VPTROF(v.vector->data)[INTOF(v.vector->size) - 1];
 }
 
-inline static value_t local_rplacv_top(value_t x, value_t v)
+DECL_INLINE static value_t local_rplacv_top(value_t x, value_t v)
 {
 	assert(vectorp(v) || symbolp(v));
 	v = AVALUE(v);
 	return VPTROF(v.vector->data)[INTOF(v.vector->size) - 1] = x;
 }
 
-inline static value_t local_rplacv(value_t v, int i, value_t x)
+DECL_INLINE static value_t local_rplacv(value_t v, int i, value_t x)
 {
 	assert(vectorp(v) || symbolp(v));
 	return VPTROF(AVALUE(v).vector->data)[i] = x;
 }
 
-inline static value_t local_get_env_value_ref(value_t ref, value_t env)
+DECL_INLINE static value_t local_get_env_value_ref(value_t ref, value_t env)
 {
 	assert(consp(env));
 	assert(refp(ref));
@@ -282,7 +293,7 @@ inline static value_t local_get_env_value_ref(value_t ref, value_t env)
 	return errp(pair) ? pair : UNSAFE_CDR(pair);
 }
 
-static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
+DECL_INLINE static value_t local_set_env_ref(value_t ref, value_t val, value_t env)
 {
 	assert(consp(env));
 	assert(refp(ref));
@@ -310,6 +321,10 @@ value_t exec_vm(value_t c, value_t e)
 	check_sanity();
 #endif // CHECK_GC_SANITY
 
+#ifdef NO_INLINE
+	value_t stack      = NIL;
+	value_t ret        = NIL;
+#else	// NO_INLINE
 	int alloc          = 8;
 	int sp             = -1;
 	value_t* stack_raw = (value_t*)malloc(sizeof(value_t) * alloc);
@@ -317,6 +332,7 @@ value_t exec_vm(value_t c, value_t e)
 	int ralloc         = 8;
 	int rsp            = -1;
 	value_t* ret_raw   = (value_t*)malloc(sizeof(value_t) * ralloc);
+#endif	// NO_INLINE
 
 	value_t code       = car(c);
 
@@ -342,8 +358,15 @@ value_t exec_vm(value_t c, value_t e)
 	push_root        (&r1);
 	push_root        (&r2);
 	push_root        (&r3);
+#ifdef NO_INLINE
+	push_root        (&stack);
+	push_root        (&ret);
+	stack         = make_vector(8);
+	ret           = make_vector(8);
+#else	// NO_INLINE
 	push_root_raw_vec(stack_raw, &sp);
 	push_root_raw_vec(ret_raw,   &rsp);
+#endif	// NO_INLINE
 
 	pkg = get_env_pkg(env);
 
@@ -351,8 +374,10 @@ value_t exec_vm(value_t c, value_t e)
 	{
 		value_t op = local_vref(code, pc);
 		assert(rtypeof(op) == VMIS_T);
+#ifndef NO_INLINE
 		assert(sp >= -1);
 		assert(rsp >= -1);
+#endif	// NO_INLINE
 
 again:
 		switch(op.op.mnem)
@@ -360,7 +385,11 @@ again:
 			// core functions
 			case IS_HALT: TRACE("HALT");
 #ifdef PRINT_STACK_USAGE
+#ifdef NO_INLINE
+				fprintf(stderr, "VM stack usage: stack %d, return %d\n", vallocsize(stack), vallocsize(ret));
+#else // NO_INLINE
 				fprintf(stderr, "VM stack usage: stack %d, return %d\n", alloc, ralloc);
+#endif // NO_INLINE
 #endif // PRINT_STACK_USAGE
 				// pop root
 				pop_root(10);
@@ -409,6 +438,12 @@ again:
 
 			case IS_CALLCC: TRACE("CALLCC");
 				// save continuation
+#ifdef NO_INLINE
+				r0 = copy_vector(stack);
+				local_vpop(r0);	// top of stack is not copied.
+				r1 = copy_vector(ret);
+#else	// NO_INLINE
+
 				r0 = make_vector(sp  < 0 ? 0 :  sp);	// stack copy, top of stack is not copied bucase it is clojure that called in following IS_AP, and it is not containd in continuation
 				for(int i = 0; i < sp; i++)
 					local_vpush(stack_raw[i], r0);
@@ -416,6 +451,7 @@ again:
 				r1 = make_vector(rsp < 0 ? 0 : rsp + 1);	// ret copy
 				for(int i = 0; i <= rsp; i++)
 					local_vpush(ret_raw[i], r1);
+#endif	// NO_INLINE
 
 				local_vpush(code,         r1);
 				local_vpush(debug,        r1);
@@ -439,7 +475,6 @@ again:
 				LOCAL_VPUSH_RAW(RINT(1));	// argnum
 				LOCAL_VPUSH_RAW(r1);
 
-				//argnum = 1;
 				// fall-through to AP
 
 			case IS_AP: TRACE("AP");
@@ -481,6 +516,14 @@ apply:
 
 				r1 = local_vref(code, ++pc);	// next code is entity(continuation itself)
 
+#ifdef NO_INLINE
+				// restore ret stack
+				ret   = copy_vector(r1);
+
+				// restore stack
+				r2 = LOCAL_VPOP_RET_RAW;
+				stack = copy_vector(r2);
+#else	// NO_INLINE
 				// restore ret stack
 				rsp = -1;		// clear ret stack
 				for(int i = 0; i < vsize(r1); i++)
@@ -495,6 +538,7 @@ apply:
 				{
 					LOCAL_VPUSH_RAW(local_vref(r2, i));
 				}
+#endif	// NO_INLINE
 
 				// push result to stack
 				LOCAL_VPUSH_RAW(r0);

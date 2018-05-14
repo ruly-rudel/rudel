@@ -11,7 +11,6 @@
 #include "vm.h"
 #include "compile_vm.h"
 
-#define SYM(X) str_to_sym(X)
 #define STR(X) str_to_rstr(X)
 
 void repl(value_t env)
