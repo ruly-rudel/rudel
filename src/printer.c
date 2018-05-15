@@ -566,6 +566,8 @@ static value_t pr_vmis(value_t s)
 		case IS_READ:		return str_to_rstr("IS_READ");
 		case IS_COUNT:		return str_to_rstr("IS_COUNT");
 		case IS_REVERSE:	return str_to_rstr("IS_REVERSE");
+		case IS_MAKE_PACKAGE:	return str_to_rstr("IS_MAKE_PACKAGE");
+		case IS_FIND_PACKAGE:	return str_to_rstr("IS_FIND_PACKAGE");
 		default:		return RERR(ERR_NOTIMPL, str_to_rstr("VMIS"));
 	}
 }

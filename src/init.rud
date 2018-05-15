@@ -223,6 +223,18 @@
 	  (mapcar macroexpand-all ast))))
     ast))
 
+(defmacro aif (c tc &optional fc)
+  `(let* ((it ,c))
+     (if it ,tc ,fc)))
+
+(defun make-package (name &key use)
+  (mkpkg name use))
+
+(defun in-package (name)
+  (aif (find-package name)
+       (setq *package* it)))
+
+
 ;; rudel-specific functions
 (defun load-file (f)
 	(eval (read-string (str "(progn " (slurp f) ")"))))

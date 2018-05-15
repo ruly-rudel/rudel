@@ -52,25 +52,26 @@ value_t register_sym(value_t s, value_t pkg)
 value_t	init_package_list	(void)
 {
 	g_package_list = NIL;
-	value_t key = create_package(NIL);
-	value_t usr = create_package(intern("user", key));
+	value_t key = make_package(NIL, NIL);
+	value_t usr = make_package(intern("user", key), NIL);
 
 	return usr;
 }
 
-value_t	create_package	(value_t name)
+value_t	make_package	(value_t name, value_t use)
 {
 	assert(symbolp(name) || nilp(name));
+	assert(symbolp(use)  || nilp(use));
 	push_root(&name);
 
-	value_t r = cons(name, NIL);
+	value_t r = cons(name, nilp(use) ? NIL : copy_list(cdr(find_package(use))));
 	push_root(&r);
 	g_package_list = cons(r, g_package_list);
 	pop_root(2);
 	return r;
 }
 
-value_t in_package	(value_t name)
+value_t find_package	(value_t name)
 {
 	assert(symbolp(name) || nilp(name));
 

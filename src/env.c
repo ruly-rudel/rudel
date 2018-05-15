@@ -239,7 +239,7 @@ value_t	get_env_pkg	(value_t env)
 		if(veq(UNSAFE_CAR(UNSAFE_CAR(pair)), key))
 		{
 			pop_root(1);
-			return UNSAFE_CDR(pair);
+			return pair;
 		}
 	}
 

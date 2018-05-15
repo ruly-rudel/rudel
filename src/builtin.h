@@ -120,6 +120,8 @@ typedef enum {
 	IS_READ,
 	IS_COUNT,
 	IS_REVERSE,
+	IS_MAKE_PACKAGE,
+	IS_FIND_PACKAGE,
 } vmis_t;
 
 #if __WORDSIZE == 32

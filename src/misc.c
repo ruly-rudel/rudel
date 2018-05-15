@@ -14,7 +14,7 @@ void init_global(void)
 {
 	lock_gc();
 
-	value_t pkg = in_package(intern("user", car(last(g_package_list))));
+	value_t pkg = find_package(intern("user", car(last(g_package_list))));
 
 	g_nil		 = intern("nil",		pkg);	push_root(&g_nil);
 	g_t		 = intern("t",			pkg);	push_root(&g_t);
@@ -92,6 +92,8 @@ void init_global(void)
 		intern("reverse",	pkg),		ROP(IS_REVERSE),	RINT(1),
 		intern("nconc",		pkg),		ROP(IS_NCONC),		RINT(2),
 		intern("getf",		pkg),		ROP(IS_GETF),		RINT(3),
+		intern("mkpkg",		pkg),		ROP(IS_MAKE_PACKAGE),	RINT(2),
+		intern("find-package",	pkg),		ROP(IS_FIND_PACKAGE),	RINT(1),
 	};
 
 	g_istbl_size = sizeof(tbl) / sizeof(tbl[0]) - 1;

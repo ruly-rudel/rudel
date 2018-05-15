@@ -355,7 +355,7 @@ static value_t	compile_vm_arg_lambda(value_t code, value_t debug, value_t key, v
 		case 4:	// keyword parameter 2: push each keyword
 			var     = consp(key_car) ? (consp(car(key_car)) ? car(cdr(car(key_car))) : car(key_car)) : key_car;
 			init    = consp(key_car) && consp(cdr(key_car)) ? car(cdr(key_car)) : NIL;
-			keyword = consp(key_car) && consp(car(key_car)) ? car(car(key_car)) : intern_r(symbol_string(var), in_package(NIL));
+			keyword = consp(key_car) && consp(car(key_car)) ? car(car(key_car)) : intern_r(symbol_string(var), find_package(NIL));
 
 			vpush(ROP (IS_DUP),          code);	vpush(key, debug);
 			vpush(ROP (IS_ROTL),         code);	vpush(key, debug);

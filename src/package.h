@@ -7,7 +7,7 @@
 void	clear_symtbl		(void);
 value_t	register_sym		(value_t s, value_t pkg);
 value_t	init_package_list	(void);
-value_t	create_package		(value_t name);
-value_t in_package		(value_t name);
+value_t make_package		(value_t name, value_t use);
+value_t find_package		(value_t name);
 
 #endif // _PACKAGE_H_

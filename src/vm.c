@@ -67,7 +67,11 @@
 { \
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = (X); \
-	if(errp(r1))  THROW(pr_str(RERR_OVW_PC(r1), NIL, false)); \
+	if(errp(r1)) \
+	{ \
+		r1 = RERR_OVW_PC(r1); \
+		THROW(pr_str(r1, UNSAFE_CDR(pkg), NIL, false)); \
+	} \
 }
 
 #define OP_1P0PNE(X) \
@@ -79,7 +83,11 @@
 #define OP_0P1P(X) \
 { \
 	r0 = (X); \
-	if(errp(r0))  THROW(pr_str(RERR_OVW_PC(r0), pkg, NIL, false)); \
+	if(errp(r0)) \
+	{ \
+		r0 = RERR_OVW_PC(r0); \
+		THROW(pr_str(r0, UNSAFE_CDR(pkg), NIL, false)); \
+	} \
 	LOCAL_VPUSH_RAW(r0); \
 }
 
@@ -87,7 +95,11 @@
 { \
 	r0 = LOCAL_VPEEK_RAW; \
 	r1 = (X); \
-	if(errp(r1))  THROW(pr_str(RERR_OVW_PC(r1), pkg, NIL, false)); \
+	if(errp(r1)) \
+	{ \
+		r1 = RERR_OVW_PC(r1); \
+		THROW(pr_str(r1, UNSAFE_CDR(pkg), NIL, false)); \
+	} \
 	LOCAL_RPLACV_TOP_RAW(r1); \
 }
 
@@ -101,7 +113,8 @@
 	} \
 	else \
 	{ \
-		THROW(pr_str(RERR_TYPE_PC, pkg, NIL, false)); \
+		r1 = RERR_TYPE_PC; \
+		THROW(pr_str(r1, UNSAFE_CDR(pkg), NIL, false)); \
 	} \
 }
 
@@ -110,7 +123,11 @@
 	r0 = LOCAL_VPOP_RAW; \
 	r1 = LOCAL_VPEEK_RAW; \
 	r2 = (X); \
-	if(errp(r2))  THROW(pr_str(RERR_OVW_PC(r2), pkg, NIL, false)); \
+	if(errp(r2)) \
+	{ \
+		r2 = RERR_OVW_PC(r2); \
+		THROW(pr_str(r2, UNSAFE_CDR(pkg), NIL, false)); \
+	} \
 	LOCAL_RPLACV_TOP_RAW(r2); \
 }
 
@@ -125,7 +142,8 @@
 	} \
 	else \
 	{ \
-		THROW(pr_str(RERR_TYPE_PC, pkg, NIL, false)); \
+		r2 = RERR_TYPE_PC; \
+		THROW(pr_str(r2, UNSAFE_CDR(pkg), NIL, false)); \
 	} \
 }
 
@@ -135,7 +153,11 @@
 	r1 = LOCAL_VPOP_RAW; \
 	r2 = LOCAL_VPEEK_RAW; \
 	r3 = (X); \
-	if(errp(r3))  THROW(pr_str(RERR_OVW_PC(r3), pkg, NIL, false)); \
+	if(errp(r3)) \
+	{ \
+		r3 = RERR_OVW_PC(r3); \
+		THROW(pr_str(r3, UNSAFE_CDR(pkg), NIL, false)); \
+	} \
 	LOCAL_RPLACV_TOP_RAW(r3); \
 }
 
@@ -485,7 +507,7 @@ apply:
 					if(nilp(THIRD(r1)))
 					{
 						r2 = compile_vm(r1, env);
-						if(errp(r2)) THROW(pr_str(r2, pkg, NIL, false));
+						if(errp(r2)) THROW(pr_str(r2, UNSAFE_CDR(pkg), NIL, false));
 					}
 					// save contexts
 					LOCAL_VPUSH_RET_RAW(code);
@@ -506,7 +528,7 @@ apply:
 				}
 				else
 				{
-					THROW(pr_str(RERR_PC(ERR_INVALID_AP), pkg, NIL, false));
+					THROW(pr_str(RERR_PC(ERR_INVALID_AP), UNSAFE_CDR(pkg), NIL, false));
 				}
 				break;
 
@@ -599,12 +621,12 @@ apply:
 					AVALUE(UNSAFE_CDR(UNSAFE_CDR(UNSAFE_CDR(r0)))).cons->car = env;	// set current environment
 				}
 #ifdef TRACE_VM
-				print(r0, pkg, stderr);
+				print(r0, UNSAFE_CDR(pkg), stderr);
 #endif // TRACE_VM
 				if(errp(r0))
 				{
 					r0 = RERR_OVW_PC(r0);
-					THROW(pr_str(r0, pkg, NIL, false));
+					THROW(pr_str(r0, UNSAFE_CDR(pkg), NIL, false));
 				}
 				LOCAL_VPUSH_RAW(r0);
 				break;
@@ -612,7 +634,7 @@ apply:
 			case IS_PUSHR: TRACEN("PUSHR: ");
 				r0 = local_vref(code, ++pc);	// next code is entity
 #ifdef TRACE_VM
-				print(r0, pkg, stderr);
+				print(r0, UNSAFE_CDR(pkg), stderr);
 #endif // TRACE_VM
 				LOCAL_VPUSH_RAW(r0);
 				break;
@@ -794,13 +816,13 @@ apply:
 				break;
 
 			case IS_READ_STRING: TRACE("READ_STRING");
-				OP_1P1P(vectorp(r0) ? read_str(r0, pkg) : RERR_TYPE_PC);
+				OP_1P1P(vectorp(r0) ? read_str(r0, UNSAFE_CDR(pkg)) : RERR_TYPE_PC);
 				break;
 
 			case IS_EVAL: TRACE("EVAL");
 				r0 = LOCAL_VPOP_RAW;
 				r1 = compile_vm(r0, env);
-				if(errp(r1)) THROW(pr_str(r1, pkg, NIL, false));
+				if(errp(r1)) THROW(pr_str(r1, UNSAFE_CDR(pkg), NIL, false));
 
 				// save contexts
 				LOCAL_VPUSH_RET_RAW(code);
@@ -823,7 +845,7 @@ apply:
 				break;
 
 			case IS_INIT: TRACE("INIT");
-				OP_0P1P(init(pkg));
+				OP_0P1P(init(UNSAFE_CDR(pkg)));
 				break;
 
 			case IS_SAVECORE: TRACE("SAVECORE");
@@ -891,12 +913,12 @@ apply:
 				}
 				else
 				{
-					THROW(pr_str(RERR_TYPE_PC, pkg, NIL, false));
+					THROW(pr_str(RERR_TYPE_PC, UNSAFE_CDR(pkg), NIL, false));
 				}
 				break;
 
 			case IS_PR_STR: TRACE("PR_STR");
-				OP_2P1P(pr_str(r0, pkg, NIL, !nilp(r1)));
+				OP_2P1P(pr_str(r0, UNSAFE_CDR(pkg), NIL, !nilp(r1)));
 				break;
 
 			case IS_PRINTLINE: TRACE("PRINTLINE");
@@ -904,7 +926,7 @@ apply:
 				break;
 
 			case IS_PRINT: TRACE("PRINT");
-				OP_1P1P((print(r0, pkg, stdout), NIL));
+				OP_1P1P((print(r0, UNSAFE_CDR(pkg), stdout), NIL));
 				break;
 
 			case IS_SLURP: TRACE("SLURP");
@@ -912,7 +934,7 @@ apply:
 				r0 = LOCAL_VPEEK_RAW;
 				if(!vectorp(r0))
 				{
-					THROW(pr_str(RERR_TYPE_PC, pkg, NIL, false));
+					THROW(pr_str(RERR_TYPE_PC, UNSAFE_CDR(pkg), NIL, false));
 				}
 				char* fn  = rstr_to_str(r0);
 				LOCAL_RPLACV_TOP_RAW(slurp(fn));
@@ -921,7 +943,7 @@ apply:
 			break;
 
 			case IS_READ: TRACE("READ");
-				LOCAL_VPUSH_RAW(READ(pkg, stdin));
+				LOCAL_VPUSH_RAW(READ(UNSAFE_CDR(pkg), stdin));
 				break;
 
 			case IS_COUNT: TRACE("COUNT");
@@ -932,8 +954,16 @@ apply:
 				OP_1P1P(consp(r0) ? reverse(r0) : RERR_TYPE_PC);
 				break;
 
+			case IS_MAKE_PACKAGE: TRACE("MAKE_PACKAGE");
+				OP_2P1P((symbolp(r0) || nilp(r0)) && (symbolp(r1) || nilp(r1)) ? make_package(r0, r1) : RERR_TYPE_PC);
+				break;
+
+			case IS_FIND_PACKAGE: TRACE("FIND_PACKAGE");
+				OP_1P1P(symbolp(r0) || nilp(r0) ? find_package(r0) : RERR_TYPE_PC);
+				break;
+
 			default:
-				THROW(pr_str(RERR_PC(ERR_INVALID_IS), pkg, NIL, false));
+				THROW(pr_str(RERR_PC(ERR_INVALID_IS), UNSAFE_CDR(pkg), NIL, false));
 
 throw:
 				// push exception handler

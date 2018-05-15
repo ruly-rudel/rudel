@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		print(env, get_env_pkg(env), stdout);
+		print(env, cdr(get_env_pkg(env)), stdout);
 	}
 
 	if(argc == 1)
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
 	else
 	{
 		lock_gc();
-		value_t pkg = get_env_pkg(env);
+		value_t pkg = cdr(get_env_pkg(env));
 		value_t val = cdr(parse_arg(argc, argv, pkg));
 		value_t key = intern("*ARGV*", pkg);
 		set_env(key, val, env);
