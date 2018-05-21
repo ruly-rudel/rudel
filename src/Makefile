@@ -23,7 +23,7 @@ ARCH=-m32
 CFLAGS=$(ARCH) $(COMOPT) -Wall $(INCPATHS)
 LDFLAGS=$(ARCH) $(LIBPATHS) -L.
 
-LIBSOURCES=builtin.c allocator.c scanner.c reader.c printer.c env.c package.c vm.c compile_vm.c misc.c ../linenoise/linenoise.c ../linenoise/stringbuf.c ../linenoise/utf8.c
+LIBSOURCES=builtin.c asm.c allocator.c scanner.c reader.c printer.c env.c package.c vm.c compile_vm.c misc.c ../linenoise/linenoise.c ../linenoise/stringbuf.c ../linenoise/utf8.c
 LIBOBJS=$(LIBSOURCES:%.c=%.o)
 
 TARGET=rudel

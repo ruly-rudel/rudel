@@ -6,6 +6,7 @@
 #include "allocator.h"
 #include "env.h"
 #include "package.h"
+#include "asm.h"
 
 /////////////////////////////////////////////////////////////////////
 // public: initialize well-known symbols

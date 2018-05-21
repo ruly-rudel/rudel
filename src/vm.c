@@ -8,6 +8,7 @@
 #include "reader.h"
 #include "printer.h"
 #include "compile_vm.h"
+#include "asm.h"
 
 /////////////////////////////////////////////////////////////////////
 // macros

@@ -10,6 +10,7 @@
 #include "env.h"
 #include "package.h"
 #include "printer.h"
+#include "asm.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: support functions

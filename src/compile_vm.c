@@ -7,6 +7,7 @@
 #include "allocator.h"
 #include "vm.h"
 #include "printer.h"
+#include "asm.h"
 
 /////////////////////////////////////////////////////////////////////
 // private:

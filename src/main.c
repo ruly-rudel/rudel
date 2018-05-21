@@ -10,6 +10,7 @@
 #include "env.h"
 #include "vm.h"
 #include "compile_vm.h"
+#include "asm.h"
 
 #define STR(X) str_to_rstr(X)
 
@@ -23,62 +24,76 @@ void repl(value_t env)
 
 	// build terminate-catcher code
 	value_t str = STR("exception caches at root: ");
-	value_t catch = make_vector(8);
-	vpush(ROP (IS_PUSH),		catch);
-	vpush(str,			catch);
-	vpush(ROP(IS_VCONC),		catch);
-	vpush(ROP(IS_PRINTLINE),	catch);
-	vpush(ROP(IS_GOTO),		catch);
+	code_t catch = { 0 };
+	asm_init(&catch, 6);
+	asm_op_nd(IS_PUSH,		&catch);
+	asm_im_nd(str,			&catch);
+	asm_op_nd(IS_VCONC,		&catch);
+	asm_op_nd(IS_PRINTLINE,		&catch);
+	asm_op_nd(IS_GOTO,		&catch);
 
-	value_t clojure = cloj(NIL, NIL, cons(catch, catch), env, NIL);
+	value_t clojure = cloj(NIL, NIL, asm_code(&catch), env, NIL);
 	set_env(g_exception_stack, cons(clojure, NIL), env);
 
 	// build repl code
-	value_t code = make_vector(27);
+	code_t code = { 0 };
+	asm_init(&code, 27);
 
-	vpush(ROP (IS_PUSH),		code);
-	vpush(cons(clojure, NIL),       code);
-	vpush(ROP (IS_PUSHR),		code);
-	vpush(g_exception_stack,        code);
-	vpush(ROP (IS_SETENV),		code);
+	value_t repl_begin = STR(".repl_begin");
+	value_t repl_eval  = STR(".repl_eval");
+	value_t repl_print = STR(".repl_print");
 
-	vpush(ROP (IS_READ),		code);
-	vpush(ROP (IS_DUP),		code);
-	vpush(ROP (IS_ERRP),		code);
-	vpush(ROPD(IS_BNIL, 16),	code);
-	vpush(ROP (IS_DUP),		code);
-	vpush(ROP (IS_CAR),		code);
-	vpush(ROP (IS_CONSP),		code);
-	vpush(ROPD(IS_BNIL, 2),		code);
-	vpush(ROPD(IS_BR, 12),		code);
-	vpush(ROP (IS_DUP),		code);
-	vpush(ROP (IS_CAR),		code);
-	vpush(ROP (IS_PUSH),		code);
-	vpush(RINT(ERR_EOF),		code);
-	vpush(ROP (IS_EQ),		code);
-	vpush(ROPD(IS_BNIL, 6),		code);
-	vpush(ROP (IS_POP),		code);
-	vpush(ROP (IS_PUSH),		code);
-	vpush(g_t,			code);
-	vpush(ROP (IS_HALT),		code);
+	asm_label (repl_begin,		&code);
+	asm_op_nd (IS_PUSH,		&code);
+	asm_im_nd (cons(clojure, NIL),	&code);
+	asm_op_nd (IS_PUSHR,		&code);
+	asm_im_nd (g_exception_stack,	&code);
+	asm_op_nd (IS_SETENV,		&code);
 
-	vpush(ROP (IS_EVAL),		code);
-	vpush(ROP (IS_PRINT),		code);
-	vpush(ROPD(IS_BRB, 26),		code);
+	asm_op_nd (IS_READ,		&code);
+	asm_op_nd (IS_DUP,		&code);
+	asm_op_nd (IS_ERRP,		&code);
+	asm_opl_nd(IS_BNIL, repl_eval,	&code);
+	asm_op_nd (IS_DUP,		&code);
+	asm_op_nd (IS_CAR,		&code);
+	asm_op_nd (IS_CONSP,		&code);
+	asm_opd_nd(IS_BNIL, 2,		&code);
+	asm_opl_nd(IS_BR, repl_print,	&code);
+	asm_op_nd (IS_DUP,		&code);
+	asm_op_nd (IS_CAR,		&code);
+	asm_op_nd (IS_PUSH,		&code);
+	asm_im_nd (RINT(ERR_EOF),	&code);
+	asm_op_nd (IS_EQ,		&code);
+	asm_opl_nd(IS_BNIL, repl_print,	&code);
+	asm_op_nd (IS_POP,		&code);
+	asm_op_nd (IS_PUSH,		&code);
+	asm_im_nd (g_t,			&code);
+	asm_op_nd (IS_HALT,		&code);
 
-	// save continuation
+	asm_label (repl_eval,		&code);
+	asm_op_nd (IS_EVAL,		&code);
+	asm_label (repl_print,		&code);
+	asm_op_nd (IS_PRINT,		&code);
+	asm_opl_nd(IS_BRB, repl_begin,	&code);
+
+	asm_fix_label(&code);
+
+	// save continuation (IS_GOTO in catch code)
 	value_t stack = make_vector(0);
 	value_t ret   = make_vector(5);
 
-	vpush(code,     ret);
-	vpush(code,     ret);
-	vpush(RINT(-1), ret);
-	vpush(env,      ret);
-	vpush(stack,    ret);
+	vpush(code.code,	ret);
+	vpush(code.debug,	ret);
+	vpush(RINT(-1), 	ret);
+	vpush(env,      	ret);
+	vpush(stack,    	ret);
 
-	vpush(ret,      catch);	// continuation itself is stored in catch code.
+	asm_im_nd(ret,		&catch);
 
-	value_t cd = cons(code, code);
+	value_t cd = asm_code(&code);
+
+	asm_close(&code);
+	asm_close(&catch);
 
 	unlock_gc();
 

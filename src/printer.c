@@ -4,6 +4,7 @@
 #include "printer.h"
 #include "reader.h"
 #include "allocator.h"
+#include "asm.h"
 
 /////////////////////////////////////////////////////////////////////
 // private: printer support functions
